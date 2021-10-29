@@ -13,18 +13,22 @@ import static org.bytedeco.llvm.global.LLVM.*;
 
 public class FuncCall extends Ast {
 
-    private final Ast func;
+    private final String func;
     private final List<Ast> args;
 
-    public FuncCall(Ast func, List<Ast> args) {
-        super(ConcreteType.I32);
+    public FuncCall(String func, List<Ast> args) {
         this.func = func;
         this.args = args;
     }
 
     @Override
+    public ConcreteType getConcreteType(GlobalContext globalContext, Variables variables) {
+        return globalContext.mapGet(func).getResult();
+    }
+
+    @Override
     public LLVMValueRef generateIR(GlobalContext globalContext, Variables variables, LLVMBuilderRef builder) {
-        return LLVMBuildCall(builder, func.generateIR(globalContext, variables, builder),
+        return LLVMBuildCall(builder, globalContext.mapGet(func).getValueRef(), // TODO function pointers / function pointer types
                 new PointerPointer<>(args.size()).put(args.stream().map(arg -> arg.generateIR(globalContext, variables, builder)).toArray(LLVMValueRef[]::new)),
                 args.size(), "FuncCall");
     }

@@ -1,10 +1,7 @@
 package mackycheese21.ferricoxide;
 
 import org.bytedeco.javacpp.PointerPointer;
-import org.bytedeco.llvm.LLVM.LLVMContextRef;
-import org.bytedeco.llvm.LLVM.LLVMModuleRef;
-import org.bytedeco.llvm.LLVM.LLVMTypeRef;
-import org.bytedeco.llvm.LLVM.LLVMValueRef;
+import org.bytedeco.llvm.LLVM.*;
 
 import java.util.Collections;
 import java.util.List;
@@ -36,6 +33,20 @@ public class Function {
 
     public LLVMTypeRef getTypeRef() {
         return typeRef;
+    }
+
+    public Variables enter(LLVMBuilderRef builder, List<String> paramNames) {
+        Variables vars = new Variables();
+        Utils.assertTrue(paramNames.size() == params.size());
+        for (int i = 0; i < paramNames.size(); i++) {
+            LLVMValueRef valueRef = LLVMBuildAlloca(builder, params.get(i).llvmTypeRef(), "alloca");
+            vars.mapAdd(paramNames.get(i), new Variables.Entry(
+                    valueRef,
+                    params.get(i)
+            ));
+            LLVMBuildStore(builder, LLVMGetParam(getValueRef(), i), valueRef);
+        }
+        return vars;
     }
 
     public ConcreteType getResult() {

@@ -8,15 +8,7 @@ import org.bytedeco.llvm.LLVM.LLVMValueRef;
 
 public abstract class Ast {
 
-    private final ConcreteType concreteType;
-
-    protected Ast(ConcreteType concreteType) {
-        this.concreteType = concreteType;
-    }
-
-    public final ConcreteType getConcreteType() {
-        return concreteType;
-    }
+    public abstract ConcreteType getConcreteType(GlobalContext globalContext, Variables variables);
 
     public abstract LLVMValueRef generateIR(GlobalContext globalContext, Variables variables, LLVMBuilderRef builder);
 

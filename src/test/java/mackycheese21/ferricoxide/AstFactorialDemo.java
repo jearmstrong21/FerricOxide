@@ -20,29 +20,22 @@ public class AstFactorialDemo {
         LLVMInitializeNativeAsmParser();
         LLVMInitializeNativeTarget();
 
-//        LLVMContextRef context = LLVMContextCreate();
         LLVMModuleRef module = LLVMModuleCreateWithName("main");
         LLVMBuilderRef builder = LLVMCreateBuilder();
         LLVMTypeRef i32Type = LLVMInt32Type();
-        LLVMTypeRef factorialType = LLVMFunctionType(i32Type, i32Type, 1, 0);
-
-//        LLVMValueRef factorial = LLVMAddFunction(module, "factorial", factorialType);
-//        LLVMSetFunctionCallConv(factorial, LLVMCCallConv);
 
         GlobalContext globalContext = new GlobalContext();
 
-        Function factorial = new Function("factorial", ConcreteType.I32, List.of(ConcreteType.I32), module);
-        globalContext.mapAdd(factorial.getName(), factorial);
+        globalContext.mapAdd("factorial", new Function("factorial", ConcreteType.I32, List.of(ConcreteType.I32), module));
 
-        Variables variables = new Variables(globalContext, "factorial", List.of("n"));
+//        Variables variables = new Variables(globalContext, globalContext.mapGet("factorial"), List.of("n"));
 
-        LLVMValueRef one = new IntConstant(1).generateIR(globalContext, variables, builder);
-
-        LLVMBasicBlockRef entry = LLVMAppendBasicBlock(factorial.getValueRef(), "entry");
-        LLVMBasicBlockRef ifFalse = LLVMAppendBasicBlock(factorial.getValueRef(), "ifFalse");
-        LLVMBasicBlockRef exit = LLVMAppendBasicBlock(factorial.getValueRef(), "exit");
+        LLVMBasicBlockRef entry = LLVMAppendBasicBlock(globalContext.mapGet("factorial").getValueRef(), "entry");
+        LLVMBasicBlockRef ifFalse = LLVMAppendBasicBlock(globalContext.mapGet("factorial").getValueRef(), "ifFalse");
+        LLVMBasicBlockRef exit = LLVMAppendBasicBlock(globalContext.mapGet("factorial").getValueRef(), "exit");
 
         LLVMPositionBuilderAtEnd(builder, entry);
+        Variables variables = globalContext.mapGet("factorial").enter(builder, List.of("n"));
         LLVMValueRef condition =
                 new IntEq(
                         new AccessVar("n"),
@@ -55,7 +48,7 @@ public class AstFactorialDemo {
                 new Mul(
                         new AccessVar("n"),
                         new FuncCall(
-                                new AccessVar("factorial"),
+                                "factorial",
                                 List.of(
                                         new Add(
                                                 new AccessVar("n"),
@@ -68,7 +61,7 @@ public class AstFactorialDemo {
 
         LLVMPositionBuilderAtEnd(builder, exit);
         LLVMValueRef phi = LLVMBuildPhi(builder, i32Type, "result");
-        PointerPointer<Pointer> phiValues = new PointerPointer<>(2).put(0, one).put(1, resultIfFalse);
+        PointerPointer<Pointer> phiValues = new PointerPointer<>(2).put(0, new IntConstant(1).generateIR(globalContext, variables, builder)).put(1, resultIfFalse);
         PointerPointer<Pointer> phiBlocks = new PointerPointer<>(2).put(0, entry).put(1, ifFalse);
         LLVMAddIncoming(phi, phiValues, phiBlocks, 2);
         LLVMBuildRet(builder, phi);
@@ -96,7 +89,7 @@ public class AstFactorialDemo {
         }
 
         LLVMGenericValueRef argument = LLVMCreateGenericValueOfInt(i32Type, 10, 0);
-        LLVMGenericValueRef result = LLVMRunFunction(engine, factorial.getValueRef(), 1, argument);
+        LLVMGenericValueRef result = LLVMRunFunction(engine, globalContext.mapGet("factorial").getValueRef(), 1, argument);
         System.err.println();
         System.err.println("; Running factorial(10) with MCJIT...");
         System.err.println("; Result: " + LLVMGenericValueToInt(result, 0));

@@ -15,11 +15,15 @@ public class IntEq extends Ast {
     private final Ast b;
 
     public IntEq(Ast a, Ast b) {
-        super(ConcreteType.BOOL);
-        Utils.assertTrue(a.getConcreteType() == ConcreteType.I32);
-        Utils.assertTrue(b.getConcreteType() == ConcreteType.I32);
         this.a = a;
         this.b = b;
+    }
+
+    @Override
+    public ConcreteType getConcreteType(GlobalContext globalContext, Variables variables) {
+        Utils.assertTrue(a.getConcreteType(globalContext, variables).equals(ConcreteType.I32));
+        Utils.assertTrue(b.getConcreteType(globalContext, variables).equals(ConcreteType.I32));
+        return ConcreteType.I32;
     }
 
     @Override

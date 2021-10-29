@@ -14,13 +14,17 @@ public class IntConstant extends Ast {
     private final int value;
 
     public IntConstant(int value) {
-        super(ConcreteType.I32);
         this.value = value;
     }
 
     @Override
+    public ConcreteType getConcreteType(GlobalContext globalContext, Variables variables) {
+        return ConcreteType.I32;
+    }
+
+    @Override
     public LLVMValueRef generateIR(GlobalContext globalContext, Variables variables, LLVMBuilderRef builder) {
-        return LLVMConstInt(getConcreteType().llvmTypeRef(), value, 0);
+        return LLVMConstInt(ConcreteType.I32.llvmTypeRef(), value, 0);
     }
 
     @Override

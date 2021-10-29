@@ -1,8 +1,8 @@
 package mackycheese21.ferricoxide.ast;
 
+import mackycheese21.ferricoxide.ConcreteType;
 import mackycheese21.ferricoxide.GlobalContext;
 import mackycheese21.ferricoxide.Variables;
-import mackycheese21.ferricoxide.ast.Ast;
 import org.bytedeco.llvm.LLVM.LLVMBuilderRef;
 import org.bytedeco.llvm.LLVM.LLVMValueRef;
 
@@ -13,8 +13,12 @@ public class Return extends Ast {
     private final Ast ast;
 
     protected Return(Ast ast) {
-        super(null);
         this.ast = ast;
+    }
+
+    @Override
+    public ConcreteType getConcreteType(GlobalContext globalContext, Variables variables) {
+        return null;
     }
 
     @Override

@@ -1,5 +1,6 @@
 package mackycheese21.ferricoxide.ast;
 
+import mackycheese21.ferricoxide.ConcreteType;
 import mackycheese21.ferricoxide.GlobalContext;
 import mackycheese21.ferricoxide.Utils;
 import mackycheese21.ferricoxide.Variables;
@@ -14,10 +15,16 @@ public class Add extends Ast {
     private final Ast B;
 
     public Add(Ast a, Ast b) {
-        super(a.getConcreteType());
-        Utils.assertTrue(a.getConcreteType().equals(b.getConcreteType()));
         A = a;
         B = b;
+    }
+
+    @Override
+    public ConcreteType getConcreteType(GlobalContext globalContext, Variables variables) {
+        ConcreteType ta = A.getConcreteType(globalContext, variables);
+        ConcreteType tb = B.getConcreteType(globalContext, variables);
+        Utils.assertTrue(ta.equals(tb));
+        return ta;
     }
 
     @Override
