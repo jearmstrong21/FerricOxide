@@ -28,10 +28,11 @@ public class IdentifierMap<T> {
 
     public void mapAdd(String id, T value) {
         if(map.containsKey(id)) throw new RuntimeException(id);
-        mapPut(id, value);
+        map.put(id, value);
     }
 
-    public void mapPut(String id, T value) {
+    public void mapSet(String id, T value) {
+        if(!map.containsKey(id)) throw new RuntimeException(id);
         map.put(id, value);
     }
 

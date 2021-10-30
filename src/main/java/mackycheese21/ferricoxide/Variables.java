@@ -1,5 +1,6 @@
 package mackycheese21.ferricoxide;
 
+import org.bytedeco.llvm.LLVM.LLVMBuilderRef;
 import org.bytedeco.llvm.LLVM.LLVMValueRef;
 
 import java.util.List;
@@ -16,24 +17,25 @@ public class Variables extends IdentifierMap<Variables.Entry> {
             this.valueRef = valueRef;
             this.type = type;
         }
+
+        @Override
+        public String toString() {
+            return "Entry{" +
+                    "valueRef=" + valueRef +
+                    ", type=" + type +
+                    '}';
+        }
     }
 
-    public Variables() {
+    private final Function currentFunction;
+
+    public Variables(Function currentFunction) {
         super(null);
+        this.currentFunction = currentFunction;
     }
 
-//    public Variables(GlobalContext globalContext, Function function, List<String> funcArgs) {
-//        super(null);
-//        for (int i = 0; i < funcArgs.size(); i++) {
-//            mapAdd(funcArgs.get(i), new Entry(
-//                    LLVMGetParam(function.getValueRef(), i),
-//                    function.getParams().get(i)
-//            ));
-//        }
-//    }
-
-//    public void mutableVariable(String name, LLVMValueRef from) {
-//        LLVMBuildAlloca()
-//    }
+    public Function getCurrentFunction() {
+        return currentFunction;
+    }
 
 }

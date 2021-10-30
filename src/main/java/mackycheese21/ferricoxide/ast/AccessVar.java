@@ -29,4 +29,9 @@ public class AccessVar extends Ast {
             return globalContext.mapGet(name).getValueRef();
         }
     }
+
+    @Override
+    public String toString() {
+        return String.format("access[%s]", name);
+    }
 }

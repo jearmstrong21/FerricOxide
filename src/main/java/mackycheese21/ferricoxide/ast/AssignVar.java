@@ -8,22 +8,24 @@ import org.bytedeco.llvm.LLVM.LLVMValueRef;
 
 import static org.bytedeco.llvm.global.LLVM.*;
 
-public class Return extends Ast {
+public class AssignVar extends Ast {
 
-    private final Ast ast;
+    private final String name;
+    private final Ast value;
 
-    public Return(Ast ast) {
-        this.ast = ast;
+    public AssignVar(String name, Ast value) {
+        this.name = name;
+        this.value = value;
     }
 
     @Override
     public ConcreteType getConcreteType(GlobalContext globalContext, Variables variables) {
-        return null;
+        return ConcreteType.NONE;
     }
 
     @Override
     public LLVMValueRef generateIR(GlobalContext globalContext, Variables variables, LLVMBuilderRef builder) {
-        LLVMBuildRet(builder, ast.generateIR(globalContext, variables, builder));
+        LLVMBuildStore(builder, value.generateIR(globalContext, variables, builder), variables.mapGet(name).valueRef);
         return null;
     }
 }

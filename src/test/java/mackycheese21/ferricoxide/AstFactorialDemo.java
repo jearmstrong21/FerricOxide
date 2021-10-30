@@ -28,43 +28,30 @@ public class AstFactorialDemo {
 
         globalContext.mapAdd("factorial", new Function("factorial", ConcreteType.I32, List.of(ConcreteType.I32), module));
 
-//        Variables variables = new Variables(globalContext, globalContext.mapGet("factorial"), List.of("n"));
-
         LLVMBasicBlockRef entry = LLVMAppendBasicBlock(globalContext.mapGet("factorial").getValueRef(), "entry");
-        LLVMBasicBlockRef ifFalse = LLVMAppendBasicBlock(globalContext.mapGet("factorial").getValueRef(), "ifFalse");
-        LLVMBasicBlockRef exit = LLVMAppendBasicBlock(globalContext.mapGet("factorial").getValueRef(), "exit");
 
         LLVMPositionBuilderAtEnd(builder, entry);
         Variables variables = globalContext.mapGet("factorial").enter(builder, List.of("n"));
-        LLVMValueRef condition =
-                new IntEq(
-                        new AccessVar("n"),
-                        new IntConstant(0)
-                ).generateIR(globalContext, variables, builder);
-        LLVMBuildCondBr(builder, condition, exit, ifFalse);
 
-        LLVMPositionBuilderAtEnd(builder, ifFalse);
-        LLVMValueRef resultIfFalse =
-                new Mul(
-                        new AccessVar("n"),
-                        new FuncCall(
-                                "factorial",
-                                List.of(
+        new Return(
+                new If(
+                        new IntEq(
+                                new AccessVar("n"),
+                                new IntConstant(0)
+                        ),
+                        new IntConstant(1),
+                        new Mul(
+                                new AccessVar("n"),
+                                new FuncCall("factorial", List.of(
                                         new Add(
                                                 new AccessVar("n"),
                                                 new IntConstant(-1)
                                         )
-                                )
+                                ))
                         )
-                ).generateIR(globalContext, variables, builder);
-        LLVMBuildBr(builder, exit);
-
-        LLVMPositionBuilderAtEnd(builder, exit);
-        LLVMValueRef phi = LLVMBuildPhi(builder, i32Type, "result");
-        PointerPointer<Pointer> phiValues = new PointerPointer<>(2).put(0, new IntConstant(1).generateIR(globalContext, variables, builder)).put(1, resultIfFalse);
-        PointerPointer<Pointer> phiBlocks = new PointerPointer<>(2).put(0, entry).put(1, ifFalse);
-        LLVMAddIncoming(phi, phiValues, phiBlocks, 2);
-        LLVMBuildRet(builder, phi);
+                )
+        )
+                .generateIR(globalContext, variables, builder);
 
         BytePointer error = new BytePointer();
         if (LLVMVerifyModule(module, LLVMPrintMessageAction, error) != 0) {

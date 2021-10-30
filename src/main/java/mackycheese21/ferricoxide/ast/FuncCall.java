@@ -8,6 +8,7 @@ import org.bytedeco.llvm.LLVM.LLVMBuilderRef;
 import org.bytedeco.llvm.LLVM.LLVMValueRef;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.bytedeco.llvm.global.LLVM.*;
 
@@ -31,5 +32,10 @@ public class FuncCall extends Ast {
         return LLVMBuildCall(builder, globalContext.mapGet(func).getValueRef(), // TODO function pointers / function pointer types
                 new PointerPointer<>(args.size()).put(args.stream().map(arg -> arg.generateIR(globalContext, variables, builder)).toArray(LLVMValueRef[]::new)),
                 args.size(), "FuncCall");
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%s(%s)", func, args.stream().map(Object::toString).collect(Collectors.joining(", ")));
     }
 }

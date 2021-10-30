@@ -1,5 +1,7 @@
 package mackycheese21.ferricoxide;
 
+import mackycheese21.ferricoxide.ast.Ast;
+import mackycheese21.ferricoxide.ast.DeclareVar;
 import org.bytedeco.javacpp.PointerPointer;
 import org.bytedeco.llvm.LLVM.*;
 
@@ -36,17 +38,23 @@ public class Function {
     }
 
     public Variables enter(LLVMBuilderRef builder, List<String> paramNames) {
-        Variables vars = new Variables();
+        Variables variables = new Variables(this);
         Utils.assertTrue(paramNames.size() == params.size());
         for (int i = 0; i < paramNames.size(); i++) {
-            LLVMValueRef valueRef = LLVMBuildAlloca(builder, params.get(i).llvmTypeRef(), "alloca");
-            vars.mapAdd(paramNames.get(i), new Variables.Entry(
-                    valueRef,
-                    params.get(i)
-            ));
-            LLVMBuildStore(builder, LLVMGetParam(getValueRef(), i), valueRef);
+            int finalI = i;
+            new DeclareVar(paramNames.get(i), new Ast() {
+                @Override
+                public ConcreteType getConcreteType(GlobalContext globalContext, Variables variables) {
+                    return params.get(finalI);
+                }
+
+                @Override
+                public LLVMValueRef generateIR(GlobalContext globalContext, Variables variables, LLVMBuilderRef builder) {
+                    return LLVMGetParam(valueRef, finalI);
+                }
+            }).generateIR(null, variables, builder);
         }
-        return vars;
+        return variables;
     }
 
     public ConcreteType getResult() {

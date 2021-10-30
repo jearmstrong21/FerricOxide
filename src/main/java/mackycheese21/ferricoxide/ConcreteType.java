@@ -8,7 +8,7 @@ public abstract class ConcreteType {
 
     public abstract LLVMTypeRef llvmTypeRef();
 
-    private static ConcreteType intType(int width) {
+    private static ConcreteType intType(int width, String name) {
         return new ConcreteType() {
             @Override
             public LLVMTypeRef llvmTypeRef() {
@@ -17,12 +17,13 @@ public abstract class ConcreteType {
 
             @Override
             public String toString() {
-                return "I" + width;
+                return name;
             }
         };
     }
 
-    public static final ConcreteType I32 = intType(32);
-    public static final ConcreteType BOOL = intType(1);
+    public static final ConcreteType I32 = intType(32, "I32");
+    public static final ConcreteType BOOL = intType(1, "BOOL");
+    public static final ConcreteType NONE = intType(0, "NONE");
 
 }
