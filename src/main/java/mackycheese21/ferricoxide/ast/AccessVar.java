@@ -6,7 +6,7 @@ import mackycheese21.ferricoxide.Variables;
 import org.bytedeco.llvm.LLVM.LLVMBuilderRef;
 import org.bytedeco.llvm.LLVM.LLVMValueRef;
 
-import static org.bytedeco.llvm.global.LLVM.*;
+import static org.bytedeco.llvm.global.LLVM.LLVMBuildLoad;
 
 public class AccessVar extends Ast {
 
@@ -23,7 +23,7 @@ public class AccessVar extends Ast {
 
     @Override
     public LLVMValueRef generateIR(GlobalContext globalContext, Variables variables, LLVMBuilderRef builder) {
-        if(variables.mapHas(name)) {
+        if (variables.mapHas(name)) {
             return LLVMBuildLoad(builder, variables.mapGet(name).valueRef, "accessvar");
         } else {
             return globalContext.mapGet(name).getValueRef();

@@ -10,7 +10,7 @@ import org.bytedeco.llvm.LLVM.LLVMValueRef;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static org.bytedeco.llvm.global.LLVM.*;
+import static org.bytedeco.llvm.global.LLVM.LLVMBuildCall;
 
 public class FuncCall extends Ast {
 

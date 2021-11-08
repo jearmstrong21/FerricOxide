@@ -1,11 +1,6 @@
 package mackycheese21.ferricoxide;
 
-import org.bytedeco.llvm.LLVM.LLVMBuilderRef;
 import org.bytedeco.llvm.LLVM.LLVMValueRef;
-
-import java.util.List;
-
-import static org.bytedeco.llvm.global.LLVM.*;
 
 public class Variables extends IdentifierMap<Variables.Entry> {
 

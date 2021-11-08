@@ -6,7 +6,7 @@ import mackycheese21.ferricoxide.Variables;
 import org.bytedeco.llvm.LLVM.LLVMBuilderRef;
 import org.bytedeco.llvm.LLVM.LLVMValueRef;
 
-import static org.bytedeco.llvm.global.LLVM.*;
+import static org.bytedeco.llvm.global.LLVM.LLVMBuildStore;
 
 public class AssignVar extends Ast {
 

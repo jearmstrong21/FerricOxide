@@ -3,11 +3,10 @@ package mackycheese21.ferricoxide.ast;
 import mackycheese21.ferricoxide.ConcreteType;
 import mackycheese21.ferricoxide.GlobalContext;
 import mackycheese21.ferricoxide.Variables;
-import mackycheese21.ferricoxide.ast.Ast;
 import org.bytedeco.llvm.LLVM.LLVMBuilderRef;
 import org.bytedeco.llvm.LLVM.LLVMValueRef;
 
-import static org.bytedeco.llvm.global.LLVM.*;
+import static org.bytedeco.llvm.global.LLVM.LLVMConstInt;
 
 public class IntConstant extends Ast {
 

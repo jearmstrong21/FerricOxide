@@ -1,0 +1,42 @@
+	.section	__TEXT,__text,regular,pure_instructions
+	.build_version macos, 10, 15
+	.globl	_factorialIterative
+	.p2align	4, 0x90
+_factorialIterative:
+	.cfi_startproc
+	movl	$1, %eax
+	testl	%edi, %edi
+	jle	LBB0_3
+	.p2align	4, 0x90
+LBB0_2:
+	imull	%edi, %eax
+	addl	$-1, %edi
+	testl	%edi, %edi
+	jg	LBB0_2
+LBB0_3:
+	retq
+	.cfi_endproc
+
+	.globl	_factorialRecursive
+	.p2align	4, 0x90
+_factorialRecursive:
+	.cfi_startproc
+	pushq	%rbx
+	.cfi_def_cfa_offset 16
+	.cfi_offset %rbx, -16
+	testl	%edi, %edi
+	je	LBB1_1
+	movl	%edi, %ebx
+	leal	-1(%rbx), %edi
+	callq	_factorialRecursive
+	imull	%eax, %ebx
+	jmp	LBB1_3
+LBB1_1:
+	movl	$1, %ebx
+LBB1_3:
+	movl	%ebx, %eax
+	popq	%rbx
+	retq
+	.cfi_endproc
+
+.subsections_via_symbols

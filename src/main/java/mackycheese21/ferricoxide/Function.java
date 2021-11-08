@@ -38,6 +38,8 @@ public class Function {
     }
 
     public Variables enter(LLVMBuilderRef builder, List<String> paramNames) {
+        LLVMBasicBlockRef entry = LLVMAppendBasicBlock(valueRef, "entry");
+        LLVMPositionBuilderAtEnd(builder, entry);
         Variables variables = new Variables(this);
         Utils.assertTrue(paramNames.size() == params.size());
         for (int i = 0; i < paramNames.size(); i++) {
