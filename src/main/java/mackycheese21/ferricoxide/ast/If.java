@@ -53,4 +53,9 @@ public class If extends Ast {
         LLVMPositionBuilderAtEnd(builder, ifAfter);
         return LLVMBuildLoad(builder, alloca, "ifResult");
     }
+
+    @Override
+    public String toString() {
+        return String.format("if( %s ) { %s } else { %s }", cond, then, otherwise);
+    }
 }

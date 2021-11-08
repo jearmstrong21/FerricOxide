@@ -59,7 +59,11 @@ public class Token {
         MINUS("-"),
         STAR("*"),
         SLASH("/"),
-        SEMICOLON(";");
+        SEMICOLON(";"),
+        LE_EQ("<="),
+        LE("<"),
+        GE_EQ(">="),
+        GE(">");
 
         public final String str;
 

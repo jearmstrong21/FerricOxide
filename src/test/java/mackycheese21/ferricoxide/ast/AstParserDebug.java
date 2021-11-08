@@ -15,8 +15,8 @@ public class AstParserDebug {
     }
 
     public static void main(String[] args) {
-//        String data = "i32 f(i32 n) { n * 3 + 4 }";
-        String data = "i32 fib(i32 a, i32 b, i32 n) { n }";
+        String data = "i32 fib(i32 n) { if n <= 2 { 1 } else { fib(n - 1) + fib(n - 2) } }";
+//        String data = "i32 fib() { if n < 3 { 41 } else { } }";
         System.out.println(data);
         try {
             List<Token> tokens = Tokenizer.tokenize(data);
@@ -29,8 +29,10 @@ public class AstParserDebug {
             }
         } catch (TokenException e) {
             handle(e.getMessage(), e.span);
+            e.printStackTrace();
         } catch (ParseException e) {
             handle(e.getMessage(), e.token.span);
+            e.printStackTrace();
         }
     }
 

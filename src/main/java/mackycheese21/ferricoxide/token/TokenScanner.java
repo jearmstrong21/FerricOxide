@@ -15,8 +15,13 @@ public class TokenScanner {
         return index < data.size();
     }
 
+    public Token currentOrLast() {
+        if (hasNext()) return data.get(index);
+        else return data.get(data.size() - 1);
+    }
+
     public Token peek() throws TokenException {
-        if(index == data.size()) {
+        if (index == data.size()) {
             throw new TokenException(TokenException.Type.UNEXPECTED_EOF, data.get(data.size() - 1));
         }
         return data.get(index);
