@@ -9,6 +9,7 @@ import org.bytedeco.llvm.LLVM.LLVMValueRef;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class Block extends Ast {
 
@@ -37,5 +38,10 @@ public class Block extends Ast {
             asts.get(i).generateIR(globalContext, variables, builder);
         }
         return asts.get(asts.size() - 1).generateIR(globalContext, variables, builder);
+    }
+
+    @Override
+    public String toString() {
+        return String.format("{ %s }", asts.stream().map(Ast::toString).collect(Collectors.joining("; ")));
     }
 }

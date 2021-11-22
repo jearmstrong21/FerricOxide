@@ -1,4 +1,7 @@
-package mackycheese21.ferricoxide.token;
+package mackycheese21.ferricoxide.ast.token;
+
+import mackycheese21.ferricoxide.ast.AstOpt;
+import mackycheese21.ferricoxide.ast.SourceCodeException;
 
 import java.util.List;
 
@@ -20,34 +23,26 @@ public class TokenScanner {
         else return data.get(data.size() - 1);
     }
 
-    public Token peek() throws TokenException {
+    public AstOpt<Token> peek() {
         if (index == data.size()) {
-            throw new TokenException(TokenException.Type.UNEXPECTED_EOF, data.get(data.size() - 1));
+            return AstOpt.error(new SourceCodeException(SourceCodeException.Type.UNEXPECTED_EOF, data.get(data.size() - 1)));
         }
-        return data.get(index);
+        return AstOpt.value(data.get(index));
     }
 
     public boolean hasNext(Token.Type... types) {
-        try {
-            return hasNext() && peek().is(types);
-        } catch (TokenException e) {
-            throw new RuntimeException(e);
-        }
+        return hasNext() && peek().unwrapUnsafe().is(types);
     }
 
     public boolean hasNext(Token.Punctuation... punctuations) {
-        try {
-            return hasNext(Token.Type.PUNCTUATION) && peek().is(punctuations);
-        } catch (TokenException e) {
-            throw new RuntimeException(e);
-        }
+        return hasNext(Token.Type.PUNCTUATION) && peek().unwrapUnsafe().is(punctuations);
     }
 
-    public Token next() throws TokenException {
+    public AstOpt<Token> next() {
         if (!hasNext()) {
-            throw new TokenException(TokenException.Type.UNEXPECTED_EOF, data.get(data.size() - 1));
+            return AstOpt.error(new SourceCodeException(SourceCodeException.Type.UNEXPECTED_EOF, data.get(data.size() - 1)));
         }
-        return data.get(index++);
+        return AstOpt.value(data.get(index++));
     }
 
     public TokenScanner copy() {

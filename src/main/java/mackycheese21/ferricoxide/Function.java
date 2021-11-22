@@ -44,7 +44,7 @@ public class Function {
         Utils.assertTrue(paramNames.size() == params.size());
         for (int i = 0; i < paramNames.size(); i++) {
             int finalI = i;
-            new DeclareVar(paramNames.get(i), new Ast() {
+            new DeclareVar(params.get(i), paramNames.get(i), new Ast() {
                 @Override
                 public ConcreteType getConcreteType(GlobalContext globalContext, Variables variables) {
                     return params.get(finalI);

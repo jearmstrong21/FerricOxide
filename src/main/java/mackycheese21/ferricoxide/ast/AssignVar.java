@@ -28,4 +28,9 @@ public class AssignVar extends Ast {
         LLVMBuildStore(builder, value.generateIR(globalContext, variables, builder), variables.mapGet(name).valueRef);
         return null;
     }
+
+    @Override
+    public String toString() {
+        return String.format("%s = %s", name, value);
+    }
 }

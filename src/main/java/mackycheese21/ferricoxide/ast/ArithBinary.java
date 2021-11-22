@@ -110,6 +110,7 @@ public class ArithBinary extends Ast {
 
     @Override
     public String toString() {
-        return String.format("%s[%s, %s]", op, a, b);
+        return String.format("(%s) %s (%s)", a, op, b);
+//        return String.format("%s[%s, %s]", op, a, b);
     }
 }

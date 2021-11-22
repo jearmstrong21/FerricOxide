@@ -1,4 +1,6 @@
-package mackycheese21.ferricoxide.token;
+package mackycheese21.ferricoxide.ast.token;
+
+import mackycheese21.ferricoxide.ast.SourceCodeException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -6,16 +8,12 @@ import java.util.List;
 public class Tokenizer {
 
     private static void purgeWhitespace(CodeScanner scanner) {
-        try {
-            while (scanner.hasNext() && Character.isWhitespace(scanner.peek())) {
-                scanner.next();
-            }
-        } catch (TokenException e) {
-            throw new RuntimeException(e);
+        while (scanner.hasNext() && Character.isWhitespace(scanner.peek().unwrapUnsafe())) {
+            scanner.next();
         }
     }
 
-    public static List<Token> tokenize(String data) throws TokenException {
+    public static List<Token> tokenize(String data) throws SourceCodeException {
         CodeScanner scanner = new CodeScanner(data);
         List<Token> tokens = new ArrayList<>();
         while (true) {
@@ -64,7 +62,7 @@ public class Tokenizer {
             }
 
             if (scanner.hasNext()) {
-                throw new TokenException(TokenException.Type.UNEXPECTED_CHAR, new Span(scanner.index, scanner.index + 1));
+                throw new SourceCodeException(SourceCodeException.Type.UNEXPECTED_CHAR, new Span(scanner.index, scanner.index + 1));
             }
         }
         return tokens;
@@ -74,20 +72,12 @@ public class Tokenizer {
         String identifier = "";
         int start = scanner.index;
         if (scanner.hasNext(Token.IDENTIFIER_START)) {
-            try {
-                identifier += scanner.next();
-            } catch (TokenException e) {
-                throw new RuntimeException(e);
-            }
+            identifier += scanner.next().unwrapUnsafe();
         } else {
             return null;
         }
         while (scanner.hasNext(Token.IDENTIFIER_REST)) {
-            try {
-                identifier += scanner.next();
-            } catch (TokenException e) {
-                throw new RuntimeException(e);
-            }
+            identifier += scanner.next().unwrapUnsafe();
         }
         int end = scanner.index;
         return Token.identifier(new Span(start, end), identifier);
@@ -98,11 +88,7 @@ public class Tokenizer {
         String quote;
         int start = scanner.index;
         if (scanner.hasNext(Token.QUOTES)) {
-            try {
-                quote = scanner.next() + "";
-            } catch (TokenException e) {
-                throw new RuntimeException(e);
-            }
+            quote = scanner.next() + "";
         } else {
             return null;
         }
@@ -110,11 +96,7 @@ public class Tokenizer {
             string += quote;
         }
         if (scanner.hasNext(quote)) {
-            try {
-                scanner.next();
-            } catch (TokenException e) {
-                throw new RuntimeException(e);
-            }
+            scanner.next();
         } else {
             return null;
         }
@@ -130,20 +112,12 @@ public class Tokenizer {
         int integer = 0;
         int start = scanner.index;
         if (scanner.hasNext(Token.DIGITS)) {
-            try {
-                integer = scanner.next() - '0';
-            } catch (TokenException e) {
-                throw new RuntimeException(e);
-            }
+            integer = scanner.next().unwrapUnsafe() - '0';
         } else {
             return null;
         }
         while (scanner.hasNext(Token.DIGITS)) {
-            try {
-                integer = 10 * integer + (scanner.next() - '0');
-            } catch (TokenException e) {
-                throw new RuntimeException(e);
-            }
+            integer = 10 * integer + (scanner.next().unwrapUnsafe() - '0');
         }
         int end = scanner.index;
         return Token.integer(new Span(start, end), integer);
@@ -157,11 +131,7 @@ public class Tokenizer {
             boolean bad = false;
             for (int i = 0; i < p.str.length(); i++) {
                 if (s.hasNext(p.str.substring(i, i + 1))) {
-                    try {
-                        s.next();
-                    } catch (TokenException e) {
-                        throw new RuntimeException(e);
-                    }
+                    s.next();
                 } else {
                     bad = true;
                 }

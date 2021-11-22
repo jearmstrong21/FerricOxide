@@ -1,4 +1,6 @@
-package mackycheese21.ferricoxide.token;
+package mackycheese21.ferricoxide.ast.token;
+
+import mackycheese21.ferricoxide.ast.SourceCodeException;
 
 import java.util.List;
 
@@ -12,7 +14,7 @@ public class TokenizerDebug {
                 System.out.println(t);
             }
             System.out.println();
-        } catch (TokenException e) {
+        } catch (SourceCodeException e) {
             for (int i = 0; i < e.span.start; i++) {
                 System.out.print(" ");
             }

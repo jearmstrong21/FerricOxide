@@ -1,4 +1,6 @@
-package mackycheese21.ferricoxide.token;
+package mackycheese21.ferricoxide.ast.token;
+
+import mackycheese21.ferricoxide.ast.SourceCodeException;
 
 import java.util.Optional;
 import java.util.OptionalDouble;
@@ -103,27 +105,27 @@ public class Token {
         return new Token(null, null, 0, 0, punctuation, Type.PUNCTUATION, span);
     }
 
-    public String identifier() throws TokenException {
+    public String identifier() throws SourceCodeException {
         mustBe(Type.IDENTIFIER);
         return identifier;
     }
 
-    public String string() throws TokenException {
+    public String string() throws SourceCodeException {
         mustBe(Type.STRING);
         return identifier;
     }
 
-    public double decimal() throws TokenException {
+    public double decimal() throws SourceCodeException {
         mustBe(Type.DECIMAL);
         return decimal;
     }
 
-    public long integer() throws TokenException {
+    public long integer() throws SourceCodeException {
         mustBe(Type.INTEGER);
         return integer;
     }
 
-    public Punctuation punctuation() throws TokenException {
+    public Punctuation punctuation() throws SourceCodeException {
         mustBe(Type.PUNCTUATION);
         return punctuation;
     }
@@ -155,23 +157,23 @@ public class Token {
         return false;
     }
 
-    public boolean is(Punctuation... punctuations) throws TokenException {
-        mustBe(Type.PUNCTUATION);
+    public boolean is(Punctuation... punctuations) {
+        if(!is(Type.PUNCTUATION)) return false;
         for(Punctuation p : punctuations) {
             if(punctuation == p) return true;
         }
         return false;
     }
 
-    public void mustBe(Type... types) throws TokenException {
+    public void mustBe(Type... types) throws SourceCodeException {
         if(!is(types)) {
-            throw new TokenException(TokenException.Type.UNEXPECTED_TOKEN, this);
+            throw new SourceCodeException(SourceCodeException.Type.UNEXPECTED_TOKEN, this);
         }
     }
 
-    public void mustBe(Punctuation... punctuations) throws TokenException {
+    public void mustBe(Punctuation... punctuations) throws SourceCodeException {
         if(!is(punctuations)) {
-            throw new TokenException(TokenException.Type.UNEXPECTED_TOKEN, this);
+            throw new SourceCodeException(SourceCodeException.Type.UNEXPECTED_TOKEN, this);
         }
     }
 

@@ -11,16 +11,20 @@ import static org.bytedeco.llvm.global.LLVM.LLVMBuildStore;
 
 public class DeclareVar extends Ast {
 
+    private final ConcreteType type;
     private final String name;
     private final Ast value;
 
-    public DeclareVar(String name, Ast value) {
+    public DeclareVar(ConcreteType type, String name, Ast value) {
+        this.type = type;
         this.name = name;
         this.value = value;
     }
 
     @Override
     public ConcreteType getConcreteType(GlobalContext globalContext, Variables variables) {
+        if (!value.getConcreteType(globalContext, variables).equals(type))
+            throw new RuntimeException("invalid code: todo validator exceptions");
         return ConcreteType.NONE;
     }
 
@@ -31,5 +35,10 @@ public class DeclareVar extends Ast {
         LLVMBuildStore(builder, value.generateIR(globalContext, variables, builder), alloca);
         variables.mapAdd(name, new Variables.Entry(alloca, type));
         return null;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%s %s = %s", type, name, value);
     }
 }

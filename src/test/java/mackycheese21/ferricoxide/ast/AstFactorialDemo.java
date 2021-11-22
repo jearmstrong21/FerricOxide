@@ -2,7 +2,6 @@ package mackycheese21.ferricoxide.ast;
 
 import mackycheese21.ferricoxide.ConcreteType;
 import mackycheese21.ferricoxide.Module;
-import mackycheese21.ferricoxide.ast.*;
 import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.llvm.LLVM.*;
 
@@ -24,7 +23,7 @@ public class AstFactorialDemo {
                                         new AccessVar("n"),
                                         new IntConstant(0)
                                 ),
-                                new IntConstant(1),
+                                new mackycheese21.ferricoxide.ast.IntConstant(1),
                                 ArithBinary.Op.MUL.on(
                                         new AccessVar("n"),
                                         new FuncCall("factorialRecursive", List.of(
@@ -42,7 +41,7 @@ public class AstFactorialDemo {
                 "factorialIterative",
                 List.of(new Module.FunctionDecl.Param("n", ConcreteType.I32)),
                 new Block(
-                        new DeclareVar("result", new IntConstant(1)),
+                        new DeclareVar(ConcreteType.I32, "result", new IntConstant(1)),
                         new WhileLoop(
                                 ArithBinary.Op.GE.on(
                                         new AccessVar("n"),

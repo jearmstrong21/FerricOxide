@@ -42,4 +42,9 @@ public class WhileLoop extends Ast {
         LLVMPositionBuilderAtEnd(builder, end);
         return null;
     }
+
+    @Override
+    public String toString() {
+        return String.format("while %s { %s }", condition, body);
+    }
 }
