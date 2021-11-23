@@ -1,0 +1,1 @@
+java -jar ../build/libs/FerricOxide-1.0-SNAPSHOT.jar -i main.fo -o build/main.x86 -r build/main_riscv.txt -x build/main_x86.txt

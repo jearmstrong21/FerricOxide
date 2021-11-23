@@ -81,22 +81,26 @@ public class Module {
 
     }
 
-    public void codegen() {
+    public void codegen(String x86_assembly, String x86_bin, String riscv_assembly) {
 
         globalContext = new GlobalContext();
 
         module = LLVMModuleCreateWithName("main");
         LLVMBuilderRef builder = LLVMCreateBuilder();
 
+        // LOAD ALL PROTOTYPES
         for (String name : functions.keys()) {
             FunctionDecl decl = functions.mapGet(name);
-            globalContext.mapAdd(name, new Function(decl.name, decl.result, decl.params.stream().map(p -> p.type).collect(Collectors.toList()), module));
+            globalContext.mapAdd(name, new Function(decl.name, decl.result, decl.params.stream().map(p -> p.type).collect(Collectors.toList()), module, decl.body == null));
         }
 
+        //
         for (String name : functions.keys()) {
             FunctionDecl decl = functions.mapGet(name);
-            Variables variables = globalContext.mapGet(name).enter(builder, decl.params.stream().map(p -> p.name).collect(Collectors.toList()));
-            decl.body.generateIR(globalContext, variables, builder);
+            if(decl.body != null) {
+                Variables variables = globalContext.mapGet(name).enter(builder, decl.params.stream().map(p -> p.name).collect(Collectors.toList()));
+                decl.body.generateIR(globalContext, variables, builder);
+            }
         }
 
         BytePointer error = new BytePointer();
@@ -119,13 +123,14 @@ public class Module {
         }
 
 //        outputRISCV();
-        outputX86();
+        outputX86(x86_assembly, x86_bin);
+        outputRISCV(riscv_assembly);
 
 //        LLVMDumpModule(module);
         LLVMDisposeBuilder(builder);
     }
 
-    private void outputX86() {
+    private void outputX86(String assembly, String bin) {
         BytePointer error = new BytePointer();
 
         BytePointer defaultTriple = LLVMGetDefaultTargetTriple();
@@ -140,33 +145,38 @@ public class Module {
                 LLVMCodeGenLevelDefault, LLVMRelocDefault, LLVMCodeModelDefault);
 //        LLVMSetDataLayout(module, LLVMCreateTargetDataLayout();
 //        LLVMSetTarget(module, defaultTriple);
-        if (LLVMTargetMachineEmitToFile(targetMachineRef, module, new BytePointer("output_x86.txt"), LLVMAssemblyFile, error) != 0) {
-            System.err.println(error.getString());
-            LLVMDisposeErrorMessage(error);
-            throw new RuntimeException();
+        if (assembly != null) {
+            if (LLVMTargetMachineEmitToFile(targetMachineRef, module, new BytePointer(assembly), LLVMAssemblyFile, error) != 0) {
+                System.err.println(error.getString());
+                LLVMDisposeErrorMessage(error);
+                throw new RuntimeException();
+            }
         }
-        if (LLVMTargetMachineEmitToFile(targetMachineRef, module, new BytePointer("BIN/x86_lib.o"), LLVMObjectFile, error) != 0) {
-            System.err.println(error.getString());
-            LLVMDisposeErrorMessage(error);
-            throw new RuntimeException();
+        if(bin != null) {
+            if (LLVMTargetMachineEmitToFile(targetMachineRef, module, new BytePointer(bin), LLVMObjectFile, error) != 0) {
+                System.err.println(error.getString());
+                LLVMDisposeErrorMessage(error);
+                throw new RuntimeException();
+            }
         }
-
     }
 
-    private void outputRISCV() {
-        LLVMTargetRef targetRef = LLVMGetTargetFromName("riscv32");
-        // level = LLVMCodeGenOptLevel
-        // reloc = LLVMRelocMode
-        // codeModel = LLVMCodeModel
-        // codegen = LLVMCodeGenFileType
-        LLVMTargetMachineRef targetMachineRef = LLVMCreateTargetMachine(
-                targetRef, "triple", "generic-rv32", "+f,+m", LLVMCodeGenLevelDefault, LLVMRelocDefault, LLVMCodeModelDefault);
+    private void outputRISCV(String filename) {
+        if (filename != null) {
+            LLVMTargetRef targetRef = LLVMGetTargetFromName("riscv32");
+            // level = LLVMCodeGenOptLevel
+            // reloc = LLVMRelocMode
+            // codeModel = LLVMCodeModel
+            // codegen = LLVMCodeGenFileType
+            LLVMTargetMachineRef targetMachineRef = LLVMCreateTargetMachine(
+                    targetRef, "triple", "generic-rv32", "+f,+m", LLVMCodeGenLevelDefault, LLVMRelocDefault, LLVMCodeModelDefault);
 
-        BytePointer error = new BytePointer();
-        if (LLVMTargetMachineEmitToFile(targetMachineRef, module, new BytePointer("riscv_output.txt"), LLVMAssemblyFile, error) != 0) {
-            System.err.println(error.getString());
-            LLVMDisposeErrorMessage(error);
-            throw new RuntimeException();
+            BytePointer error = new BytePointer();
+            if (LLVMTargetMachineEmitToFile(targetMachineRef, module, new BytePointer(filename), LLVMAssemblyFile, error) != 0) {
+                System.err.println(error.getString());
+                LLVMDisposeErrorMessage(error);
+                throw new RuntimeException();
+            }
         }
     }
 

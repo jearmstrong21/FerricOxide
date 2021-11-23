@@ -26,9 +26,9 @@ public class WhileLoop extends Ast {
 
     @Override
     public LLVMValueRef generateIR(GlobalContext globalContext, Variables variables, LLVMBuilderRef builder) {
-        LLVMBasicBlockRef header = LLVMAppendBasicBlock(variables.getCurrentFunction().getValueRef(), "whileHead");
-        LLVMBasicBlockRef body = LLVMAppendBasicBlock(variables.getCurrentFunction().getValueRef(), "whileBody");
-        LLVMBasicBlockRef end = LLVMAppendBasicBlock(variables.getCurrentFunction().getValueRef(), "whileEnd");
+        LLVMBasicBlockRef header = LLVMAppendBasicBlock(variables.getCurrentFunction().valueRef, "whileHead");
+        LLVMBasicBlockRef body = LLVMAppendBasicBlock(variables.getCurrentFunction().valueRef, "whileBody");
+        LLVMBasicBlockRef end = LLVMAppendBasicBlock(variables.getCurrentFunction().valueRef, "whileEnd");
 
         LLVMBuildBr(builder, header);
 

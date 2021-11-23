@@ -147,6 +147,17 @@ public class AstParser {
         });
     }
 
+    private static AstOpt<Ast> returnStatement(TokenScanner scanner) {
+        return AstOpt.fromNullable(() -> {
+            AstOpt<Token> returnToken = scanner.next();
+            returnToken.propogateError();
+            if (!returnToken.isPresent()) return null;
+            if (!returnToken.unwrapUnsafe().is(Token.Type.IDENTIFIER)) return null;
+            if (!returnToken.unwrapUnsafe().identifier().equals("return")) return null;
+            return new Return(expr(scanner).unwrap(scanner));
+        });
+    }
+
     private static AstOpt<Ast> simple(TokenScanner scanner) {
         return AstOpt.fromNullable(() -> {
             TokenScanner s;
@@ -154,6 +165,14 @@ public class AstParser {
 
             s = scanner.copy();
             ast = whileLoop(s);
+            ast.propogateError();
+            if (ast.isPresent()) {
+                scanner.index = s.index;
+                return ast.unwrapUnsafe();
+            }
+
+            s = scanner.copy();
+            ast = returnStatement(s);
             ast.propogateError();
             if (ast.isPresent()) {
                 scanner.index = s.index;
@@ -329,6 +348,17 @@ public class AstParser {
     private static AstOpt<Module.FunctionDecl> functionDecl(TokenScanner scanner) {
         return AstOpt.fromNullable(() -> {
             if (scanner.hasNext()) {
+                boolean extern = false;
+                AstOpt<Token> externToken = scanner.peek();
+                externToken.propogateError();
+                if (externToken.isPresent()) {
+                    if (externToken.unwrapUnsafe().is(Token.Type.IDENTIFIER)) {
+                        if (externToken.unwrapUnsafe().identifier().equals("extern")) {
+                            scanner.next();
+                            extern = true;
+                        }
+                    }
+                }
                 ConcreteType result = type(scanner).unwrap(scanner);
                 String funcName = scanner.next().unwrap(scanner).identifier();
                 scanner.next().unwrap(scanner).mustBe(Token.Punctuation.L_PAREN);
@@ -344,7 +374,10 @@ public class AstParser {
                     }
                 }
                 scanner.next().unwrap(scanner).mustBe(Token.Punctuation.R_PAREN);
-                Ast body = block(true, scanner).unwrap(scanner);
+                Ast body = null;
+                if (!extern) {
+                    body = block(true, scanner).unwrap(scanner);
+                }
                 return new Module.FunctionDecl(funcName, params, body, result);
             } else {
                 return null;

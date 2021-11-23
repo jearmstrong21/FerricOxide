@@ -85,7 +85,11 @@ public class ArithBinary extends Ast {
                     return LLVMBuildFMul(builder, va, vb, "fmul");
                 }
             case DIV:
-                break;
+                if (integer) {
+                    return LLVMBuildSDiv(builder, va, vb, "sdiv");
+                } else {
+                    return LLVMBuildFDiv(builder, va, vb, "fdiv");
+                }
             case EQ:
                 if (integer) {
                     return LLVMBuildICmp(builder, LLVMIntEQ, va, vb, "eq");
@@ -93,9 +97,17 @@ public class ArithBinary extends Ast {
                     return LLVMBuildFCmp(builder, LLVMRealOEQ, va, vb, "ordered_eq");
                 }
             case LE:
-                break;
+                if (integer) {
+                    return LLVMBuildICmp(builder, LLVMIntSLE, va, vb, "signed_le");
+                } else {
+                    return LLVMBuildFCmp(builder, LLVMRealOLE, va, vb, "ordered_le");
+                }
             case LT:
-                break;
+                if (integer) {
+                    return LLVMBuildICmp(builder, LLVMIntSLT, va, vb, "signed_lt");
+                } else {
+                    return LLVMBuildFCmp(builder, LLVMRealOLT, va, vb, "ordered_lt");
+                }
             case GE:
                 if (integer) {
                     return LLVMBuildICmp(builder, LLVMIntSGE, va, vb, "signed_ge");
@@ -103,7 +115,11 @@ public class ArithBinary extends Ast {
                     return LLVMBuildFCmp(builder, LLVMRealOGE, va, vb, "ordered_ge");
                 }
             case GT:
-                break;
+                if (integer) {
+                    return LLVMBuildICmp(builder, LLVMIntSGT, va, vb, "signed_gt");
+                } else {
+                    return LLVMBuildFCmp(builder, LLVMRealOGT, va, vb, "ordered_gt");
+                }
         }
         throw new RuntimeException("unexpected " + op);
     }

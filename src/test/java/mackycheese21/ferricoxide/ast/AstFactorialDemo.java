@@ -62,7 +62,7 @@ public class AstFactorialDemo {
                 ),
                 ConcreteType.I32
         ));
-        module.codegen();
+        module.codegen(null, null, null);
 
         LLVMExecutionEngineRef engine = new LLVMExecutionEngineRef();
         LLVMMCJITCompilerOptions options = new LLVMMCJITCompilerOptions();
@@ -74,13 +74,13 @@ public class AstFactorialDemo {
         }
 
         LLVMGenericValueRef argument = LLVMCreateGenericValueOfInt(LLVMIntType(32), 10, 0);
-        LLVMGenericValueRef result = LLVMRunFunction(engine, module.globalContext.mapGet("factorialRecursive").getValueRef(), 1, argument);
+        LLVMGenericValueRef result = LLVMRunFunction(engine, module.globalContext.mapGet("factorialRecursive").valueRef, 1, argument);
         System.err.println();
         System.err.println("; Running factorialRecursive(10) with MCJIT...");
         System.err.println("; Result: " + LLVMGenericValueToInt(result, 0));
 
         argument = LLVMCreateGenericValueOfInt(LLVMIntType(32), 10, 0);
-        result = LLVMRunFunction(engine, module.globalContext.mapGet("factorialIterative").getValueRef(), 1, argument);
+        result = LLVMRunFunction(engine, module.globalContext.mapGet("factorialIterative").valueRef, 1, argument);
         System.err.println();
         System.err.println("; Running factorialIterative(10) with MCJIT...");
         System.err.println("; Result: " + LLVMGenericValueToInt(result, 0));

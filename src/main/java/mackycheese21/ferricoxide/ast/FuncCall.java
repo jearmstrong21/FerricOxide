@@ -24,12 +24,12 @@ public class FuncCall extends Ast {
 
     @Override
     public ConcreteType getConcreteType(GlobalContext globalContext, Variables variables) {
-        return globalContext.mapGet(func).getResult();
+        return globalContext.mapGet(func).result;
     }
 
     @Override
     public LLVMValueRef generateIR(GlobalContext globalContext, Variables variables, LLVMBuilderRef builder) {
-        return LLVMBuildCall(builder, globalContext.mapGet(func).getValueRef(), // TODO function pointers / function pointer types
+        return LLVMBuildCall(builder, globalContext.mapGet(func).valueRef, // TODO function pointers / function pointer types
                 new PointerPointer<>(args.size()).put(args.stream().map(arg -> arg.generateIR(globalContext, variables, builder)).toArray(LLVMValueRef[]::new)),
                 args.size(), "FuncCall");
     }

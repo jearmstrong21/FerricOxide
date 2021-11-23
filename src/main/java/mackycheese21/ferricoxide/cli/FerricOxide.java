@@ -1,6 +1,16 @@
 package mackycheese21.ferricoxide.cli;
 
+import mackycheese21.ferricoxide.Module;
+import mackycheese21.ferricoxide.ast.AstParser;
+import mackycheese21.ferricoxide.ast.SourceCodeException;
+import mackycheese21.ferricoxide.ast.token.Token;
+import mackycheese21.ferricoxide.ast.token.Tokenizer;
 import org.apache.commons.cli.*;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
 
 public class FerricOxide {
 
@@ -17,24 +27,28 @@ public class FerricOxide {
         Option in = Option.builder()
                 .option("i")
                 .longOpt("in")
-                .argName("files")
+                .argName("file")
                 .desc("input source")
                 .hasArg()
+                .numberOfArgs(1)
                 .required()
                 .build();
         Option out = Option.builder()
                 .option("o")
-                .argName("dir")
+                .longOpt("out")
+                .argName("file")
                 .desc("output binary")
                 .hasArg()
+                .numberOfArgs(1)
                 .required()
                 .build();
 //        Option llvm = Option.builder()
 //                .option("l")
 //                .longOpt("llvm")
-//                .argName("dir")
+//                .argName("file")
 //                .desc("output llvm")
 //                .hasArg()
+//                .numberOfArgs(1)
 //                .build();
         Option help = Option.builder()
                 .option("h")
@@ -42,11 +56,29 @@ public class FerricOxide {
                 .desc("show help")
                 .hasArg(false)
                 .build();
+        Option riscv = Option.builder()
+                .option("r")
+                .longOpt("riscv")
+                .argName("file")
+                .desc("output riscv")
+                .hasArg()
+                .numberOfArgs(1)
+                .build();
+        Option x86 = Option.builder()
+                .option("x")
+                .longOpt("x86")
+                .argName("file")
+                .desc("output x86")
+                .hasArg()
+                .numberOfArgs(1)
+                .build();
 
         options.addOption(in);
         options.addOption(out);
 //        options.addOption(llvm);
         options.addOption(help);
+        options.addOption(riscv);
+        options.addOption(x86);
 
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd;
@@ -65,19 +97,18 @@ public class FerricOxide {
             System.out.println("in parameter required");
             help();
         }
-//        if (!cmd.hasOption(out) && !cmd.hasOption(llvm)) {
-//            System.out.println("at least one output required");
-//            help();
-//        }
-//        if (cmd.hasOption(llvm)) {
-//            System.out.println("WARNING: llvm output not implemented, ignoring option");
-//        }
-//        if (cmd.hasOption(out)) {
-//            System.out.println("WARNING: binary output not implemented, ignoring option");
-//        }
-        System.out.println("Input files:");
-        for(String s : cmd.getOptionValues(in)) {
-            System.out.println(s);
+
+
+        try {
+            String data = Files.readString(Path.of(cmd.getOptionValues(in)[0]));
+            List<Token> tokens = Tokenizer.tokenize(data);
+            Module module = AstParser.parse(tokens);
+            String x86_assembly = cmd.getOptionValue(x86, null);
+            String x86_binary = cmd.getOptionValue(out);
+            String riscv_assembly = cmd.getOptionValue(riscv, null);
+            module.codegen(x86_assembly, x86_binary, riscv_assembly);
+        } catch (SourceCodeException | IOException e) {
+            e.printStackTrace();
         }
     }
 

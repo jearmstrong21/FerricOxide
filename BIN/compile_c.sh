@@ -1,0 +1,1 @@
+clang main.c build/main.x86 -o main

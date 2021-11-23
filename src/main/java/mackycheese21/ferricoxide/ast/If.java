@@ -32,9 +32,9 @@ public class If extends Ast {
 
     @Override
     public LLVMValueRef generateIR(GlobalContext globalContext, Variables variables, LLVMBuilderRef builder) {
-        LLVMBasicBlockRef ifTrue = LLVMAppendBasicBlock(variables.getCurrentFunction().getValueRef(), "ifTrue");
-        LLVMBasicBlockRef ifFalse = LLVMAppendBasicBlock(variables.getCurrentFunction().getValueRef(), "ifFalse");
-        LLVMBasicBlockRef ifAfter = LLVMAppendBasicBlock(variables.getCurrentFunction().getValueRef(), "ifAfter");
+        LLVMBasicBlockRef ifTrue = LLVMAppendBasicBlock(variables.getCurrentFunction().valueRef, "ifTrue");
+        LLVMBasicBlockRef ifFalse = LLVMAppendBasicBlock(variables.getCurrentFunction().valueRef, "ifFalse");
+        LLVMBasicBlockRef ifAfter = LLVMAppendBasicBlock(variables.getCurrentFunction().valueRef, "ifAfter");
 
         ConcreteType type = getConcreteType(globalContext, variables);
 

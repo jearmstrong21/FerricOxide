@@ -26,7 +26,7 @@ public class AccessVar extends Ast {
         if (variables.mapHas(name)) {
             return LLVMBuildLoad(builder, variables.mapGet(name).valueRef, "accessvar");
         } else {
-            return globalContext.mapGet(name).getValueRef();
+            return globalContext.mapGet(name).valueRef;
         }
     }
 

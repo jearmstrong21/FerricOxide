@@ -12,32 +12,27 @@ import static org.bytedeco.llvm.global.LLVM.*;
 
 public class Function {
 
-    private final String name;
-    private final ConcreteType result;
-    private final List<ConcreteType> params;
-    private final LLVMTypeRef typeRef;
-    private final LLVMValueRef valueRef;
+    public final String name;
+    public final ConcreteType result;
+    public final List<ConcreteType> params;
+    public final LLVMTypeRef typeRef;
+    public final LLVMValueRef valueRef;
+    public final boolean extern;
 
-    public Function(String name, ConcreteType result, List<ConcreteType> params, LLVMModuleRef module) {
+    public Function(String name, ConcreteType result, List<ConcreteType> params, LLVMModuleRef module, boolean extern) {
         this.name = name;
         this.result = result;
         this.params = Collections.unmodifiableList(params);
         PointerPointer<LLVMTypeRef> paramType = new PointerPointer<>(params.size());
         paramType.put(params.stream().map(ConcreteType::llvmTypeRef).toArray(LLVMTypeRef[]::new));
-        typeRef = LLVMFunctionType(result.llvmTypeRef(), paramType, 1, 0);
+        typeRef = LLVMFunctionType(result.llvmTypeRef(), paramType, params.size(), 0);
         this.valueRef = LLVMAddFunction(module, name, typeRef);
+        this.extern = extern;
         LLVMSetFunctionCallConv(valueRef, LLVMCCallConv);
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public LLVMTypeRef getTypeRef() {
-        return typeRef;
-    }
-
     public Variables enter(LLVMBuilderRef builder, List<String> paramNames) {
+        if(extern) throw new UnsupportedOperationException();
         LLVMBasicBlockRef entry = LLVMAppendBasicBlock(valueRef, "entry");
         LLVMPositionBuilderAtEnd(builder, entry);
         Variables variables = new Variables(this);
@@ -59,15 +54,4 @@ public class Function {
         return variables;
     }
 
-    public ConcreteType getResult() {
-        return result;
-    }
-
-    public List<ConcreteType> getParams() {
-        return params;
-    }
-
-    public LLVMValueRef getValueRef() {
-        return valueRef;
-    }
 }

@@ -26,4 +26,9 @@ public class Return extends Ast {
         LLVMBuildRet(builder, ast.generateIR(globalContext, variables, builder));
         return null;
     }
+
+    @Override
+    public String toString() {
+        return String.format("return %s", ast);
+    }
 }

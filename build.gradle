@@ -22,6 +22,16 @@ application {
     mainClass = "mackycheese21.ferricoxide.cli.FerricOxide"
 }
 
+jar {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    manifest {
+        attributes 'Main-Class': 'mackycheese21.ferricoxide.cli.FerricOxide'
+    }
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+
 test {
     useJUnitPlatform()
 }
