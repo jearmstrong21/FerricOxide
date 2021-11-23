@@ -1,7 +1,5 @@
 #include <stdio.h>
 
-int factorialIterative(int);
-int factorialRecursive(int);
 int printFactorials(int);
 
 int cPrint(int x, int y) {

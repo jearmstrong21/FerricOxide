@@ -29,6 +29,7 @@ public class Function {
         this.valueRef = LLVMAddFunction(module, name, typeRef);
         this.extern = extern;
         LLVMSetFunctionCallConv(valueRef, LLVMCCallConv);
+        LLVMSetLinkage(valueRef, LLVMExternalLinkage);
     }
 
     public Variables enter(LLVMBuilderRef builder, List<String> paramNames) {
