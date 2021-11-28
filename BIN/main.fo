@@ -1,12 +1,12 @@
-extern i32 cPrint(i32 x, i32 y)
+extern i32 cPrint(i32 x, i32 y);
 
 i32 printFactorials(i32 n) {
-    i32 i = 1
+    i32 i = 1;
     while i <= n {
-        cPrint(i, factorialIterative(i))
-        i = i + 1
+        cPrint(i, factorialIterative(i));
+        i = i + 1;
     }
-    return 0
+    return 0;
 }
 
 i32 factorialRecursive(i32 n) {
@@ -14,14 +14,14 @@ i32 factorialRecursive(i32 n) {
         n * factorialRecursive(n - 1)
     } else {
         1
-    }
+    };
 }
 
 i32 factorialIterative(i32 n) {
-    i32 result = 1
+    i32 result = 1;
     while n >= 1 {
-        result = result * n
-        n = n - 1
+        result = result * n;
+        n = n - 1;
     }
-    return result
+    return result;
 }

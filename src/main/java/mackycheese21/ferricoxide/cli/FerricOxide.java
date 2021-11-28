@@ -1,10 +1,13 @@
 package mackycheese21.ferricoxide.cli;
 
-import mackycheese21.ferricoxide.Module;
-import mackycheese21.ferricoxide.ast.AstParser;
-import mackycheese21.ferricoxide.ast.SourceCodeException;
-import mackycheese21.ferricoxide.ast.token.Token;
-import mackycheese21.ferricoxide.ast.token.Tokenizer;
+import mackycheese21.ferricoxide.SourceCodeException;
+import mackycheese21.ferricoxide.ast.module.CompiledModule;
+import mackycheese21.ferricoxide.ast.module.FOModule;
+import mackycheese21.ferricoxide.compile.CompileModuleVisitor;
+import mackycheese21.ferricoxide.parser.ModuleParser;
+import mackycheese21.ferricoxide.parser.token.Token;
+import mackycheese21.ferricoxide.parser.token.TokenScanner;
+import mackycheese21.ferricoxide.parser.token.Tokenizer;
 import org.apache.commons.cli.*;
 
 import java.io.IOException;
@@ -102,11 +105,13 @@ public class FerricOxide {
         try {
             String data = Files.readString(Path.of(cmd.getOptionValues(in)[0]));
             List<Token> tokens = Tokenizer.tokenize(data);
-            Module module = AstParser.parse(tokens);
+            FOModule module = ModuleParser.parse(new TokenScanner(tokens));
             String x86_assembly = cmd.getOptionValue(x86, null);
             String x86_binary = cmd.getOptionValue(out);
             String riscv_assembly = cmd.getOptionValue(riscv, null);
-            module.codegen(x86_assembly, x86_binary, riscv_assembly);
+            CompiledModule compiledModule = new CompileModuleVisitor().visit(module);
+            if (riscv_assembly != null) compiledModule.outputRISCV(riscv_assembly);
+            compiledModule.outputX86(riscv_assembly, x86_binary);
         } catch (SourceCodeException | IOException e) {
             e.printStackTrace();
         }
