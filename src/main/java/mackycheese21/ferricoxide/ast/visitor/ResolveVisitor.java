@@ -99,4 +99,5 @@ public class ResolveVisitor implements StatementVisitor<Void>, ModuleVisitor<Voi
     public Void visitCallStmt(CallStmt callStmt) {
         return null;
     }
+
 }

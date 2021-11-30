@@ -1,11 +1,13 @@
 package mackycheese21.ferricoxide.parser;
 
+import mackycheese21.ferricoxide.ast.expr.Expression;
+import mackycheese21.ferricoxide.ast.module.FOModule;
+import mackycheese21.ferricoxide.ast.module.Function;
+import mackycheese21.ferricoxide.ast.module.GlobalVariable;
+import mackycheese21.ferricoxide.ast.stmt.Block;
 import mackycheese21.ferricoxide.ast.type.ConcreteType;
 import mackycheese21.ferricoxide.ast.type.FunctionType;
 import mackycheese21.ferricoxide.ast.type.StructType;
-import mackycheese21.ferricoxide.ast.module.FOModule;
-import mackycheese21.ferricoxide.ast.module.Function;
-import mackycheese21.ferricoxide.ast.stmt.Block;
 import mackycheese21.ferricoxide.parser.token.Token;
 import mackycheese21.ferricoxide.parser.token.TokenScanner;
 
@@ -24,9 +26,10 @@ public class ModuleParser {
         scanner.next().mustBe(Token.Punctuation.L_PAREN);
         List<ConcreteType> paramTypes = new ArrayList<>();
         List<String> paramNames = new ArrayList<>();
-        while (true) {
-            if (scanner.peek().is(Token.Punctuation.R_PAREN)) break;
+        while (!scanner.peek().is(Token.Punctuation.R_PAREN)) {
             if (paramTypes.size() > 0) scanner.next().mustBe(Token.Punctuation.COMMA);
+            System.out.println(scanner.peek());
+            System.out.println("attempting type");
             ConcreteType type = StatementParser.forceType(scanner);
             String paramName = scanner.next().identifier();
             paramTypes.add(type);
@@ -69,18 +72,43 @@ public class ModuleParser {
         return new StructType(name, fieldNames, fieldTypes, packed);
     }
 
+    private static GlobalVariable attemptGlobal(TokenScanner scanner) {
+        TokenScanner s = scanner.copy();
+        ConcreteType type = StatementParser.attemptType(s);
+        if (type == null) return null;
+        if (s.hasNext(Token.Type.IDENTIFIER)) {
+            String name = s.next().identifier();
+            if (s.hasNext(Token.Punctuation.EQ)) {
+                s.next();
+                scanner.index = s.index;
+                Expression value = ExpressionParser.parse(scanner);
+                scanner.next().mustBe(Token.Punctuation.SEMICOLON);
+                return new GlobalVariable(type, name, value);
+            }
+        }
+        return null;
+    }
+
     public static FOModule parse(TokenScanner scanner) {
+        List<GlobalVariable> globals = new ArrayList<>();
         List<StructType> structs = new ArrayList<>();
         List<Function> functions = new ArrayList<>();
         while (scanner.hasNext()) {
-            StructType type = attemptStruct(scanner);
-            if (type != null) {
-                structs.add(type);
-            } else {
-                functions.add(forceFunction(scanner));
+            GlobalVariable global = attemptGlobal(scanner);
+            if (global != null) {
+                globals.add(global);
+                continue;
             }
+
+            StructType struct = attemptStruct(scanner);
+            if (struct != null) {
+                structs.add(struct);
+                continue;
+            }
+
+            functions.add(forceFunction(scanner));
         }
-        return new FOModule(structs, functions);
+        return new FOModule(globals, structs, functions);
     }
     // TODO redo module ast / structure, preprocessor mayb?
 

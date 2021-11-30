@@ -123,14 +123,11 @@ public class FerricOxide {
             compiledModule.outputX86(x86_assembly, x86_binary);
             System.out.println("Dumped");
         } catch (SourceCodeException e) {
-            String[] lines = data.split("\n");
-            int line = 0;
-            int total = 0;
-            while(total + lines[line].length() + 1 < e.span.start) {
-                line += 1;
-                total += lines[line].length() + 1;
+            int line = 1;
+            for (int i = 0; i <= e.span.start; i++) {
+                if (data.charAt(i) == '\n') line++;
             }
-            System.out.println((line + 1) + ":" + (e.span.start - total - 1));
+            System.out.println(line + ":" + (e.span.end - e.span.start));
             System.out.println(e.span);
             e.printStackTrace();
         } catch (IOException e) {

@@ -1,28 +1,62 @@
-extern void cPrint(i32 x, i32 y);
+extern i32 glColorBufferBit();
+extern i32 glDepthBufferBit();
+extern f32 glClearColorR();
+extern f32 glClearColorG();
+extern f32 glClearColorB();
+extern f32 glClearColorA();
 
-extern i8* malloc(i32 size);
-extern void cPrintStr(i8* ptr);
-extern void free(i8* ptr);
+extern i32 glfwContextVersionMajor();
+extern i32 glfwContextVersionMinor();
+extern i32 glfwOpenGLForwardCompat();
+extern i32 glfwOpenGLProfile();
+extern i32 glfwOpenGLCoreProfile();
 
-struct foo {
-    i32 bar;
-}
+extern i32 glfwInit();
+extern void glfwTerminate();
 
-void run() {
-    struct foo* x = new foo { bar: 6 };
+extern i8* glfwCreateWindow(i32 width, i32 height, i8* title, i8* monitor, i8* share);
+extern void glfwWindowHint(i32 hint, i32 value);
+extern bool glfwWindowShouldClose(i8* window);
+extern void glfwMakeContextCurrent(i8* window);
+extern void glfwSwapBuffers(i8* window);
+extern void glfwPollEvents();
 
-    (*x).bar = 3;
-    x->bar = 4 * x->bar;
+extern void glClearColor(f32 r, f32 g, f32 b, f32 a);
+extern void glClear(i32 flags);
 
-    cPrint(2, x->bar);
+extern i32 puts(i8* str);
 
-    i8* str = malloc(6);
-    *str = (i8) 72;
-    str[1] = (i8) 101;
-    str[2] = (i8) 108;
-    str[3] = (i8) 108;
-    str[4] = (i8) 111;
-    str[5] = (i8) 0;
-    cPrintStr(str);
-    free(str);
+i8* nullptr = (i8*) 0;
+
+i32 run() {
+    if glfwInit() == 0 {
+        puts("FO: glfwInit failed\n");
+        return 1;
+    }
+
+    glfwWindowHint(glfwContextVersionMajor(), 3);
+    glfwWindowHint(glfwContextVersionMinor(), 2);
+    glfwWindowHint(glfwOpenGLForwardCompat(), 1);
+    glfwWindowHint(glfwOpenGLProfile(), glfwOpenGLCoreProfile());
+
+    i8* window = glfwCreateWindow(1280, 720, "FO: Hello World\0", nullptr, nullptr);
+
+    if *window == nullptr {
+        puts("FO: glfwCreateWindow failed\n");
+        glfwTerminate();
+        return 1;
+    }
+
+    glfwMakeContextCurrent(window);
+
+    while !glfwWindowShouldClose(window) {
+        glClearColor(glClearColorR(), glClearColorG(), glClearColorB(), glClearColorA());
+        glClear(glColorBufferBit() | glDepthBufferBit());
+
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+    }
+
+    glfwTerminate();
+    return 0;
 }

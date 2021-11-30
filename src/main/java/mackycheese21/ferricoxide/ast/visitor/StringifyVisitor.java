@@ -106,6 +106,11 @@ public class StringifyVisitor implements ExpressionVisitor<String>, StatementVis
     }
 
     @Override
+    public String visitStringConstant(StringConstant stringConstant) {
+        return "\"%s\"".formatted(StringConstant.escape(stringConstant.value));
+    }
+
+    @Override
     public String visitAssign(Assign assign) {
         return String.format("%s%s = %s;\n", indent, assign.a.visit(this), assign.b.visit(this));
     }

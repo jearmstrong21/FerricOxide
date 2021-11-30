@@ -6,6 +6,7 @@ import mackycheese21.ferricoxide.ast.IdentifierMap;
 import mackycheese21.ferricoxide.ast.expr.*;
 import mackycheese21.ferricoxide.ast.module.FOModule;
 import mackycheese21.ferricoxide.ast.module.Function;
+import mackycheese21.ferricoxide.ast.module.GlobalVariable;
 import mackycheese21.ferricoxide.ast.stmt.*;
 import mackycheese21.ferricoxide.ast.type.ConcreteType;
 import mackycheese21.ferricoxide.ast.type.FunctionType;
@@ -14,13 +15,15 @@ import mackycheese21.ferricoxide.ast.type.StructType;
 
 public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, StatementVisitor<Void>, ModuleVisitor<Void> {
 
+    private IdentifierMap<ConcreteType> globals;
     private IdentifierMap<StructType> structs;
     private IdentifierMap<ConcreteType> variables;
     private IdentifierMap<FunctionType> functions;
     public ConcreteType requireReturnType;
     public boolean readOnly = false;
 
-    public TypeValidatorVisitor(IdentifierMap<StructType> structs, IdentifierMap<ConcreteType> variables, IdentifierMap<FunctionType> functions) {
+    public TypeValidatorVisitor(IdentifierMap<ConcreteType> globals, IdentifierMap<StructType> structs, IdentifierMap<ConcreteType> variables, IdentifierMap<FunctionType> functions) {
+        this.globals = globals;
         this.structs = structs;
         this.variables = variables;
         this.functions = functions;
@@ -40,6 +43,7 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
 
     @Override
     public ConcreteType visitAccessVar(AccessVar accessVar) {
+        if (globals.mapHas(accessVar.name)) return PointerType.of(globals.mapGet(accessVar.name));
         return PointerType.of(variables.mapGet(accessVar.name));
     }
 
@@ -133,6 +137,11 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
     }
 
     @Override
+    public ConcreteType visitStringConstant(StringConstant stringConstant) {
+        return PointerType.of(ConcreteType.I8);
+    }
+
+    @Override
     public Void visitAssign(Assign assign) {
         PointerType a = AnalysisException.requirePointer(assign.a.visit(this));
         ConcreteType b = assign.b.visit(this);
@@ -189,9 +198,14 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
     public Void visit(FOModule module) {
         if (readOnly) throw CompilerException.readOnlyTypeValidator();
 
+        globals = new IdentifierMap<>(null);
         structs = new IdentifierMap<>(null);
         functions = new IdentifierMap<>(null);
 
+        for (GlobalVariable global : module.globals) {
+            globals.mapAdd(global.name, global.type);
+            AnalysisException.requireType(global.type, global.value.visit(this));
+        }
         for (StructType struct : module.structs) {
             structs.mapAdd(struct.name, struct);
         }

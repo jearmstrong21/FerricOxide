@@ -15,12 +15,17 @@ import org.bytedeco.llvm.LLVM.LLVMBuilderRef;
 import org.bytedeco.llvm.LLVM.LLVMTypeRef;
 import org.bytedeco.llvm.LLVM.LLVMValueRef;
 
+import java.util.Map;
+
 import static org.bytedeco.llvm.global.LLVM.*;
 
 public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef> {
 
     private final LLVMBuilderRef builder;
     private final LLVMValueRef currentFunction;
+    private final Map<String, LLVMValueRef> strings;
+    private final IdentifierMap<ConcreteType> globalTypes;
+    private final IdentifierMap<LLVMValueRef> globalRefs;
     private final IdentifierMap<StructType> structs;
     private final IdentifierMap<ConcreteType> variableTypes;
     private final IdentifierMap<LLVMValueRef> variableRefs;
@@ -28,16 +33,19 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
     private final IdentifierMap<LLVMValueRef> functionRefs;
     private final TypeValidatorVisitor typeValidator;
 
-    public CompileExpressionVisitor(LLVMBuilderRef builder, LLVMValueRef currentFunction, IdentifierMap<StructType> structs, IdentifierMap<ConcreteType> variableTypes, IdentifierMap<LLVMValueRef> variableRefs,
+    public CompileExpressionVisitor(LLVMBuilderRef builder, LLVMValueRef currentFunction, Map<String, LLVMValueRef> strings, IdentifierMap<ConcreteType> globalTypes, IdentifierMap<LLVMValueRef> globalRefs, IdentifierMap<StructType> structs, IdentifierMap<ConcreteType> variableTypes, IdentifierMap<LLVMValueRef> variableRefs,
                                     IdentifierMap<FunctionType> functionTypes, IdentifierMap<LLVMValueRef> functionRefs) {
         this.builder = builder;
         this.currentFunction = currentFunction;
+        this.strings = strings;
+        this.globalTypes = globalTypes;
+        this.globalRefs = globalRefs;
         this.structs = structs;
         this.variableTypes = variableTypes;
         this.variableRefs = variableRefs;
         this.functionTypes = functionTypes;
         this.functionRefs = functionRefs;
-        this.typeValidator = new TypeValidatorVisitor(structs, variableTypes, functionTypes);
+        this.typeValidator = new TypeValidatorVisitor(globalTypes, structs, variableTypes, functionTypes);
     }
 
     private LLVMValueRef implicitResolve(ConcreteType expected, ConcreteType actual, LLVMValueRef valueRef) {
@@ -51,6 +59,7 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
 
     @Override
     public LLVMValueRef visitAccessVar(AccessVar accessVar) {
+        if(globalRefs.mapHas(accessVar.name)) return globalRefs.mapGet(accessVar.name);
         return variableRefs.mapGet(accessVar.name);
     }
 
@@ -129,7 +138,7 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
         PointerType pointerType = AnalysisException.requirePointer(objectType);
         int index = pointerType.to.getFieldIndex(fieldName);
         if (index == -1) throw AnalysisException.noSuchField(objectType, fieldName);
-        System.out.println("GEP " + objectType + " " + fieldName + " " + index);
+//        System.out.println("GEP " + objectType + " " + fieldName + " " + index);
         return LLVMBuildInBoundsGEP2(
                 builder,
                 pointerType.to.typeRef,
@@ -145,7 +154,7 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
 
     public LLVMValueRef GEP(ConcreteType objectType, LLVMValueRef index, LLVMValueRef objectRef) {
         PointerType pointerType = AnalysisException.requirePointer(objectType);
-        System.out.println("GEP " + pointerType);
+//        System.out.println("GEP " + pointerType);
         return LLVMBuildInBoundsGEP2(
                 builder,
                 pointerType.to.typeRef,
@@ -206,5 +215,25 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
                 1,
                 "IndexExpr.GEP"
         );
+    }
+
+    @Override
+    public LLVMValueRef visitStringConstant(StringConstant stringConstant) {
+        String str = StringConstant.unescape(stringConstant.value);
+        if (strings.containsKey(str)) return strings.get(str);
+        LLVMValueRef valueRef = LLVMBuildGlobalString(builder, str, "StringConstant.Value");
+        strings.put(str, valueRef);
+//        return valueRef;
+        // TODO: unhack this into ArrayType(ConcreteType, int) and cast from ArrayType <-> any pointer type <-> any pointer type
+        return LLVMBuildInBoundsGEP2(builder,
+//                LLVMPointerType(
+                LLVMArrayType(ConcreteType.I8.typeRef, str.length()),
+//                        0),
+                valueRef,
+                new PointerPointer<>(
+                        new IntConstant(0).visit(this),
+                        new IntConstant(0).visit(this)
+                ),
+                2, "StringConstant.GEP");
     }
 }

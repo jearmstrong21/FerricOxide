@@ -1,6 +1,7 @@
 package mackycheese21.ferricoxide.parser.token;
 
 import mackycheese21.ferricoxide.SourceCodeException;
+import mackycheese21.ferricoxide.ast.expr.StringConstant;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -90,21 +91,17 @@ public class Tokenizer {
 
     private static Token string(CodeScanner scanner) {
         String string = "";
-        String quote;
+        char quote;
         int start = scanner.index;
         if (scanner.hasNext(Token.QUOTES)) {
-            quote = scanner.next() + "";
+            quote = scanner.next().unwrapUnsafe();
         } else {
             return null;
         }
-        while (scanner.hasNextNot(quote)) {
-            string += quote;
+        while (scanner.hasNextNot(quote + "")) {
+            string += scanner.next().unwrapUnsafe();
         }
-        if (scanner.hasNext(quote)) {
-            scanner.next();
-        } else {
-            return null;
-        }
+        scanner.next();
         int end = scanner.index;
         return Token.string(new Span(start, end), string);
     }

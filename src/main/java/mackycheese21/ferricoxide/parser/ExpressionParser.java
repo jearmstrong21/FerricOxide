@@ -115,8 +115,17 @@ public class ExpressionParser {
         return new CastExpr(type, simple(scanner));
     }
 
+    private static Expression attemptString(TokenScanner scanner) {
+        if (scanner.hasNext(Token.Type.STRING))
+            return new StringConstant(StringConstant.unescape(scanner.next().string()));
+        return null;
+    }
+
     private static Expression simpleFirst(TokenScanner scanner) {
         Expression expr;
+
+        expr = attemptString(scanner);
+        if (expr != null) return expr;
 
         expr = attemptStructInit(scanner);
         if (expr != null) return expr;

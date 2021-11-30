@@ -28,4 +28,6 @@ public interface ExpressionVisitor<T> {
 
     T visitIndexExpr(IndexExpr indexExpr);
 
+    T visitStringConstant(StringConstant stringConstant);
+
 }

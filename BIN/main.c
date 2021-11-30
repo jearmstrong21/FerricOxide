@@ -1,17 +1,24 @@
-#include <stdio.h>
+/* Ask for an OpenGL Core Context */
+#define GLFW_INCLUDE_GLCOREARB
+#include <GLFW/glfw3.h>
 
-void run();
+#define BUFFER_OFFSET(i) ((char *)NULL + (i))
 
-void cPrint(int x, int y) {
-    printf("FerricOxide says: %d, %d\n", x, y);
-}
+int glColorBufferBit() { return GL_COLOR_BUFFER_BIT; }
+int glDepthBufferBit() { return GL_DEPTH_BUFFER_BIT; }
+float glClearColorR() { return 0.4; }
+float glClearColorG() { return 0.5; }
+float glClearColorB() { return 0.4; }
+float glClearColorA() { return 1.0; }
+int glfwContextVersionMajor() { return GLFW_CONTEXT_VERSION_MAJOR; }
+int glfwContextVersionMinor() { return GLFW_CONTEXT_VERSION_MINOR; }
+int glfwOpenGLForwardCompat() { return GLFW_OPENGL_FORWARD_COMPAT; }
+int glfwOpenGLProfile() { return GLFW_OPENGL_PROFILE; }
+int glfwOpenGLCoreProfile() { return GLFW_OPENGL_CORE_PROFILE; }
 
-void cPrintStr(char *str) {
-    printf("FerricOxide says: %s\n", str);
-}
+extern int run();
 
-int main() {
-    printf("Hello World!\n");
-	run();
-	return 0;
+int main(int argc, char** argv)
+{
+    return run();
 }

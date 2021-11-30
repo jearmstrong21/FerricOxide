@@ -64,4 +64,9 @@ public class VerboseStringifyVisitor implements ExpressionVisitor<String> {
     public String visitIndexExpr(IndexExpr indexExpr) {
         return "index[%s: [%s]]".formatted(indexExpr.value, indexExpr.index);
     }
+
+    @Override
+    public String visitStringConstant(StringConstant stringConstant) {
+        return "string[%s]".formatted(StringConstant.escape(stringConstant.value));
+    }
 }

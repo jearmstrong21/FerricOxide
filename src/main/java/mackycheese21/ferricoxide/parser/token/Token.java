@@ -49,6 +49,8 @@ public class Token {
     }
 
     public enum Punctuation {
+//        DOUBLE_QUOTE("\""),
+//        SINGLE_QUOTE("\'"),
         L_BRACE("["),
         R_BRACE("]"),
         ARROW("->"),
@@ -162,7 +164,7 @@ public class Token {
 
     public String string() throws SourceCodeException {
         mustBe(Type.STRING);
-        return identifier;
+        return string;
     }
 
     public double decimal() {

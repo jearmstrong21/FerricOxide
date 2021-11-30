@@ -31,6 +31,8 @@ public enum UnaryOperator {
                     return ConcreteType.I32;
             }
             case LOGICAL_NOT -> {
+                if (operand == ConcreteType.BOOL)
+                    return ConcreteType.BOOL;
             }
             case BITWISE_NOT -> {
             }
@@ -50,6 +52,8 @@ public enum UnaryOperator {
                     return LLVMBuildSub(builder, LLVMConstInt(operand.typeRef, 0, 0), a, name);
             }
             case LOGICAL_NOT -> {
+                if (operand == ConcreteType.BOOL)
+                    return LLVMBuildNot(builder, a, name);
             }
             case BITWISE_NOT -> {
             }

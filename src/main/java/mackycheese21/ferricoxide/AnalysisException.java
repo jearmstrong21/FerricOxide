@@ -80,10 +80,6 @@ public class AnalysisException extends RuntimeException {
         return new AnalysisException(String.format("cannot apply %s to %s", operator, operand));
     }
 
-    public static AnalysisException cannotAssignValue() {
-        return new AnalysisException("cannot assign value");
-    }
-
     public static AnalysisException incorrectParamCount(int expected, int actual) {
         return new AnalysisException("expected %s params, got %s".formatted(expected, actual));
     }

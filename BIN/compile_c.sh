@@ -1,1 +1,1 @@
-clang main.c build/main.x86 -o main
+clang main.c build/main.x86 -o main -lglfw -framework OpenGL

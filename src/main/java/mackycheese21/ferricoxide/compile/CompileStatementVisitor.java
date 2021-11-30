@@ -5,7 +5,6 @@ import mackycheese21.ferricoxide.ast.type.FunctionType;
 import mackycheese21.ferricoxide.ast.IdentifierMap;
 import mackycheese21.ferricoxide.ast.type.PointerType;
 import mackycheese21.ferricoxide.ast.type.StructType;
-import mackycheese21.ferricoxide.ast.expr.AccessVar;
 import mackycheese21.ferricoxide.ast.stmt.*;
 import mackycheese21.ferricoxide.ast.visitor.StatementVisitor;
 import mackycheese21.ferricoxide.ast.visitor.TypeValidatorVisitor;
@@ -13,24 +12,30 @@ import org.bytedeco.llvm.LLVM.LLVMBasicBlockRef;
 import org.bytedeco.llvm.LLVM.LLVMBuilderRef;
 import org.bytedeco.llvm.LLVM.LLVMValueRef;
 
+import java.util.Map;
+
 import static org.bytedeco.llvm.global.LLVM.*;
 
 public class CompileStatementVisitor implements StatementVisitor<Void> {
 
     private final LLVMBuilderRef builder;
     private final LLVMValueRef currentFunction;
+    private final IdentifierMap<ConcreteType> globalTypes;
+    private final IdentifierMap<LLVMValueRef> globalRefs;
     public final IdentifierMap<ConcreteType> variableTypes;
     public final IdentifierMap<LLVMValueRef> variableRefs;
     private final CompileExpressionVisitor compileExpression;
     private final TypeValidatorVisitor typeValidator;
 
-    public CompileStatementVisitor(LLVMBuilderRef builder, LLVMValueRef currentFunction, IdentifierMap<StructType> structs, IdentifierMap<FunctionType> functionTypes, IdentifierMap<LLVMValueRef> functionRefs) {
+    public CompileStatementVisitor(LLVMBuilderRef builder, LLVMValueRef currentFunction, IdentifierMap<ConcreteType> globalTypes, IdentifierMap<LLVMValueRef> globalRefs, Map<String, LLVMValueRef> strings, IdentifierMap<StructType> structs, IdentifierMap<FunctionType> functionTypes, IdentifierMap<LLVMValueRef> functionRefs) {
         this.builder = builder;
         this.currentFunction = currentFunction;
+        this.globalTypes = globalTypes;
+        this.globalRefs = globalRefs;
         this.variableTypes = new IdentifierMap<>(null);
         this.variableRefs = new IdentifierMap<>(null);
-        this.compileExpression = new CompileExpressionVisitor(builder, currentFunction, structs, variableTypes, variableRefs, functionTypes, functionRefs);
-        this.typeValidator = new TypeValidatorVisitor(structs, variableTypes, functionTypes);
+        this.compileExpression = new CompileExpressionVisitor(builder, currentFunction, strings, globalTypes, globalRefs, structs, variableTypes, variableRefs, functionTypes, functionRefs);
+        this.typeValidator = new TypeValidatorVisitor(globalTypes, structs, variableTypes, functionTypes);
     }
 
     @Override
@@ -53,18 +58,20 @@ public class CompileStatementVisitor implements StatementVisitor<Void> {
 
             LLVMPositionBuilderAtEnd(builder, then);
             ifStmt.then.visit(this);
+            if(!ifStmt.then.terminal) LLVMBuildBr(builder, end);
         } else {
             LLVMBasicBlockRef otherwise = LLVMAppendBasicBlock(currentFunction, "IfStmt.otherwise");
             LLVMBuildCondBr(builder, condition, then, otherwise);
 
             LLVMPositionBuilderAtEnd(builder, then);
             ifStmt.then.visit(this);
-            LLVMBuildBr(builder, end);
+            if(!ifStmt.then.terminal) LLVMBuildBr(builder, end);
 
             LLVMPositionBuilderAtEnd(builder, otherwise);
             ifStmt.otherwise.visit(this);
+
+            LLVMBuildBr(builder, end);
         }
-        LLVMBuildBr(builder, end);
         LLVMPositionBuilderAtEnd(builder, end);
         return null;
     }
