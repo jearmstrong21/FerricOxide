@@ -17,7 +17,7 @@ public class Token {
     public static final String QUOTES = "\'\"";
     public static final String ALPHABET = buildAlphabet();
     public static final String DIGITS = buildDigits();
-    public static final String IDENTIFIER_PUNCTUATION = "@#$";
+    public static final String IDENTIFIER_PUNCTUATION = "@#$_";
 
     private static String buildAlphabet() {
         String alphabet = "";
@@ -49,6 +49,10 @@ public class Token {
     }
 
     public enum Punctuation {
+        L_BRACE("["),
+        R_BRACE("]"),
+        ARROW("->"),
+        PERIOD("."),
         EQEQ("=="),
         NEQ("!="),
         EQ("="),
@@ -62,6 +66,7 @@ public class Token {
         STAR("*"),
         SLASH("/"),
         SEMICOLON(";"),
+        COLON(":"),
         LE("<="),
         LT("<"),
         GE(">="),
@@ -87,9 +92,14 @@ public class Token {
         EXTERN("extern"),
         INLINE("inline"),
 
+        STRUCT("struct"),
+        PACKED("packed"),
+        NEW("new"),
+
         TRUE("true"),
         FALSE("false"),
 
+        I8("i8"),
         I32("i32"),
         I64("i64"),
         F32("f32"),

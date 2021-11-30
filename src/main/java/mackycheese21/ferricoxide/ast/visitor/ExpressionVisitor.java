@@ -18,4 +18,14 @@ public interface ExpressionVisitor<T> {
 
     T visitCallExpr(CallExpr callExpr);
 
+    T visitAccessField(AccessField accessField);
+
+    T visitStructInit(StructInit structInit);
+
+    T visitPointerDeref(PointerDeref pointerDeref);
+
+    T visitCastExpr(CastExpr castExpr);
+
+    T visitIndexExpr(IndexExpr indexExpr);
+
 }

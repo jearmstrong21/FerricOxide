@@ -1,22 +1,27 @@
 package mackycheese21.ferricoxide.ast.visitor;
 
-import mackycheese21.ferricoxide.ast.ConcreteType;
-import mackycheese21.ferricoxide.ast.IdentifierMap;
 import mackycheese21.ferricoxide.AnalysisException;
 import mackycheese21.ferricoxide.CompilerException;
+import mackycheese21.ferricoxide.ast.IdentifierMap;
 import mackycheese21.ferricoxide.ast.expr.*;
 import mackycheese21.ferricoxide.ast.module.FOModule;
 import mackycheese21.ferricoxide.ast.module.Function;
 import mackycheese21.ferricoxide.ast.stmt.*;
+import mackycheese21.ferricoxide.ast.type.ConcreteType;
+import mackycheese21.ferricoxide.ast.type.FunctionType;
+import mackycheese21.ferricoxide.ast.type.PointerType;
+import mackycheese21.ferricoxide.ast.type.StructType;
 
 public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, StatementVisitor<Void>, ModuleVisitor<Void> {
 
+    private IdentifierMap<StructType> structs;
     private IdentifierMap<ConcreteType> variables;
-    private IdentifierMap<ConcreteType.Function> functions;
+    private IdentifierMap<FunctionType> functions;
     public ConcreteType requireReturnType;
     public boolean readOnly = false;
 
-    public TypeValidatorVisitor(IdentifierMap<ConcreteType> variables, IdentifierMap<ConcreteType.Function> functions) {
+    public TypeValidatorVisitor(IdentifierMap<StructType> structs, IdentifierMap<ConcreteType> variables, IdentifierMap<FunctionType> functions) {
+        this.structs = structs;
         this.variables = variables;
         this.functions = functions;
     }
@@ -25,9 +30,17 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
 
     }
 
+    private ConcreteType implicitResolve(ConcreteType expected, ConcreteType actual) {
+        while (actual instanceof PointerType pointer && expected != actual) {
+            actual = pointer.to;
+        }
+        if (expected == actual) return actual;
+        throw AnalysisException.incorrectType(expected, actual);
+    }
+
     @Override
     public ConcreteType visitAccessVar(AccessVar accessVar) {
-        return variables.mapGet(accessVar.name);
+        return PointerType.of(variables.mapGet(accessVar.name));
     }
 
     @Override
@@ -39,14 +52,13 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
     public ConcreteType visitBinaryExpr(BinaryExpr binaryExpr) {
         ConcreteType a = binaryExpr.a.visit(this);
         ConcreteType b = binaryExpr.b.visit(this);
-        AnalysisException.requireType(a, b);
+        implicitResolve(a, b);
         return binaryExpr.operator.getResult(a);
     }
 
     @Override
     public ConcreteType visitUnaryExpr(UnaryExpr unaryExpr) {
-        ConcreteType a = unaryExpr.a.visit(this);
-        return unaryExpr.operator.getResult(a);
+        return unaryExpr.operator.getResult(unaryExpr.a.visit(this));
     }
 
     @Override
@@ -66,24 +78,66 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
 
     @Override
     public ConcreteType visitCallExpr(CallExpr callExpr) {
-        ConcreteType.Function type = functions.mapGet(callExpr.name);
+        FunctionType type = functions.mapGet(callExpr.name);
         AnalysisException.requireParamCount(type.params.size(), callExpr.params.size());
         for (int i = 0; i < type.params.size(); i++) {
-            AnalysisException.requireType(type.params.get(i), callExpr.params.get(i).visit(this));
+            implicitResolve(type.params.get(i), callExpr.params.get(i).visit(this));
         }
         return type.result;
     }
 
     @Override
-    public Void visitAssign(Assign assign) {
-        if (assign.a.lvalue) {
-            ConcreteType a = assign.a.visit(this);
-            ConcreteType b = assign.b.visit(this);
-            AnalysisException.requireType(a, b);
-            return null;
-        } else {
-            throw AnalysisException.cannotAssignValue();
+    public ConcreteType visitAccessField(AccessField accessField) {
+        PointerType objectType = AnalysisException.requirePointer(accessField.object.visit(this));
+        ConcreteType fieldType = objectType.to.getFieldType(accessField.field);
+        if (fieldType == null) throw AnalysisException.noSuchField(objectType, accessField.field);
+        return PointerType.of(fieldType);
+    }
+
+    @Override
+    public ConcreteType visitStructInit(StructInit structInit) {
+        StructType struct = structs.mapGet(structInit.struct);
+        if (struct.fieldTypes.size() != structInit.fieldNames.size())
+            throw AnalysisException.incorrectStructInitializer();
+        if (struct.fieldTypes.size() != structInit.fieldValues.size())
+            throw AnalysisException.incorrectStructInitializer();
+
+        for (int i = 0; i < struct.fieldTypes.size(); i++) {
+            if (!struct.fieldNames.contains(structInit.fieldNames.get(i)))
+                throw AnalysisException.incorrectStructInitializer();
+            if (!structInit.fieldNames.contains(struct.fieldNames.get(i)))
+                throw AnalysisException.incorrectStructInitializer();
+            String fieldName = structInit.fieldNames.get(i);
+            Expression fieldValue = structInit.fieldValues.get(i);
+            int actualStructIndex = struct.fieldNames.indexOf(fieldName);
+            AnalysisException.requireType(struct.fieldTypes.get(actualStructIndex), fieldValue.visit(this));
         }
+        return PointerType.of(struct);
+    }
+
+    @Override
+    public ConcreteType visitPointerDeref(PointerDeref pointerDeref) {
+        return AnalysisException.requirePointer(pointerDeref.deref.visit(this)).to;
+    }
+
+    @Override
+    public ConcreteType visitCastExpr(CastExpr castExpr) {
+        CastOperator.verify(castExpr.value.visit(this), castExpr.target);
+        return castExpr.target;
+    }
+
+    @Override
+    public ConcreteType visitIndexExpr(IndexExpr indexExpr) {
+        AnalysisException.requireType(ConcreteType.I32, indexExpr.index.visit(this));
+        return AnalysisException.requirePointer(indexExpr.value.visit(this)).to;
+    }
+
+    @Override
+    public Void visitAssign(Assign assign) {
+        PointerType a = AnalysisException.requirePointer(assign.a.visit(this));
+        ConcreteType b = assign.b.visit(this);
+        AnalysisException.requireType(a.to, b);
+        return null;
     }
 
     @Override
@@ -102,6 +156,8 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
 
     @Override
     public Void visitReturnStmt(ReturnStmt returnStmt) {
+        if (requireReturnType == ConcreteType.VOID && returnStmt.value == null) return null;
+        if (returnStmt.value == null) AnalysisException.requireType(requireReturnType, ConcreteType.VOID);
         AnalysisException.requireType(requireReturnType, returnStmt.value.visit(this));
         return null;
     }
@@ -110,6 +166,7 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
     public Void visitDeclareVar(DeclareVar declareVar) {
         if (readOnly) throw CompilerException.readOnlyTypeValidator();
         ConcreteType type = declareVar.value.visit(this);
+        if (!type.declarable) throw AnalysisException.cannotDeclareType(type);
         AnalysisException.requireType(declareVar.type, type);
         variables.mapAdd(declareVar.name, type);
         return null;
@@ -131,7 +188,13 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
     @Override
     public Void visit(FOModule module) {
         if (readOnly) throw CompilerException.readOnlyTypeValidator();
+
+        structs = new IdentifierMap<>(null);
         functions = new IdentifierMap<>(null);
+
+        for (StructType struct : module.structs) {
+            structs.mapAdd(struct.name, struct);
+        }
         for (Function function : module.functions) {
             if (function.inline && function.isExtern()) {
                 throw AnalysisException.cannotCombineInlineExtern();

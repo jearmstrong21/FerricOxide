@@ -62,7 +62,7 @@ public class Tokenizer {
             }
 
             if (scanner.hasNext()) {
-                throw SourceCodeException.unexpectedChar(new Span(scanner.index, scanner.index + 1));
+                throw SourceCodeException.unexpectedChar(scanner.next().unwrapUnsafe(), new Span(scanner.index, scanner.index + 1));
             }
         }
         return tokens;

@@ -1,10 +1,14 @@
 package mackycheese21.ferricoxide.compile;
 
-import mackycheese21.ferricoxide.ast.ConcreteType;
+import mackycheese21.ferricoxide.ast.type.ConcreteType;
+import mackycheese21.ferricoxide.ast.type.FunctionType;
 import mackycheese21.ferricoxide.ast.IdentifierMap;
+import mackycheese21.ferricoxide.ast.type.PointerType;
+import mackycheese21.ferricoxide.ast.type.StructType;
 import mackycheese21.ferricoxide.ast.expr.AccessVar;
 import mackycheese21.ferricoxide.ast.stmt.*;
 import mackycheese21.ferricoxide.ast.visitor.StatementVisitor;
+import mackycheese21.ferricoxide.ast.visitor.TypeValidatorVisitor;
 import org.bytedeco.llvm.LLVM.LLVMBasicBlockRef;
 import org.bytedeco.llvm.LLVM.LLVMBuilderRef;
 import org.bytedeco.llvm.LLVM.LLVMValueRef;
@@ -18,22 +22,24 @@ public class CompileStatementVisitor implements StatementVisitor<Void> {
     public final IdentifierMap<ConcreteType> variableTypes;
     public final IdentifierMap<LLVMValueRef> variableRefs;
     private final CompileExpressionVisitor compileExpression;
+    private final TypeValidatorVisitor typeValidator;
 
-    public CompileStatementVisitor(LLVMBuilderRef builder, LLVMValueRef currentFunction, IdentifierMap<ConcreteType.Function> functionTypes, IdentifierMap<LLVMValueRef> functionRefs) {
+    public CompileStatementVisitor(LLVMBuilderRef builder, LLVMValueRef currentFunction, IdentifierMap<StructType> structs, IdentifierMap<FunctionType> functionTypes, IdentifierMap<LLVMValueRef> functionRefs) {
         this.builder = builder;
         this.currentFunction = currentFunction;
         this.variableTypes = new IdentifierMap<>(null);
         this.variableRefs = new IdentifierMap<>(null);
-        this.compileExpression = new CompileExpressionVisitor(builder, currentFunction, variableTypes, variableRefs, functionTypes, functionRefs);
+        this.compileExpression = new CompileExpressionVisitor(builder, currentFunction, structs, variableTypes, variableRefs, functionTypes, functionRefs);
+        this.typeValidator = new TypeValidatorVisitor(structs, variableTypes, functionTypes);
     }
 
     @Override
     public Void visitAssign(Assign assign) {
-        if (assign.a instanceof AccessVar a) {
-            LLVMBuildStore(builder, assign.b.visit(compileExpression), variableRefs.mapGet(a.name));
+        if(assign.a.visit(typeValidator) instanceof PointerType pointer) {
+            LLVMBuildStore(builder, assign.b.visit(compileExpression), assign.a.visit(compileExpression));
             return null;
         } else {
-            throw new UnsupportedOperationException("assigning lvalues other than var access not yet supported :((");
+            throw new UnsupportedOperationException("wat");
         }
     }
 
@@ -71,13 +77,14 @@ public class CompileStatementVisitor implements StatementVisitor<Void> {
 
     @Override
     public Void visitReturnStmt(ReturnStmt returnStmt) {
-        LLVMBuildRet(builder, returnStmt.value.visit(compileExpression));
+        if(returnStmt.value == null) LLVMBuildRetVoid(builder);
+        else LLVMBuildRet(builder, returnStmt.value.visit(compileExpression));
         return null;
     }
 
     @Override
     public Void visitDeclareVar(DeclareVar declareVar) {
-        LLVMValueRef alloc = LLVMBuildAlloca(builder, declareVar.type.llvmTypeRef(), "DeclareVar");
+        LLVMValueRef alloc = LLVMBuildAlloca(builder, declareVar.type.typeRef, "DeclareVar");
         LLVMBuildStore(builder, declareVar.value.visit(compileExpression), alloc);
         variableTypes.mapAdd(declareVar.name, declareVar.type);
         variableRefs.mapAdd(declareVar.name, alloc);

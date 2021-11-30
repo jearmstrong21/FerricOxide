@@ -1,12 +1,12 @@
 package mackycheese21.ferricoxide.ast.stmt;
 
-import mackycheese21.ferricoxide.ast.ConcreteType;
+import mackycheese21.ferricoxide.ast.type.ConcreteType;
 import mackycheese21.ferricoxide.ast.expr.Expression;
 import mackycheese21.ferricoxide.ast.visitor.StatementVisitor;
 
 public class DeclareVar extends Statement {
 
-    public final ConcreteType type;
+    public ConcreteType type;
     public final String name;
     public final Expression value;
 

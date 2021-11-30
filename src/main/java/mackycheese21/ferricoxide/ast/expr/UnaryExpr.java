@@ -1,6 +1,5 @@
 package mackycheese21.ferricoxide.ast.expr;
 
-import mackycheese21.ferricoxide.ast.UnaryOperator;
 import mackycheese21.ferricoxide.ast.visitor.ExpressionVisitor;
 
 public class UnaryExpr extends Expression {

@@ -1,6 +1,8 @@
 package mackycheese21.ferricoxide.parser;
 
-import mackycheese21.ferricoxide.ast.ConcreteType;
+import mackycheese21.ferricoxide.ast.type.ConcreteType;
+import mackycheese21.ferricoxide.ast.type.FunctionType;
+import mackycheese21.ferricoxide.ast.type.StructType;
 import mackycheese21.ferricoxide.ast.module.FOModule;
 import mackycheese21.ferricoxide.ast.module.Function;
 import mackycheese21.ferricoxide.ast.stmt.Block;
@@ -12,7 +14,7 @@ import java.util.List;
 
 public class ModuleParser {
 
-    private static Function attemptFunction(TokenScanner scanner) {
+    private static Function forceFunction(TokenScanner scanner) {
         boolean inline = scanner.peek().is(Token.Keyword.INLINE);
         if (inline) scanner.next();
         boolean extern = scanner.peek().is(Token.Keyword.EXTERN);
@@ -31,7 +33,7 @@ public class ModuleParser {
             paramNames.add(paramName);
         }
         scanner.next();
-        ConcreteType.Function funcType = new ConcreteType.Function(result, paramTypes);
+        FunctionType funcType = FunctionType.of(result, paramTypes);
         Block body;
         if (extern) {
             body = null;
@@ -42,12 +44,43 @@ public class ModuleParser {
         return new Function(name, inline, funcType, paramNames, body);
     }
 
+    public static StructType attemptStruct(TokenScanner scanner) {
+        boolean packed = scanner.peek().is(Token.Keyword.PACKED);
+        if (packed) {
+            scanner.next().mustBe(Token.Keyword.STRUCT);
+        } else {
+            if (!scanner.peek().is(Token.Keyword.STRUCT)) return null;
+            scanner.next();
+        }
+
+        String name = scanner.next().identifier();
+        List<String> fieldNames = new ArrayList<>();
+        List<ConcreteType> fieldTypes = new ArrayList<>();
+
+        scanner.next().mustBe(Token.Punctuation.L_BRACKET);
+        while (!scanner.peek().is(Token.Punctuation.R_BRACKET)) {
+            fieldTypes.add(StatementParser.forceType(scanner));
+            fieldNames.add(scanner.next().identifier());
+            scanner.next().mustBe(Token.Punctuation.SEMICOLON);
+        }
+        scanner.next();
+        if (scanner.hasNext(Token.Punctuation.SEMICOLON)) scanner.next();
+
+        return new StructType(name, fieldNames, fieldTypes, packed);
+    }
+
     public static FOModule parse(TokenScanner scanner) {
+        List<StructType> structs = new ArrayList<>();
         List<Function> functions = new ArrayList<>();
         while (scanner.hasNext()) {
-            functions.add(attemptFunction(scanner));
+            StructType type = attemptStruct(scanner);
+            if (type != null) {
+                structs.add(type);
+            } else {
+                functions.add(forceFunction(scanner));
+            }
         }
-        return new FOModule(functions);
+        return new FOModule(structs, functions);
     }
     // TODO redo module ast / structure, preprocessor mayb?
 

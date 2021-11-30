@@ -1,11 +1,13 @@
 package mackycheese21.ferricoxide.parser;
 
-import mackycheese21.ferricoxide.ast.ConcreteType;
 import mackycheese21.ferricoxide.SourceCodeException;
 import mackycheese21.ferricoxide.ast.expr.BinaryOperator;
 import mackycheese21.ferricoxide.ast.expr.CallExpr;
 import mackycheese21.ferricoxide.ast.expr.Expression;
 import mackycheese21.ferricoxide.ast.stmt.*;
+import mackycheese21.ferricoxide.ast.type.ConcreteType;
+import mackycheese21.ferricoxide.ast.type.PointerType;
+import mackycheese21.ferricoxide.ast.type.TypeReference;
 import mackycheese21.ferricoxide.parser.token.Token;
 import mackycheese21.ferricoxide.parser.token.TokenScanner;
 import org.jetbrains.annotations.NotNull;
@@ -15,7 +17,11 @@ import java.util.List;
 
 public class StatementParser {
 
-    private static ConcreteType attemptType(TokenScanner scanner) {
+    private static ConcreteType attemptTypeFirst(TokenScanner scanner) {
+        if(scanner.peek().is(Token.Keyword.I8)) {
+            scanner.next();
+            return ConcreteType.I8;
+        }
         if (scanner.peek().is(Token.Keyword.I32)) {
             scanner.next();
             return ConcreteType.I32;
@@ -40,12 +46,26 @@ public class StatementParser {
             scanner.next();
             return ConcreteType.VOID;
         }
+        if (scanner.peek().is(Token.Keyword.STRUCT)) {
+            scanner.next();
+            return new TypeReference(scanner.next().identifier());
+        }
         return null;
+    }
+
+    public static ConcreteType attemptType(TokenScanner scanner) {
+        ConcreteType type = attemptTypeFirst(scanner);
+        if (type == null) return null;
+        while (scanner.hasNext(Token.Punctuation.STAR)) {
+            scanner.next();
+            type = PointerType.of(type);
+        }
+        return type;
     }
 
     public static ConcreteType forceType(TokenScanner scanner) {
         ConcreteType type = attemptType(scanner);
-        if(type == null) throw SourceCodeException.expectedType(scanner);
+        if (type == null) throw SourceCodeException.expectedType(scanner);
         return type;
     }
 
@@ -57,7 +77,7 @@ public class StatementParser {
             statements.add(forceStatement(scanner));
         }
         scanner.next().mustBe(Token.Punctuation.R_BRACKET);
-        if(scanner.hasNext() && scanner.peek().is(Token.Punctuation.SEMICOLON)) scanner.next();
+        if (scanner.hasNext() && scanner.peek().is(Token.Punctuation.SEMICOLON)) scanner.next();
         return new Block(statements);
     }
 
@@ -75,10 +95,10 @@ public class StatementParser {
         if (scanner.hasNext() && scanner.peek().is(Token.Keyword.ELSE)) {
             scanner.next();
             Block otherwise = forceBlock(scanner);
-            if(scanner.hasNext() && scanner.peek().is(Token.Punctuation.SEMICOLON)) scanner.next();
+            if (scanner.hasNext() && scanner.peek().is(Token.Punctuation.SEMICOLON)) scanner.next();
             return new IfStmt(condition, then, otherwise);
         } else {
-            if(scanner.hasNext() && scanner.peek().is(Token.Punctuation.SEMICOLON)) scanner.next();
+            if (scanner.hasNext() && scanner.peek().is(Token.Punctuation.SEMICOLON)) scanner.next();
             return new IfStmt(condition, then, null);
         }
     }
@@ -96,7 +116,7 @@ public class StatementParser {
         scanner.next();
         Expression condition = ExpressionParser.parse(scanner);
         Block body = forceBlock(scanner);
-        if(scanner.hasNext() && scanner.peek().is(Token.Punctuation.SEMICOLON)) scanner.next();
+        if (scanner.hasNext() && scanner.peek().is(Token.Punctuation.SEMICOLON)) scanner.next();
         return new WhileStmt(condition, body);
     }
 
@@ -157,7 +177,7 @@ public class StatementParser {
 
     public static @NotNull Statement forceStatement(TokenScanner scanner) {
         Statement statement = parse(scanner);
-        if(statement == null) throw SourceCodeException.expectedStatement(scanner);
+        if (statement == null) throw SourceCodeException.expectedStatement(scanner);
         return statement;
     }
 

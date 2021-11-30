@@ -3,6 +3,7 @@ package mackycheese21.ferricoxide.cli;
 import mackycheese21.ferricoxide.SourceCodeException;
 import mackycheese21.ferricoxide.ast.module.CompiledModule;
 import mackycheese21.ferricoxide.ast.module.FOModule;
+import mackycheese21.ferricoxide.ast.visitor.TypeValidatorVisitor;
 import mackycheese21.ferricoxide.compile.CompileModuleVisitor;
 import mackycheese21.ferricoxide.parser.ModuleParser;
 import mackycheese21.ferricoxide.parser.token.Token;
@@ -100,19 +101,39 @@ public class FerricOxide {
             System.out.println("in parameter required");
             help();
         }
-
+        String data = null;
 
         try {
-            String data = Files.readString(Path.of(cmd.getOptionValues(in)[0]));
+            data = Files.readString(Path.of(cmd.getOptionValues(in)[0]));
+            System.out.println("File read...");
             List<Token> tokens = Tokenizer.tokenize(data);
+            System.out.println("Tokenized...");
             FOModule module = ModuleParser.parse(new TokenScanner(tokens));
+            module.resolve();
+            System.out.println("FO parsed...");
             String x86_assembly = cmd.getOptionValue(x86, null);
             String x86_binary = cmd.getOptionValue(out);
             String riscv_assembly = cmd.getOptionValue(riscv, null);
+            System.out.println("CLI parsed...");
+            new TypeValidatorVisitor().visit(module);
+            System.out.println("Validated...");
             CompiledModule compiledModule = new CompileModuleVisitor().visit(module);
+            System.out.println("CompiledModule...");
             if (riscv_assembly != null) compiledModule.outputRISCV(riscv_assembly);
-            compiledModule.outputX86(riscv_assembly, x86_binary);
-        } catch (SourceCodeException | IOException e) {
+            compiledModule.outputX86(x86_assembly, x86_binary);
+            System.out.println("Dumped");
+        } catch (SourceCodeException e) {
+            String[] lines = data.split("\n");
+            int line = 0;
+            int total = 0;
+            while(total + lines[line].length() + 1 < e.span.start) {
+                line += 1;
+                total += lines[line].length() + 1;
+            }
+            System.out.println((line + 1) + ":" + (e.span.start - total - 1));
+            System.out.println(e.span);
+            e.printStackTrace();
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }

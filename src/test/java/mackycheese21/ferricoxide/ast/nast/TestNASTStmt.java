@@ -1,7 +1,8 @@
 package mackycheese21.ferricoxide.ast.nast;
 
 import mackycheese21.ferricoxide.AnalysisException;
-import mackycheese21.ferricoxide.ast.ConcreteType;
+import mackycheese21.ferricoxide.ast.type.ConcreteType;
+import mackycheese21.ferricoxide.ast.type.FunctionType;
 import mackycheese21.ferricoxide.ast.IdentifierMap;
 import mackycheese21.ferricoxide.SourceCodeException;
 import mackycheese21.ferricoxide.parser.StatementParser;
@@ -35,8 +36,8 @@ public class TestNASTStmt {
         }
         System.out.println(statement.visit(new StringifyVisitor("\t")));
 //        System.out.println(statement.visit(new VerboseStringifyVisitor()));
-        IdentifierMap<ConcreteType.Function> functions = new IdentifierMap<>(null);
-        functions.mapAdd("foo", new ConcreteType.Function(ConcreteType.I32, List.of(ConcreteType.I32, ConcreteType.I32)));
+        IdentifierMap<FunctionType> functions = new IdentifierMap<>(null);
+        functions.mapAdd("foo", FunctionType.of(ConcreteType.I32, List.of(ConcreteType.I32, ConcreteType.I32)));
         try {
             statement.visit(new TypeValidatorVisitor(vars, functions));
             System.out.println("Validated!");

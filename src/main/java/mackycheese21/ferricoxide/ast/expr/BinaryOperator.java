@@ -1,7 +1,7 @@
 package mackycheese21.ferricoxide.ast.expr;
 
 import mackycheese21.ferricoxide.AnalysisException;
-import mackycheese21.ferricoxide.ast.ConcreteType;
+import mackycheese21.ferricoxide.ast.type.ConcreteType;
 import mackycheese21.ferricoxide.parser.token.Token;
 import org.bytedeco.llvm.LLVM.LLVMBuilderRef;
 import org.bytedeco.llvm.LLVM.LLVMValueRef;

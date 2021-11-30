@@ -1,8 +1,9 @@
 package mackycheese21.ferricoxide.compile;
 
-import mackycheese21.ferricoxide.ast.ConcreteType;
+import mackycheese21.ferricoxide.ast.type.FunctionType;
 import mackycheese21.ferricoxide.ast.IdentifierMap;
 import mackycheese21.ferricoxide.CompilerException;
+import mackycheese21.ferricoxide.ast.type.StructType;
 import mackycheese21.ferricoxide.ast.module.CompiledModule;
 import mackycheese21.ferricoxide.ast.module.FOModule;
 import mackycheese21.ferricoxide.ast.module.Function;
@@ -19,12 +20,18 @@ public class CompileModuleVisitor implements ModuleVisitor<CompiledModule> {
         LLVMModuleRef moduleRef = LLVMModuleCreateWithName("main");
         LLVMBuilderRef builder = LLVMCreateBuilder();
 
-        IdentifierMap<ConcreteType.Function> functionTypes = new IdentifierMap<>(null);
+        IdentifierMap<StructType> structs = new IdentifierMap<>(null);
+        IdentifierMap<FunctionType> functionTypes = new IdentifierMap<>(null);
         IdentifierMap<LLVMValueRef> functionRefs = new IdentifierMap<>(null);
+
+        // Structs
+        for(StructType struct : module.structs) {
+            structs.mapAdd(struct.name, struct);
+        }
 
         // Function prototypes
         for (Function function : module.functions) {
-            LLVMValueRef valueRef = LLVMAddFunction(moduleRef, function.name, function.type.llvmTypeRef());
+            LLVMValueRef valueRef = LLVMAddFunction(moduleRef, function.name, function.type.typeRef);
             LLVMSetFunctionCallConv(valueRef, LLVMCCallConv);
             LLVMSetLinkage(valueRef, LLVMExternalLinkage); // (LLVM)Value(Ref) : (LLVM)Global(Ref)
 
@@ -40,9 +47,9 @@ public class CompileModuleVisitor implements ModuleVisitor<CompiledModule> {
             LLVMBasicBlockRef entry = LLVMAppendBasicBlock(valueRef, "entry");
             LLVMPositionBuilderAtEnd(builder, entry);
 
-            CompileStatementVisitor compileStatement = new CompileStatementVisitor(builder, valueRef, functionTypes, functionRefs);
+            CompileStatementVisitor compileStatement = new CompileStatementVisitor(builder, valueRef, structs, functionTypes, functionRefs);
             for (int i = 0; i < function.paramNames.size(); i++) {
-                LLVMValueRef alloc = LLVMBuildAlloca(builder, function.type.params.get(i).llvmTypeRef(), "param" + i);
+                LLVMValueRef alloc = LLVMBuildAlloca(builder, function.type.params.get(i).typeRef, "param" + i);
                 LLVMBuildStore(builder, LLVMGetParam(valueRef, i), alloc);
 
                 compileStatement.variableTypes.mapAdd(function.paramNames.get(i), function.type.params.get(i));
@@ -50,6 +57,20 @@ public class CompileModuleVisitor implements ModuleVisitor<CompiledModule> {
             }
 
             function.body.visit(compileStatement);
+        }
+
+        BytePointer error = new BytePointer();
+
+        if(LLVMPrintModuleToFile(moduleRef, "BIN/build/main-unopt.ll", error) != 0) {
+            String errorStr = error.getString();
+            LLVMDisposeMessage(error);
+            throw CompilerException.moduleVerifyError(errorStr);
+        }
+
+        if (LLVMVerifyModule(moduleRef, LLVMReturnStatusAction, error) != 0) {
+            String errorStr = error.getString();
+            LLVMDisposeMessage(error);
+            throw CompilerException.moduleVerifyError(errorStr);
         }
 
         LLVMPassManagerRef pm = LLVMCreatePassManager();
@@ -60,7 +81,13 @@ public class CompileModuleVisitor implements ModuleVisitor<CompiledModule> {
         LLVMRunPassManager(pm, moduleRef);
         LLVMDisposePassManager(pm);
 
-        BytePointer error = new BytePointer();
+        if(LLVMPrintModuleToFile(moduleRef, "BIN/build/main-opt.ll", error) != 0) {
+            String errorStr = error.getString();
+            LLVMDisposeMessage(error);
+            throw CompilerException.moduleVerifyError(errorStr);
+        }
+
+        error = new BytePointer();
         if (LLVMVerifyModule(moduleRef, LLVMReturnStatusAction, error) != 0) {
             String errorStr = error.getString();
             LLVMDisposeMessage(error);

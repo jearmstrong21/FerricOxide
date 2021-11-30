@@ -1,8 +1,12 @@
 package mackycheese21.ferricoxide.compile;
 
-import mackycheese21.ferricoxide.ast.ConcreteType;
+import mackycheese21.ferricoxide.AnalysisException;
 import mackycheese21.ferricoxide.ast.IdentifierMap;
 import mackycheese21.ferricoxide.ast.expr.*;
+import mackycheese21.ferricoxide.ast.type.ConcreteType;
+import mackycheese21.ferricoxide.ast.type.FunctionType;
+import mackycheese21.ferricoxide.ast.type.PointerType;
+import mackycheese21.ferricoxide.ast.type.StructType;
 import mackycheese21.ferricoxide.ast.visitor.ExpressionVisitor;
 import mackycheese21.ferricoxide.ast.visitor.TypeValidatorVisitor;
 import org.bytedeco.javacpp.PointerPointer;
@@ -17,41 +21,57 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
 
     private final LLVMBuilderRef builder;
     private final LLVMValueRef currentFunction;
+    private final IdentifierMap<StructType> structs;
     private final IdentifierMap<ConcreteType> variableTypes;
     private final IdentifierMap<LLVMValueRef> variableRefs;
-    private final IdentifierMap<ConcreteType.Function> functionTypes;
+    private final IdentifierMap<FunctionType> functionTypes;
     private final IdentifierMap<LLVMValueRef> functionRefs;
     private final TypeValidatorVisitor typeValidator;
 
-    public CompileExpressionVisitor(LLVMBuilderRef builder, LLVMValueRef currentFunction, IdentifierMap<ConcreteType> variableTypes, IdentifierMap<LLVMValueRef> variableRefs,
-                                    IdentifierMap<ConcreteType.Function> functionTypes, IdentifierMap<LLVMValueRef> functionRefs) {
+    public CompileExpressionVisitor(LLVMBuilderRef builder, LLVMValueRef currentFunction, IdentifierMap<StructType> structs, IdentifierMap<ConcreteType> variableTypes, IdentifierMap<LLVMValueRef> variableRefs,
+                                    IdentifierMap<FunctionType> functionTypes, IdentifierMap<LLVMValueRef> functionRefs) {
         this.builder = builder;
         this.currentFunction = currentFunction;
+        this.structs = structs;
         this.variableTypes = variableTypes;
         this.variableRefs = variableRefs;
         this.functionTypes = functionTypes;
         this.functionRefs = functionRefs;
-        this.typeValidator = new TypeValidatorVisitor(variableTypes, functionTypes);
+        this.typeValidator = new TypeValidatorVisitor(structs, variableTypes, functionTypes);
+    }
+
+    private LLVMValueRef implicitResolve(ConcreteType expected, ConcreteType actual, LLVMValueRef valueRef) {
+        while (actual instanceof PointerType pointer && expected != actual) {
+            actual = pointer.to;
+            valueRef = LLVMBuildLoad2(builder, actual.typeRef, valueRef, "ImplicitResolve");
+        }
+        if (expected == actual) return valueRef;
+        throw AnalysisException.incorrectType(expected, actual);
     }
 
     @Override
     public LLVMValueRef visitAccessVar(AccessVar accessVar) {
-        return LLVMBuildLoad2(builder, variableTypes.mapGet(accessVar.name).llvmTypeRef(), variableRefs.mapGet(accessVar.name), "AccessVar");
+        return variableRefs.mapGet(accessVar.name);
     }
 
     @Override
     public LLVMValueRef visitIntConstant(IntConstant intConstant) {
-        return LLVMConstInt(ConcreteType.I32.llvmTypeRef(), intConstant.value, 0);
+        return LLVMConstInt(ConcreteType.I32.typeRef, intConstant.value, 0);
     }
 
     @Override
     public LLVMValueRef visitUnaryExpr(UnaryExpr unaryExpr) {
-        return unaryExpr.operator.compile(builder, unaryExpr.a.visit(this), unaryExpr.visit(typeValidator));
+        return unaryExpr.operator.compile(builder, unaryExpr.a.visit(this), unaryExpr.a.visit(typeValidator));
     }
 
     @Override
     public LLVMValueRef visitBinaryExpr(BinaryExpr binaryExpr) {
-        return binaryExpr.operator.compile(builder, binaryExpr.a.visit(this), binaryExpr.b.visit(this), binaryExpr.a.visit(typeValidator));
+        ConcreteType typeA = binaryExpr.a.visit(typeValidator);
+        ConcreteType typeB = binaryExpr.b.visit(typeValidator);
+        return binaryExpr.operator.compile(builder,
+                binaryExpr.a.visit(this),
+                implicitResolve(typeA, typeB, binaryExpr.b.visit(this)),
+                typeA);
     }
 
     @Override
@@ -60,7 +80,7 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
         LLVMBasicBlockRef otherwise = LLVMAppendBasicBlock(currentFunction, "IfExpr.otherwise");
         LLVMBasicBlockRef end = LLVMAppendBasicBlock(currentFunction, "IfExpr.end");
 
-        LLVMTypeRef resultType = ifExpr.visit(typeValidator).llvmTypeRef();
+        LLVMTypeRef resultType = ifExpr.visit(typeValidator).typeRef;
 
         LLVMValueRef result = LLVMBuildAlloca(builder, resultType, "IfExpr.result");
 
@@ -83,16 +103,108 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
 
     @Override
     public LLVMValueRef visitBoolConstant(BoolConstant boolConstant) {
-        return LLVMConstInt(ConcreteType.BOOL.llvmTypeRef(), boolConstant.value ? 1 : 0, 0);
+        return LLVMConstInt(ConcreteType.BOOL.typeRef, boolConstant.value ? 1 : 0, 0);
     }
 
     @Override
     public LLVMValueRef visitCallExpr(CallExpr callExpr) {
-        callExpr.visit(typeValidator);
+        FunctionType functionType = functionTypes.mapGet(callExpr.name);
+        ConcreteType result = callExpr.visit(typeValidator);
         PointerPointer<LLVMValueRef> args = new PointerPointer<>(callExpr.params.size());
         for (int i = 0; i < callExpr.params.size(); i++) {
-            args.put(i, callExpr.params.get(i).visit(this));
+            args.put(i, implicitResolve(
+                    functionType.params.get(i),
+                    callExpr.params.get(i).visit(typeValidator),
+                    callExpr.params.get(i).visit(this)));
         }
-        return LLVMBuildCall2(builder, functionTypes.mapGet(callExpr.name).llvmTypeRef(), functionRefs.mapGet(callExpr.name), args, callExpr.params.size(), "CallExpr");
+        if (result.declarable) {
+            return LLVMBuildCall2(builder, functionTypes.mapGet(callExpr.name).typeRef, functionRefs.mapGet(callExpr.name), args, callExpr.params.size(), "CallExpr");
+        } else {
+            LLVMBuildCall2(builder, functionTypes.mapGet(callExpr.name).typeRef, functionRefs.mapGet(callExpr.name), args, callExpr.params.size(), "");
+            return null;
+        }
+    }
+
+    public LLVMValueRef GEP(ConcreteType objectType, String fieldName, LLVMValueRef objectRef) {
+        PointerType pointerType = AnalysisException.requirePointer(objectType);
+        int index = pointerType.to.getFieldIndex(fieldName);
+        if (index == -1) throw AnalysisException.noSuchField(objectType, fieldName);
+        System.out.println("GEP " + objectType + " " + fieldName + " " + index);
+        return LLVMBuildInBoundsGEP2(
+                builder,
+                pointerType.to.typeRef,
+                objectRef,
+                new PointerPointer<>(
+                        new IntConstant(0).visit(this),
+                        new IntConstant(index).visit(this)
+                ),
+                2,
+                "GEP.Field"
+        );
+    }
+
+    public LLVMValueRef GEP(ConcreteType objectType, LLVMValueRef index, LLVMValueRef objectRef) {
+        PointerType pointerType = AnalysisException.requirePointer(objectType);
+        System.out.println("GEP " + pointerType);
+        return LLVMBuildInBoundsGEP2(
+                builder,
+                pointerType.to.typeRef,
+                objectRef,
+                new PointerPointer<>(
+                        index
+                ),
+                1,
+                "GEP.Array"
+        );
+    }
+
+    @Override
+    public LLVMValueRef visitAccessField(AccessField accessField) {
+        ConcreteType objectType = accessField.object.visit(typeValidator);
+        String fieldName = accessField.field;
+        LLVMValueRef objectRef = accessField.object.visit(this);
+
+        return GEP(objectType, fieldName, objectRef);
+    }
+
+    @Override
+    public LLVMValueRef visitStructInit(StructInit structInit) {
+        StructType struct = structs.mapGet(structInit.struct);
+        PointerType pointer = PointerType.of(struct);
+        LLVMValueRef structPtr = LLVMBuildAlloca(builder, struct.typeRef, "StructInit.alloca");
+        for (int i = 0; i < structInit.fieldNames.size(); i++) {
+            LLVMValueRef fieldValue = structInit.fieldValues.get(i).visit(this);
+            LLVMValueRef fieldPtr = GEP(pointer, structInit.fieldNames.get(i), structPtr);
+            LLVMBuildStore(builder, fieldValue, fieldPtr);
+        }
+        return structPtr;
+    }
+
+    @Override
+    public LLVMValueRef visitPointerDeref(PointerDeref pointerDeref) {
+        return LLVMBuildLoad2(builder, pointerDeref.deref.visit(typeValidator).typeRef, pointerDeref.deref.visit(this), "PointerDeref");
+    }
+
+    @Override
+    public LLVMValueRef visitCastExpr(CastExpr castExpr) {
+        return CastOperator.compile(builder, castExpr.value.visit(typeValidator), castExpr.target, castExpr.value.visit(this));
+    }
+
+    @Override
+    public LLVMValueRef visitIndexExpr(IndexExpr indexExpr) {
+        PointerType arrayRefType = AnalysisException.requirePointer(indexExpr.value.visit(typeValidator));
+        PointerType arrayType = AnalysisException.requirePointer(arrayRefType.to);
+        ConcreteType arrayValueType = arrayType.to;
+        LLVMValueRef load = LLVMBuildLoad2(builder, arrayType.typeRef, indexExpr.value.visit(this), "IndexExpr.load");
+        return LLVMBuildInBoundsGEP2(
+                builder,
+                arrayValueType.typeRef,
+                load,
+                new PointerPointer<>(
+                        new LLVMValueRef[]{indexExpr.index.visit(this)}
+                ),
+                1,
+                "IndexExpr.GEP"
+        );
     }
 }

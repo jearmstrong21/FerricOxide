@@ -32,8 +32,8 @@ SourceCodeException extends RuntimeException {
         return new SourceCodeException("expected simple", scanner.currentOrLast().span);
     }
 
-    public static SourceCodeException unexpectedChar(Span span) {
-        return new SourceCodeException("unexpected char", span);
+    public static SourceCodeException unexpectedChar(char ch, Span span) {
+        return new SourceCodeException("unexpected char " + ch, span);
     }
 
     public static SourceCodeException unexpectedEOF(Token token) {

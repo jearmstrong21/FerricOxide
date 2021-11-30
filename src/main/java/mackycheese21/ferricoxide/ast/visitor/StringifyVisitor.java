@@ -72,6 +72,40 @@ public class StringifyVisitor implements ExpressionVisitor<String>, StatementVis
     }
 
     @Override
+    public String visitAccessField(AccessField accessField) {
+        return "%s.%s".formatted(accessField.object.visit(this), accessField.field);
+    }
+
+    @Override
+    public String visitStructInit(StructInit structInit) {
+        StringBuilder body = new StringBuilder();
+        for (int i = 0; i < structInit.fieldNames.size(); i++) {
+            if (i > 0) body.append(" ");
+            body
+                    .append(structInit.fieldNames.get(i))
+                    .append(": ")
+                    .append(structInit.fieldValues.get(i).visit(this))
+                    .append(";");
+        }
+        return "%s { %s }".formatted(structInit.struct, body.toString());
+    }
+
+    @Override
+    public String visitPointerDeref(PointerDeref pointerDeref) {
+        return "*" + pointerDeref.visit(this);
+    }
+
+    @Override
+    public String visitCastExpr(CastExpr castExpr) {
+        return "(%s) %s".formatted(castExpr.target, castExpr.value.visit(this));
+    }
+
+    @Override
+    public String visitIndexExpr(IndexExpr indexExpr) {
+        return "%s[%s]".formatted(indexExpr.value.visit(this), indexExpr.index.visit(this));
+    }
+
+    @Override
     public String visitAssign(Assign assign) {
         return String.format("%s%s = %s;\n", indent, assign.a.visit(this), assign.b.visit(this));
     }

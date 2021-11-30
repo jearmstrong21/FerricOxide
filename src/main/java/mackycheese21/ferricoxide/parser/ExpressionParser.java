@@ -1,11 +1,11 @@
 package mackycheese21.ferricoxide.parser;
 
 import mackycheese21.ferricoxide.SourceCodeException;
-import mackycheese21.ferricoxide.ast.expr.BinaryOperator;
-import mackycheese21.ferricoxide.ast.UnaryOperator;
 import mackycheese21.ferricoxide.ast.expr.*;
+import mackycheese21.ferricoxide.ast.type.ConcreteType;
 import mackycheese21.ferricoxide.parser.token.Token;
 import mackycheese21.ferricoxide.parser.token.TokenScanner;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -87,8 +87,39 @@ public class ExpressionParser {
         return new AccessVar(scanner.next().identifier());
     }
 
-    private static Expression simple(TokenScanner scanner) {
+    private static Expression attemptStructInit(TokenScanner scanner) {
+        if (!scanner.peek().is(Token.Keyword.NEW)) return null;
+        scanner.next();
+        String name = scanner.next().identifier();
+        scanner.next().mustBe(Token.Punctuation.L_BRACKET);
+        List<String> fieldNames = new ArrayList<>();
+        List<Expression> fieldValues = new ArrayList<>();
+        while (!scanner.peek().is(Token.Punctuation.R_BRACKET)) {
+            if (fieldNames.size() > 0) scanner.next().mustBe(Token.Punctuation.COMMA);
+            fieldNames.add(scanner.next().identifier());
+            scanner.next().mustBe(Token.Punctuation.COLON);
+            fieldValues.add(parse(scanner));
+        }
+        scanner.next();
+        return new StructInit(name, fieldNames, fieldValues);
+//        return new StructInit(name, new ArrayList<>(), new ArrayList<>());
+    }
+
+    private static Expression attemptCast(TokenScanner scanner) {
+        TokenScanner s = scanner.copy();
+        if (s.hasNext(Token.Punctuation.L_PAREN)) s.next();
+        ConcreteType type = StatementParser.attemptType(s);
+        if (type == null) return null;
+        scanner.index = s.index;
+        scanner.next().mustBe(Token.Punctuation.R_PAREN);
+        return new CastExpr(type, simple(scanner));
+    }
+
+    private static Expression simpleFirst(TokenScanner scanner) {
         Expression expr;
+
+        expr = attemptStructInit(scanner);
+        if (expr != null) return expr;
 
         expr = attemptBool(scanner);
         if (expr != null) return expr;
@@ -97,6 +128,9 @@ public class ExpressionParser {
         if (expr != null) return expr;
 
         expr = attemptNumber(scanner);
+        if (expr != null) return expr;
+
+        expr = attemptCast(scanner);
         if (expr != null) return expr;
 
         expr = attemptParen(scanner);
@@ -112,6 +146,25 @@ public class ExpressionParser {
         if (expr != null) return expr;
 
         throw SourceCodeException.expectedSimple(scanner);
+    }
+
+    private static Expression simple(TokenScanner scanner) {
+        Expression simple = simpleFirst(scanner);
+        while (scanner.hasNext(Token.Punctuation.PERIOD, Token.Punctuation.ARROW, Token.Punctuation.L_BRACE)) {
+            if (scanner.hasNext(Token.Punctuation.PERIOD)) {
+                scanner.next();
+                simple = new AccessField(simple, scanner.next().identifier());
+            } else if (scanner.hasNext(Token.Punctuation.ARROW)) {
+                scanner.next();
+                simple = new PointerDeref(simple);
+                simple = new AccessField(simple, scanner.next().identifier());
+            } else if (scanner.hasNext(Token.Punctuation.L_BRACE)) {
+                scanner.next();
+                simple = new IndexExpr(simple, parse(scanner));
+                scanner.next().mustBe(Token.Punctuation.R_BRACE);
+            }
+        }
+        return simple;
     }
 
     private static BinaryOperator peekBinaryOperator(TokenScanner scanner) {
@@ -163,7 +216,7 @@ public class ExpressionParser {
 //    }
 
     // NotNull
-    public static Expression parse(TokenScanner scanner) {
+    public static @NotNull Expression parse(TokenScanner scanner) {
         return binaryExpr(scanner);
     }
 

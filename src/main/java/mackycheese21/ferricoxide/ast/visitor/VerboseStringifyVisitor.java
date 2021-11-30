@@ -39,4 +39,29 @@ public class VerboseStringifyVisitor implements ExpressionVisitor<String> {
     public String visitCallExpr(CallExpr callExpr) {
         return "%s(%s)".formatted(callExpr.name, callExpr.params.stream().map(expr -> expr.visit(this)).collect(Collectors.joining(", ")));
     }
+
+    @Override
+    public String visitAccessField(AccessField accessField) {
+        return "%s.%s".formatted(accessField.object.visit(this), accessField.field);
+    }
+
+    @Override
+    public String visitStructInit(StructInit structInit) {
+        return new StringifyVisitor("").visitStructInit(structInit);
+    }
+
+    @Override
+    public String visitPointerDeref(PointerDeref pointerDeref) {
+        return "deref[%s]".formatted(pointerDeref.visit(this));
+    }
+
+    @Override
+    public String visitCastExpr(CastExpr castExpr) {
+        return "cast[%s -> %s]".formatted(castExpr.target, castExpr.value.visit(this));
+    }
+
+    @Override
+    public String visitIndexExpr(IndexExpr indexExpr) {
+        return "index[%s: [%s]]".formatted(indexExpr.value, indexExpr.index);
+    }
 }

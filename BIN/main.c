@@ -1,14 +1,17 @@
 #include <stdio.h>
 
-int printFactorials(int);
+void run();
 
-int cPrint(int x, int y) {
+void cPrint(int x, int y) {
     printf("FerricOxide says: %d, %d\n", x, y);
-    return 0;
+}
+
+void cPrintStr(char *str) {
+    printf("FerricOxide says: %s\n", str);
 }
 
 int main() {
     printf("Hello World!\n");
-	printFactorials(10);
+	run();
 	return 0;
 }

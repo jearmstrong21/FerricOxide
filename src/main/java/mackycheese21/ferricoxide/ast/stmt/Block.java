@@ -11,7 +11,7 @@ public class Block extends Statement {
 
     public Block(List<Statement> statements) {
         super(statements.stream().anyMatch(stmt -> stmt.terminal));
-        this.statements = Collections.unmodifiableList(statements);
+        this.statements = statements;
     }
 
     @Override
