@@ -81,7 +81,7 @@ public class ModuleParser {
             if (s.hasNext(Token.Punctuation.EQ)) {
                 s.next();
                 scanner.index = s.index;
-                Expression value = ExpressionParser.parse(scanner);
+                Expression value = ExpressionParser.parse(scanner, false);
                 scanner.next().mustBe(Token.Punctuation.SEMICOLON);
                 return new GlobalVariable(type, name, value);
             }

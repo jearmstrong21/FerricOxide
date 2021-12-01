@@ -15,13 +15,13 @@ public class ExpressionParser {
     private static Expression attemptIf(TokenScanner scanner) {
         if (!scanner.peek().is(Token.Keyword.IF)) return null;
         scanner.next();
-        Expression condition = parse(scanner);
+        Expression condition = parse(scanner, false);
         scanner.next().mustBe(Token.Punctuation.L_BRACKET);
-        Expression then = parse(scanner);
+        Expression then = parse(scanner, false);
         scanner.next().mustBe(Token.Punctuation.R_BRACKET);
         scanner.next().mustBe(Token.Keyword.ELSE);
         scanner.next().mustBe(Token.Punctuation.L_BRACKET);
-        Expression otherwise = parse(scanner);
+        Expression otherwise = parse(scanner, false);
         scanner.next().mustBe(Token.Punctuation.R_BRACKET);
         return new IfExpr(condition, then, otherwise);
     }
@@ -34,7 +34,7 @@ public class ExpressionParser {
     private static Expression attemptParen(TokenScanner scanner) {
         if (!scanner.peek().is(Token.Punctuation.L_PAREN)) return null;
         scanner.next();
-        Expression expr = parse(scanner);
+        Expression expr = parse(scanner, false);
         scanner.next().mustBe(Token.Punctuation.R_PAREN);
         return expr;
     }
@@ -77,14 +77,15 @@ public class ExpressionParser {
             if (params.size() > 0) {
                 scanner.next().mustBe(Token.Punctuation.COMMA);
             }
-            params.add(parse(scanner));
+            params.add(parse(scanner, false));
         }
         return new CallExpr(name, params);
     }
 
     private static Expression attemptAccessVar(TokenScanner scanner) {
         if (!scanner.peek().is(Token.Type.IDENTIFIER)) return null;
-        return new AccessVar(scanner.next().identifier());
+        String name = scanner.next().identifier();
+        return new AccessVar(name);
     }
 
     private static Expression attemptStructInit(TokenScanner scanner) {
@@ -98,7 +99,7 @@ public class ExpressionParser {
             if (fieldNames.size() > 0) scanner.next().mustBe(Token.Punctuation.COMMA);
             fieldNames.add(scanner.next().identifier());
             scanner.next().mustBe(Token.Punctuation.COLON);
-            fieldValues.add(parse(scanner));
+            fieldValues.add(parse(scanner, false));
         }
         scanner.next();
         return new StructInit(name, fieldNames, fieldValues);
@@ -158,6 +159,11 @@ public class ExpressionParser {
     }
 
     private static Expression simple(TokenScanner scanner) {
+        int refs = 0;
+        while (scanner.hasNext(Token.Punctuation.AND)) {
+            scanner.next();
+            refs++;
+        }
         Expression simple = simpleFirst(scanner);
         while (scanner.hasNext(Token.Punctuation.PERIOD, Token.Punctuation.ARROW, Token.Punctuation.L_BRACE)) {
             if (scanner.hasNext(Token.Punctuation.PERIOD)) {
@@ -169,9 +175,12 @@ public class ExpressionParser {
                 simple = new AccessField(simple, scanner.next().identifier());
             } else if (scanner.hasNext(Token.Punctuation.L_BRACE)) {
                 scanner.next();
-                simple = new IndexExpr(simple, parse(scanner));
+                simple = new AccessIndex(simple, parse(scanner, false));
                 scanner.next().mustBe(Token.Punctuation.R_BRACE);
             }
+        }
+        for (int i = 0; i < refs; i++) { // FOR before IF because "int x = 5; &x = 3;" is legitimate and equivalent to "x = 3;"
+            simple = simple.makeLValue();
         }
         return simple;
     }
@@ -225,8 +234,10 @@ public class ExpressionParser {
 //    }
 
     // NotNull
-    public static @NotNull Expression parse(TokenScanner scanner) {
-        return binaryExpr(scanner);
+    public static @NotNull Expression parse(TokenScanner scanner, boolean requestLValue) {
+        Expression expr = binaryExpr(scanner);
+        if (!expr.lvalue && requestLValue) return expr.makeLValue();
+        return expr;
     }
 
 }

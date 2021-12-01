@@ -26,8 +26,14 @@ public interface ExpressionVisitor<T> {
 
     T visitCastExpr(CastExpr castExpr);
 
-    T visitIndexExpr(IndexExpr indexExpr);
+    T visitAccessIndex(AccessIndex accessIndex);
 
     T visitStringConstant(StringConstant stringConstant);
+
+    T visitRefAccessVar(RefAccessVar refAccessVar);
+
+    T visitRefAccessField(RefAccessField refAccessField);
+
+    T visitRefAccessIndex(RefAccessIndex refAccessIndex);
 
 }

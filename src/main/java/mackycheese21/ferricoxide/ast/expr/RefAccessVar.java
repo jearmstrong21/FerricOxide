@@ -2,22 +2,17 @@ package mackycheese21.ferricoxide.ast.expr;
 
 import mackycheese21.ferricoxide.ast.visitor.ExpressionVisitor;
 
-public class AccessVar extends Expression {
+public class RefAccessVar extends Expression {
 
     public final String name;
 
-    public AccessVar(String name) {
-        super(false);
+    public RefAccessVar(String name) {
+        super(true);
         this.name = name;
     }
 
     @Override
-    public Expression makeLValue() {
-        return new RefAccessVar(name);
-    }
-
-    @Override
     public <T> T visit(ExpressionVisitor<T> visitor) {
-        return visitor.visitAccessVar(this);
+        return visitor.visitRefAccessVar(this);
     }
 }

@@ -1,10 +1,10 @@
 package mackycheese21.ferricoxide.ast.expr;
 
+import mackycheese21.ferricoxide.AnalysisException;
 import mackycheese21.ferricoxide.ast.visitor.ExpressionVisitor;
 
 public abstract class Expression {
 
-    @Deprecated
     public final boolean lvalue;
 
     protected Expression(boolean lvalue) {
@@ -12,5 +12,9 @@ public abstract class Expression {
     }
 
     public abstract <T> T visit(ExpressionVisitor<T> visitor);
+
+    public Expression makeLValue() {
+        throw AnalysisException.expectedLValue();
+    }
 
 }

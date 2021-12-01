@@ -101,13 +101,28 @@ public class StringifyVisitor implements ExpressionVisitor<String>, StatementVis
     }
 
     @Override
-    public String visitIndexExpr(IndexExpr indexExpr) {
-        return "%s[%s]".formatted(indexExpr.value.visit(this), indexExpr.index.visit(this));
+    public String visitAccessIndex(AccessIndex accessIndex) {
+        return "%s[%s]".formatted(accessIndex.value.visit(this), accessIndex.index.visit(this));
     }
 
     @Override
     public String visitStringConstant(StringConstant stringConstant) {
         return "\"%s\"".formatted(StringConstant.escape(stringConstant.value));
+    }
+
+    @Override
+    public String visitRefAccessVar(RefAccessVar refAccessVar) {
+        return "&" + refAccessVar.name;
+    }
+
+    @Override
+    public String visitRefAccessField(RefAccessField refAccessField) {
+        return "&%s.%s".formatted(refAccessField.object.visit(this), refAccessField.field);
+    }
+
+    @Override
+    public String visitRefAccessIndex(RefAccessIndex refAccessIndex) {
+        return "&%s[%s]".formatted(refAccessIndex.value.visit(this), refAccessIndex.index.visit(this));
     }
 
     @Override

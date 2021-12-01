@@ -44,8 +44,8 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
 
     @Override
     public ConcreteType visitAccessVar(AccessVar accessVar) {
-        if (globals.mapHas(accessVar.name)) return PointerType.of(globals.mapGet(accessVar.name));
-        return PointerType.of(variables.mapGet(accessVar.name));
+        if (globals.mapHas(accessVar.name)) return globals.mapGet(accessVar.name);
+        return variables.mapGet(accessVar.name);
     }
 
     @Override
@@ -84,7 +84,6 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
     @Override
     public ConcreteType visitCallExpr(CallExpr callExpr) {
         FunctionType type = functions.mapGet(callExpr.name);
-        System.out.println(type.name);
         AnalysisException.requireParamCount(type.params.size(), callExpr.params.size());
         for (int i = 0; i < type.params.size(); i++) {
             implicitResolve(type.params.get(i), callExpr.params.get(i).visit(this));
@@ -97,7 +96,7 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
         PointerType objectType = AnalysisException.requirePointer(accessField.object.visit(this));
         ConcreteType fieldType = objectType.to.getFieldType(accessField.field);
         if (fieldType == null) throw AnalysisException.noSuchField(objectType, accessField.field);
-        return PointerType.of(fieldType);
+        return fieldType;
     }
 
     @Override
@@ -133,9 +132,9 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
     }
 
     @Override
-    public ConcreteType visitIndexExpr(IndexExpr indexExpr) {
-        AnalysisException.requireType(ConcreteType.I32, indexExpr.index.visit(this));
-        return AnalysisException.requirePointer(indexExpr.value.visit(this)).to;
+    public ConcreteType visitAccessIndex(AccessIndex accessIndex) {
+        AnalysisException.requireType(ConcreteType.I32, accessIndex.index.visit(this));
+        return AnalysisException.requirePointer(accessIndex.value.visit(this)).to;
     }
 
     @Override
@@ -144,9 +143,31 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
     }
 
     @Override
+    public ConcreteType visitRefAccessVar(RefAccessVar refAccessVar) {
+        if (globals.mapHas(refAccessVar.name)) return PointerType.of(globals.mapGet(refAccessVar.name));
+        return PointerType.of(variables.mapGet(refAccessVar.name));
+    }
+
+    @Override
+    public ConcreteType visitRefAccessField(RefAccessField refAccessField) {
+        PointerType objectType = AnalysisException.requirePointer(refAccessField.object.visit(this));
+        ConcreteType fieldType = objectType.to.getFieldType(refAccessField.field);
+        if (fieldType == null) throw AnalysisException.noSuchField(objectType, refAccessField.field);
+        return PointerType.of(fieldType);
+    }
+
+    @Override
+    public ConcreteType visitRefAccessIndex(RefAccessIndex refAccessIndex) {
+        AnalysisException.requireType(ConcreteType.I32, refAccessIndex.index.visit(this));
+        return AnalysisException.requirePointer(refAccessIndex.value.visit(this));
+    }
+
+    @Override
     public Void visitAssign(Assign assign) {
         PointerType a = AnalysisException.requirePointer(assign.a.visit(this));
         ConcreteType b = assign.b.visit(this);
+        System.out.println(new StringifyVisitor("").visitAssign(assign));
+        System.out.println(a + " " + b);
         AnalysisException.requireType(a.to, b);
         return null;
     }

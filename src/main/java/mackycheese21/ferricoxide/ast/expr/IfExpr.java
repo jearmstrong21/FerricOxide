@@ -16,6 +16,11 @@ public class IfExpr extends Expression {
     }
 
     @Override
+    public Expression makeLValue() {
+        return new IfExpr(condition, then.makeLValue(), otherwise.makeLValue());
+    }
+
+    @Override
     public <T> T visit(ExpressionVisitor<T> visitor) {
         return visitor.visitIfExpr(this);
     }

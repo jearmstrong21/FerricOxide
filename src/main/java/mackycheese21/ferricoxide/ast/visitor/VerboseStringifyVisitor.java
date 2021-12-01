@@ -61,12 +61,27 @@ public class VerboseStringifyVisitor implements ExpressionVisitor<String> {
     }
 
     @Override
-    public String visitIndexExpr(IndexExpr indexExpr) {
-        return "index[%s: [%s]]".formatted(indexExpr.value, indexExpr.index);
+    public String visitAccessIndex(AccessIndex accessIndex) {
+        return "index[%s: [%s]]".formatted(accessIndex.value, accessIndex.index);
     }
 
     @Override
     public String visitStringConstant(StringConstant stringConstant) {
         return "string[%s]".formatted(StringConstant.escape(stringConstant.value));
+    }
+
+    @Override
+    public String visitRefAccessVar(RefAccessVar refAccessVar) {
+        return "refaccess[%s]".formatted(refAccessVar.name);
+    }
+
+    @Override
+    public String visitRefAccessField(RefAccessField refAccessField) {
+        return "ref[%s.%s]".formatted(refAccessField.object.visit(this), refAccessField.field);
+    }
+
+    @Override
+    public String visitRefAccessIndex(RefAccessIndex refAccessIndex) {
+        return "refindex[%s: [%s]]".formatted(refAccessIndex.value, refAccessIndex.index);
     }
 }

@@ -90,7 +90,7 @@ public class StatementParser {
     private static Statement attemptIf(TokenScanner scanner) {
         if (!scanner.peek().is(Token.Keyword.IF)) return null;
         scanner.next();
-        Expression condition = ExpressionParser.parse(scanner);
+        Expression condition = ExpressionParser.parse(scanner, false);
         Block then = forceBlock(scanner);
         if (scanner.hasNext() && scanner.peek().is(Token.Keyword.ELSE)) {
             scanner.next();
@@ -106,7 +106,7 @@ public class StatementParser {
     private static Statement attemptReturn(TokenScanner scanner) {
         if (!scanner.peek().is(Token.Keyword.RETURN)) return null;
         scanner.next();
-        Expression expr = ExpressionParser.parse(scanner);
+        Expression expr = ExpressionParser.parse(scanner, false);
         scanner.next().mustBe(Token.Punctuation.SEMICOLON);
         return new ReturnStmt(expr);
     }
@@ -114,7 +114,7 @@ public class StatementParser {
     private static Statement attemptWhile(TokenScanner scanner) {
         if (!scanner.peek().is(Token.Keyword.WHILE)) return null;
         scanner.next();
-        Expression condition = ExpressionParser.parse(scanner);
+        Expression condition = ExpressionParser.parse(scanner, false);
         Block body = forceBlock(scanner);
         if (scanner.hasNext() && scanner.peek().is(Token.Punctuation.SEMICOLON)) scanner.next();
         return new WhileStmt(condition, body);
@@ -125,7 +125,7 @@ public class StatementParser {
         if (type == null) return null;
         String name = scanner.next().identifier();
         scanner.next().mustBe(Token.Punctuation.EQ);
-        Expression value = ExpressionParser.parse(scanner);
+        Expression value = ExpressionParser.parse(scanner, false);
         scanner.next().mustBe(Token.Punctuation.SEMICOLON);
         return new DeclareVar(type, name, value);
     }
@@ -139,11 +139,11 @@ public class StatementParser {
 
     private static Statement attemptAssign(TokenScanner scanner) {
         TokenScanner s = scanner.copy();
-        Expression left = ExpressionParser.parse(s);
+        Expression left = ExpressionParser.parse(s, true);
         if (!s.peek().is(Token.Punctuation.EQ)) return null;
         s.next();
         scanner.index = s.index;
-        Expression right = ExpressionParser.parse(scanner);
+        Expression right = ExpressionParser.parse(scanner, false);
         scanner.next().mustBe(Token.Punctuation.SEMICOLON);
         return new Assign(left, right, BinaryOperator.DISCARD_FIRST); // TODO += -= etc
     }
