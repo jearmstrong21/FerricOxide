@@ -27,6 +27,10 @@ public class CodeScanner {
         return hasNext() && valid.contains("" + peek().unwrapUnsafe());
     }
 
+    public boolean hasNextSequence(String sequence) {
+        return data.startsWith(sequence, index);
+    }
+
     public boolean hasNextNot(String bad) {
         return hasNext() && !bad.contains("" + peek().unwrapUnsafe());
     }

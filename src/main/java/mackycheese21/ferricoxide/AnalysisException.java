@@ -63,9 +63,16 @@ public class AnalysisException extends RuntimeException {
     }
 
     public static AnalysisException incorrectType(ConcreteType expected, ConcreteType actual) {
+        if (actual instanceof TypeReference reference) throw CompilerException.unexpectedTypeReference(reference);
+        if (expected instanceof TypeReference reference) throw CompilerException.unexpectedTypeReference(reference);
+        return new AnalysisException("expected %s, actual %s".formatted(expected, actual));
+    }
+
+    public static AnalysisException incorrectImplicitResolveType(ConcreteType expected, ConcreteType actual, ConcreteType original) {
         if(actual instanceof TypeReference reference) throw CompilerException.unexpectedTypeReference(reference);
         if(expected instanceof TypeReference reference) throw CompilerException.unexpectedTypeReference(reference);
-        return new AnalysisException(String.format("expected %s, actual %s", expected, actual));
+        if(original instanceof TypeReference reference) throw CompilerException.unexpectedTypeReference(reference);
+        return new AnalysisException(String.format("expected %s, original %s, implicit resolve failure to %s", expected, original, actual));
     }
 
     public static AnalysisException noTypeDeclared(TypeReference reference) {

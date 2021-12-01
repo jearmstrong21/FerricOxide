@@ -93,10 +93,23 @@ public class CompileModuleVisitor implements ModuleVisitor<CompiledModule> {
         }
 
         LLVMPassManagerRef pm = LLVMCreatePassManager();
+        LLVMAddStripSymbolsPass(pm);
+        LLVMRunPassManager(pm, moduleRef);
+        LLVMDisposePassManager(pm);
+
+        if (LLVMPrintModuleToFile(moduleRef, "BIN/build/main-unopt-unnamed.ll", error) != 0) {
+            String errorStr = error.getString();
+            LLVMDisposeMessage(error);
+            throw CompilerException.moduleVerifyError(errorStr);
+        }
+
+        pm = LLVMCreatePassManager();
         LLVMAddNewGVNPass(pm);
         LLVMAddCFGSimplificationPass(pm);
         LLVMAddPromoteMemoryToRegisterPass(pm);
         LLVMAddAggressiveInstCombinerPass(pm);
+        LLVMAddStripDeadPrototypesPass(pm);
+        LLVMAddStripSymbolsPass(pm);
         LLVMRunPassManager(pm, moduleRef);
         LLVMDisposePassManager(pm);
 

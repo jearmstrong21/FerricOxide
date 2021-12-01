@@ -1,7 +1,6 @@
 package mackycheese21.ferricoxide.parser.token;
 
 import mackycheese21.ferricoxide.SourceCodeException;
-import mackycheese21.ferricoxide.ast.expr.StringConstant;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -110,9 +109,23 @@ public class Tokenizer {
         return null;
     }
 
+    private static int hexDigit(char c) {
+        if ('0' <= c && c <= '9') return c - '0';
+        if ('A' <= c && c <= 'F') return c - 'A' + 10;
+        throw new UnsupportedOperationException();
+    }
+
     private static Token integer(CodeScanner scanner) {
         int integer = 0;
         int start = scanner.index;
+        if (scanner.hasNextSequence("0x")) {
+            scanner.next();
+            scanner.next();
+            while (scanner.hasNext("0123456789ABCDEF")) {
+                integer = 16 * integer + hexDigit(scanner.next().unwrapUnsafe());
+            }
+            return Token.integer(new Span(start, scanner.index), integer);
+        }
         if (scanner.hasNext(Token.DIGITS)) {
             integer = scanner.next().unwrapUnsafe() - '0';
         } else {

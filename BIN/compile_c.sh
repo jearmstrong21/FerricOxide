@@ -1,1 +1,1 @@
-clang main.c build/main.x86 -o main -lglfw -framework OpenGL
+clang main.c glad.c build/main.x86 -o main -lglfw -lglew -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo

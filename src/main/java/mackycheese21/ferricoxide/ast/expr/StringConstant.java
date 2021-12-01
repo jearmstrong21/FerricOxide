@@ -9,6 +9,7 @@ public class StringConstant extends Expression {
     public StringConstant(String value) {
         super(false);
         this.value = value;
+        System.out.println(unescape(value));
     }
 
     @Override
@@ -22,7 +23,8 @@ public class StringConstant extends Expression {
                 .replace("\"", "\\\"")
                 .replace("\'", "\\\'")
                 .replace("\0", "\\0")
-                .replace("\n", "\\n");
+                .replace("\n", "\\n")
+                .replace("\t", "\\t");
     }
 
     public static String unescape(String value) {
@@ -30,7 +32,8 @@ public class StringConstant extends Expression {
                 .replace("\\\"", "\"")
                 .replace("\\\'", "\'")
                 .replace("\\0", "\0")
-                .replace("\\n", "\n");
+                .replace("\\n", "\n")
+                .replace("\\t", "\t");
     }
 
 }

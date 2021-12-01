@@ -34,11 +34,12 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
     }
 
     private ConcreteType implicitResolve(ConcreteType expected, ConcreteType actual) {
+        ConcreteType original = actual;
         while (actual instanceof PointerType pointer && expected != actual) {
             actual = pointer.to;
         }
         if (expected == actual) return actual;
-        throw AnalysisException.incorrectType(expected, actual);
+        throw AnalysisException.incorrectImplicitResolveType(expected, actual, original);
     }
 
     @Override
@@ -83,6 +84,7 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
     @Override
     public ConcreteType visitCallExpr(CallExpr callExpr) {
         FunctionType type = functions.mapGet(callExpr.name);
+        System.out.println(type.name);
         AnalysisException.requireParamCount(type.params.size(), callExpr.params.size());
         for (int i = 0; i < type.params.size(); i++) {
             implicitResolve(type.params.get(i), callExpr.params.get(i).visit(this));
