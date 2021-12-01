@@ -154,14 +154,18 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
     @Override
     public Void visitIfStmt(IfStmt ifStmt) {
         AnalysisException.requireType(ConcreteType.BOOL, ifStmt.condition.visit(this));
-        ifStmt.condition.visit(this);
-        if (ifStmt.otherwise != null) ifStmt.otherwise.visit(this);
+        visitBlock(ifStmt.then);
+        if (ifStmt.otherwise != null) {
+            visitBlock(ifStmt.otherwise);
+        }
         return null;
     }
 
     @Override
     public Void visitBlock(Block blockStmt) {
+        variables.push();
         blockStmt.statements.forEach(stmt -> stmt.visit(this));
+        variables.pop();
         return null;
     }
 
@@ -186,7 +190,7 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
     @Override
     public Void visitWhileStmt(WhileStmt whileStmt) {
         AnalysisException.requireType(ConcreteType.BOOL, whileStmt.condition.visit(this));
-        whileStmt.body.visit(this);
+        visitBlock(whileStmt.body);
         return null;
     }
 

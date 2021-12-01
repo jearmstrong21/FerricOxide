@@ -13,6 +13,7 @@ public class CastOperator {
     public static void verify(ConcreteType from, ConcreteType to) {
         if (from == ConcreteType.I32 && to instanceof PointerType) return;
         if (from instanceof PointerType && to instanceof PointerType) return;
+        if (from instanceof PointerType && to == ConcreteType.I32) return;
         if (from == ConcreteType.I32 && to == ConcreteType.I8) return;
         if (from == ConcreteType.I8 && to == ConcreteType.I32) return;
         throw AnalysisException.invalidCast(from, to);
@@ -24,6 +25,8 @@ public class CastOperator {
             return LLVMBuildIntToPtr(builder, valueRef, to.typeRef, name);
         if (from instanceof PointerType && to instanceof PointerType)
             return LLVMBuildBitCast(builder, valueRef, to.typeRef, name);
+        if (from instanceof PointerType && to == ConcreteType.I32)
+            return LLVMBuildPtrToInt(builder, valueRef, to.typeRef, name);
         if (from == ConcreteType.I32 && to == ConcreteType.I8)
             return LLVMBuildZExt(builder, valueRef, to.typeRef, name);
         if (from == ConcreteType.I8 && to == ConcreteType.I32)

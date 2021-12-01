@@ -171,11 +171,11 @@ i32 run() {
     }
 
     glfwWindowHint(glfwContextVersionMajor(), 3);
-    glfwWindowHint(glfwContextVersionMinor(), 2);
+    glfwWindowHint(glfwContextVersionMinor(), 3);
     glfwWindowHint(glfwOpenGLForwardCompat(), 1);
     glfwWindowHint(glfwOpenGLProfile(), glfwOpenGLCoreProfile());
 
-    i8* window = glfwCreateWindow(1280, 720, "FO: Hello World\0", nullptr, nullptr);
+    i8* window = glfwCreateWindow(720, 720, "FO: Hello World\0", nullptr, nullptr);
 
     if *window == nullptr {
         puts("FO: glfwCreateWindow failed\n");
@@ -190,14 +190,15 @@ i32 run() {
         return 1;
     }
 
-    i8* vertexShaderSource = "#version 320 core\nlayout(location=0) in vec2 pos;\nvoid main() {\n\tgl_Position = vec4(pos.x, pos.y, 0.0, 1.0);\n}";
-    i8* fragmentShaderSource = "#version 320 core\nout vec4 fc;\nvoid main() {\n\tfc = vec4(1, 0.5, 0.2, 1.0);\n}";
+    i8* vertexShaderSource = "#version 330 core\nlayout(location=0) in vec2 pos;layout(location=1) in vec3 col;out vec3 fcol;\nvoid main() {\n\tgl_Position = vec4(pos.x, pos.y, 0.0, 1.0);fcol=col;\n}";
+    i8* fragmentShaderSource = "#version 330 core\nout vec4 fc;in vec3 fcol;\nvoid main() {\n\tfc = vec4(fcol, 1.0);\n}";
 
     puts(vertexShaderSource);
     puts(fragmentShaderSource);
 
+
     i32 vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, vertexShaderSource, (i32*) nullptr);
+    glShaderSource(vertexShader, 1, vertexShaderSource, (i32*) *nullptr);
     glCompileShader(vertexShader);
     i32 success = 0;
     glGetShaderiv(vertexShader, GL_COMPILE_STATUS, success);
@@ -208,19 +209,23 @@ i32 run() {
         puts(msg);
         free(msg);
         return 1;
+    } else {
+        puts("FO: Vertex shader success");
     }
 
     i32 fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, fragmentShaderSource, (i32*) nullptr);
+    glShaderSource(fragmentShader, 1, fragmentShaderSource, (i32*) *nullptr);
     glCompileShader(fragmentShader);
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, success);
     if *success == 0 {
-        i8* msgDumb = malloc(512);
-        glGetShaderInfoLog(fragmentShader, 512, (i32*) nullptr, msgDumb);
+        i8* msg = malloc(512);
+        glGetShaderInfoLog(fragmentShader, 512, (i32*) nullptr, msg);
         puts("FO: Fragment shader compilation error");
-        puts(msgDumb);
-        free(msgDumb);
+        puts(msg);
+        free(msg);
         return 1;
+    } else {
+        puts("FO: Fragment shader success");
     }
 
     i32 shaderProgram = glCreateProgram();
@@ -229,44 +234,76 @@ i32 run() {
     glLinkProgram(shaderProgram);
     glGetProgramiv(shaderProgram, GL_LINK_STATUS, success);
     if *success == 0 {
-        i8* msgDumber = malloc(512);
-        glGetProgramInfoLog(shaderProgram, 512, (i32*) nullptr, msgDumber);
+        i8* msg = malloc(512);
+        glGetProgramInfoLog(shaderProgram, 512, (i32*) nullptr, msg);
         puts("FO: Shader program linking error");
-        puts(msgDumber);
-        free(msgDumber);
+        puts(msg);
+        free(msg);
         return 1;
+    } else {
+        puts("FO: Shader program success");
     }
 
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
+    f32 o = one();
+    f32 zpf = *o / (*o + o);
+    f32 z = zero();
+
     f32* vertices = (f32*) malloc(4 * 6);
-    vertices[0] = zero();
-    vertices[1] = zero();
 
-    vertices[2] = zero();
-    vertices[3] = one();
+    vertices[0] = *z;
+    vertices[1] = *o / (*o + o);
 
-    vertices[4] = one();
-    vertices[5] = zero();
+    vertices[2] = *z - *zpf;
+    vertices[3] = *z - *zpf / (*o + o);
+
+    vertices[4] = *zpf;
+    vertices[5] = *z - *zpf / (*o + o);
+
+    f32* colors = (f32*) malloc(4 * 9);
+
+    colors[0] = *o;
+    colors[1] = *z;
+    colors[2] = *z;
+
+    colors[3] = *z;
+    colors[4] = *o;
+    colors[5] = *z;
+
+    colors[6] = *z;
+    colors[7] = *z;
+    colors[8] = *o;
 
     i32 vao = 0;
-    i32 vbo = 0;
+    i32 vboPos = 0;
+    i32 vboCol = 0;
     glGenVertexArrays(1, vao);
-    glGenBuffers(1, vbo);
+    glGenBuffers(1, vboPos);
+    glGenBuffers(1, vboCol);
 
     glBindVertexArray(vao);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, 4 * 6, (i8**) vertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * 4, nullptr);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vboPos);
+    glBufferData(GL_ARRAY_BUFFER, 4 * 6, (i8**) *vertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * 4, (i8**) *nullptr);
     glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vboCol);
+    glBufferData(GL_ARRAY_BUFFER, 4 * 9, (i8**) *colors, GL_STATIC_DRAW);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * 4, (i8**) *nullptr);
+    glEnableVertexAttribArray(1);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
     glBindVertexArray(0);
 
-    free((i8*) vertices);
+    free((i8*) *vertices);
+    free((i8*) *colors);
 
     while !glfwWindowShouldClose(window) {
-        glClearColor(one(), one(), one(), one());
+        glClearColor(zero(), zero(), zero(), one());
         glClear(*GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glUseProgram(shaderProgram);
@@ -279,7 +316,8 @@ i32 run() {
     }
 
     glDeleteVertexArrays(1, vao);
-    glDeleteBuffers(1, vbo);
+    glDeleteBuffers(1, vboPos);
+    glDeleteBuffers(1, vboCol);
     glDeleteProgram(shaderProgram);
 
     glfwTerminate();

@@ -57,18 +57,18 @@ public class CompileStatementVisitor implements StatementVisitor<Void> {
             LLVMBuildCondBr(builder, condition, then, end);
 
             LLVMPositionBuilderAtEnd(builder, then);
-            ifStmt.then.visit(this);
+            visitBlock(ifStmt.then);
             if(!ifStmt.then.terminal) LLVMBuildBr(builder, end);
         } else {
             LLVMBasicBlockRef otherwise = LLVMAppendBasicBlock(currentFunction, "IfStmt.otherwise");
             LLVMBuildCondBr(builder, condition, then, otherwise);
 
             LLVMPositionBuilderAtEnd(builder, then);
-            ifStmt.then.visit(this);
+            visitBlock(ifStmt.then);
             if(!ifStmt.then.terminal) LLVMBuildBr(builder, end);
 
             LLVMPositionBuilderAtEnd(builder, otherwise);
-            ifStmt.otherwise.visit(this);
+            visitBlock(ifStmt.otherwise);
 
             LLVMBuildBr(builder, end);
         }
@@ -78,7 +78,11 @@ public class CompileStatementVisitor implements StatementVisitor<Void> {
 
     @Override
     public Void visitBlock(Block blockStmt) {
+        variableTypes.push();
+        variableRefs.push();
         blockStmt.statements.forEach(stmt -> stmt.visit(this));
+        variableTypes.pop();
+        variableRefs.pop();
         return null;
     }
 
@@ -110,7 +114,7 @@ public class CompileStatementVisitor implements StatementVisitor<Void> {
         LLVMBuildCondBr(builder, whileStmt.condition.visit(compileExpression), start, end);
 
         LLVMPositionBuilderAtEnd(builder, start);
-        whileStmt.body.visit(this);
+        visitBlock(whileStmt.body);
         LLVMBuildBr(builder, cond);
 
         LLVMPositionBuilderAtEnd(builder, end);

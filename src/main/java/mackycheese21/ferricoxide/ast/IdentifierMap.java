@@ -3,53 +3,61 @@ package mackycheese21.ferricoxide.ast;
 import mackycheese21.ferricoxide.AnalysisException;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class IdentifierMap<T> {
 
-    private final Map<String, T> map;
+    private final List<Map<String, T>> stack;
     private final T defaultValue;
 
     public IdentifierMap(T defaultValue) {
-        map = new HashMap<>();
+        stack = new ArrayList<>();
+        push();
         this.defaultValue = defaultValue;
     }
 
     public boolean mapHas(String id) {
-        return defaultValue != null || map.containsKey(id);
+        for (Map<String, T> map : stack) {
+            if (map.containsKey(id)) return true;
+        }
+        return defaultValue != null;
+    }
+
+    public void push() {
+        stack.add(0, new HashMap<>());
+    }
+
+    public void pop() {
+        stack.remove(0);
     }
 
     @Override
     public String toString() {
-        return map.toString();
+        return stack.toString();
     }
 
     public T mapGet(String id) {
-        if (!map.containsKey(id)) {
-            if (defaultValue == null) throw AnalysisException.noSuchKey(id);
-            else return defaultValue;
-        } else {
-            return map.get(id);
+        for (Map<String, T> map : stack) {
+            if (map.containsKey(id)) return map.get(id);
         }
+        if (defaultValue != null) return defaultValue;
+        throw AnalysisException.noSuchKey(id);
     }
 
     public void mapAdd(String id, T value) {
-        if (map.containsKey(id)) throw AnalysisException.keyAlreadyExists(id);
-        map.put(id, value);
+        if (mapHas(id)) throw AnalysisException.keyAlreadyExists(id);
+        stack.get(0).put(id, value);
     }
 
     public void mapSet(String id, T value) {
-        if (!map.containsKey(id)) throw AnalysisException.noSuchKey(id);
-        map.put(id, value);
+        if (!mapHas(id)) throw AnalysisException.noSuchKey(id);
+        for (Map<String, T> map : stack) {
+            if (map.containsKey(id)) {
+                map.put(id, value);
+                break;
+            }
+        }
+        throw new UnsupportedOperationException("unreachable");
     }
 
-    public Set<String> keys() {
-        return map.keySet();
-    }
-    public Collection<T> values() {
-        return map.values();
-    }
-
-    public void clear() {
-        map.clear();
-    }
 }
