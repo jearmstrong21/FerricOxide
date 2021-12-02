@@ -37,6 +37,10 @@ public class TokenScanner {
         return hasNext() && peek().is(punctuations);
     }
 
+    public boolean hasNext(Token.Keyword... keywords) {
+        return hasNext() && peek().is(keywords);
+    }
+
     public Token next() {
         if (!hasNext()) {
             throw SourceCodeException.unexpectedEOF(data.get(data.size() - 1));

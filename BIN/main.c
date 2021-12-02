@@ -10,9 +10,7 @@ int glfwOpenGLCoreProfile() { return GLFW_OPENGL_CORE_PROFILE; }
 float zero() { return 0.0; }
 float one() { return 1.0; }
 
-int glVersion() { return GL_VERSION; }
-
-extern int run();
+extern int run(int argc, char** argv);
 
 int loadGLAD() {
     return gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
@@ -20,5 +18,5 @@ int loadGLAD() {
 
 int main(int argc, char** argv)
 {
-    return run();
+    return run(argc, argv);
 }

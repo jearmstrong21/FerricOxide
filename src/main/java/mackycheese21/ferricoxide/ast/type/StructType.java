@@ -16,7 +16,7 @@ public class StructType extends ConcreteType { // tmrw: the error is because new
     public StructType(String name, List<String> fieldNames, List<ConcreteType> fieldTypes, boolean packed) {
         super(fieldTypes.stream().allMatch(t -> t.complete) ? LLVMStructType(new PointerPointer<>(fieldTypes.size()).put(
                 fieldTypes.stream().map(t -> t.typeRef).toArray(LLVMTypeRef[]::new)
-        ), fieldTypes.size(), packed ? 1 : 0) : null, false, false, name);
+        ), fieldTypes.size(), packed ? 1 : 0) : null, false, true, name);
         this.fieldNames = fieldNames;
         this.fieldTypes = fieldTypes;
         this.packed = packed;

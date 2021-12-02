@@ -17,6 +17,7 @@ import java.util.List;
 public class ModuleParser {
 
     private static Function forceFunction(TokenScanner scanner) {
+        if(scanner.hasNext(Token.Keyword.FUNC)) scanner.next();
         boolean inline = scanner.peek().is(Token.Keyword.INLINE);
         if (inline) scanner.next();
         boolean extern = scanner.peek().is(Token.Keyword.EXTERN);

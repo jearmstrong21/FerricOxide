@@ -117,7 +117,7 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
             int actualStructIndex = struct.fieldNames.indexOf(fieldName);
             AnalysisException.requireType(struct.fieldTypes.get(actualStructIndex), fieldValue.visit(this));
         }
-        return PointerType.of(struct);
+        return struct;
     }
 
     @Override
@@ -194,7 +194,7 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
     public Void visitReturnStmt(ReturnStmt returnStmt) {
         if (requireReturnType == ConcreteType.VOID && returnStmt.value == null) return null;
         if (returnStmt.value == null) AnalysisException.requireType(requireReturnType, ConcreteType.VOID);
-        AnalysisException.requireType(requireReturnType, returnStmt.value.visit(this));
+        else AnalysisException.requireType(requireReturnType, returnStmt.value.visit(this));
         return null;
     }
 

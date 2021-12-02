@@ -29,8 +29,8 @@ public class AnalysisException extends RuntimeException {
         throw new AnalysisException("expected pointer type, got " + type);
     }
 
-    public static AnalysisException expectedLValue() {
-        return new AnalysisException("expected lvalue");
+    public static AnalysisException expectedLValue(String got) {
+        return new AnalysisException("expected lvalue, got " + got);
     }
 
     public static AnalysisException cannotDeclareType(ConcreteType type) {

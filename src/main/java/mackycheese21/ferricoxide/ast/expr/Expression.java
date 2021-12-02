@@ -2,6 +2,7 @@ package mackycheese21.ferricoxide.ast.expr;
 
 import mackycheese21.ferricoxide.AnalysisException;
 import mackycheese21.ferricoxide.ast.visitor.ExpressionVisitor;
+import mackycheese21.ferricoxide.ast.visitor.StringifyVisitor;
 
 public abstract class Expression {
 
@@ -14,7 +15,8 @@ public abstract class Expression {
     public abstract <T> T visit(ExpressionVisitor<T> visitor);
 
     public Expression makeLValue() {
-        throw AnalysisException.expectedLValue();
+//        throw AnalysisException.expectedLValue(getClass().getName());
+        throw AnalysisException.expectedLValue(visit(new StringifyVisitor("")));
     }
 
 }

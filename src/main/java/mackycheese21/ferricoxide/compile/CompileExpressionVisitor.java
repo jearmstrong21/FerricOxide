@@ -202,7 +202,7 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
             LLVMValueRef fieldPtr = GEP(pointer, structInit.fieldNames.get(i), structPtr);
             LLVMBuildStore(builder, fieldValue, fieldPtr);
         }
-        return structPtr;
+        return LLVMBuildLoad2(builder, struct.typeRef, structPtr, "StructInit.load");
     }
 
     @Override
