@@ -151,8 +151,9 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
     @Override
     public ConcreteType visitRefAccessField(RefAccessField refAccessField) {
         PointerType objectType = AnalysisException.requirePointer(refAccessField.object.visit(this));
+//        ConcreteType objectType = refAccessField.object.visit(this);
         ConcreteType fieldType = objectType.to.getFieldType(refAccessField.field);
-        if (fieldType == null) throw AnalysisException.noSuchField(objectType, refAccessField.field);
+        if (fieldType == null) throw AnalysisException.noSuchField(objectType.to, refAccessField.field);
         return PointerType.of(fieldType);
     }
 
@@ -160,6 +161,11 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
     public ConcreteType visitRefAccessIndex(RefAccessIndex refAccessIndex) {
         AnalysisException.requireType(ConcreteType.I32, refAccessIndex.index.visit(this));
         return AnalysisException.requirePointer(refAccessIndex.value.visit(this));
+    }
+
+    @Override
+    public ConcreteType visitSizeOf(SizeOf sizeOf) {
+        return ConcreteType.I32;
     }
 
     @Override

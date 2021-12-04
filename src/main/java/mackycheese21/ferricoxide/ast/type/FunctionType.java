@@ -20,10 +20,16 @@ public class FunctionType extends ConcreteType {
                 result.typeRef,
                 new PointerPointer<>(params.stream().map(t -> t.typeRef)
                         .collect(Collectors.toList()).toArray(LLVMTypeRef[]::new)),
-                params.size(), 0 /* false */) : null, false, true, "%s(%s)".formatted(result, params.stream().map(ConcreteType::toString)
+                params.size(), 0 /* false */) : null, false, true, "%s(%s)".formatted(result.name, params.stream().map(p -> p.name)
                 .collect(Collectors.joining(", "))));
         this.result = result;
         this.params = params;
+    }
+
+    @Override
+    public String toString() {
+        return "Function[%s]".formatted("%s(%s)".formatted(result, params.stream().map(ConcreteType::toString)
+                .collect(Collectors.joining(", "))));
     }
 
     public static FunctionType of(ConcreteType result, List<ConcreteType> params) {

@@ -5,7 +5,7 @@ import org.bytedeco.llvm.LLVM.LLVMTypeRef;
 
 import java.util.List;
 
-import static org.bytedeco.llvm.global.LLVM.LLVMStructType;
+import static org.bytedeco.llvm.global.LLVM.*;
 
 public class StructType extends ConcreteType { // tmrw: the error is because new TypeRef("compl") != new TypeRef("compl"), need to "resolve" TypeRefs - dod so in line 171 of typevalidatevisitor? thats one place, at least. maybe a method on FOModule!! YES!! method on FOModule to resolve types, this can alsoo do stuff like template instantiation later
 
@@ -14,12 +14,23 @@ public class StructType extends ConcreteType { // tmrw: the error is because new
     public final boolean packed;
 
     public StructType(String name, List<String> fieldNames, List<ConcreteType> fieldTypes, boolean packed) {
-        super(fieldTypes.stream().allMatch(t -> t.complete) ? LLVMStructType(new PointerPointer<>(fieldTypes.size()).put(
-                fieldTypes.stream().map(t -> t.typeRef).toArray(LLVMTypeRef[]::new)
-        ), fieldTypes.size(), packed ? 1 : 0) : null, false, true, name);
+        super(LLVMStructCreateNamed(LLVMGetGlobalContext(), name), false, true, name);
         this.fieldNames = fieldNames;
         this.fieldTypes = fieldTypes;
         this.packed = packed;
+    }
+
+    public void resolved() {
+        PointerPointer<LLVMTypeRef> elementTypes = new PointerPointer<>(fieldTypes.size());
+        for (int i = 0; i < fieldTypes.size(); i++) {
+            elementTypes.put(i, fieldTypes.get(i).typeRef);
+        }
+        LLVMStructSetBody(typeRef, elementTypes, fieldTypes.size(), packed ? 1 : 0);
+    }
+
+    @Override
+    public String toString() {
+        return "StructType[%s]".formatted(name);
     }
 
     @Override
@@ -34,6 +45,7 @@ public class StructType extends ConcreteType { // tmrw: the error is because new
 
     @Override
     public int getFieldIndex(String fieldName) {
+        System.out.println("STRUCT GETFIELDTYPE " + fieldName + " " + fieldNames);
         return fieldNames.indexOf(fieldName);
     }
 }

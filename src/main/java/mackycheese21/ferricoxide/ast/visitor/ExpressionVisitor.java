@@ -36,4 +36,6 @@ public interface ExpressionVisitor<T> {
 
     T visitRefAccessIndex(RefAccessIndex refAccessIndex);
 
+    T visitSizeOf(SizeOf sizeOf);
+
 }

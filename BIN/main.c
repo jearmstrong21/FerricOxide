@@ -12,6 +12,10 @@ float one() { return 1.0; }
 
 extern int run(int argc, char** argv);
 
+void printInt(int x) {
+    printf("FO says: %d\n", x);
+}
+
 int loadGLAD() {
     return gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 }

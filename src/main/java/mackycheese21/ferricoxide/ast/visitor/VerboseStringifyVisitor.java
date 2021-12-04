@@ -84,4 +84,9 @@ public class VerboseStringifyVisitor implements ExpressionVisitor<String> {
     public String visitRefAccessIndex(RefAccessIndex refAccessIndex) {
         return "refindex[%s: [%s]]".formatted(refAccessIndex.value, refAccessIndex.index);
     }
+
+    @Override
+    public String visitSizeOf(SizeOf sizeOf) {
+        return "sizeof[%s]".formatted(sizeOf.type);
+    }
 }

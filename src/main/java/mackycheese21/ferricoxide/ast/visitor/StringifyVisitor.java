@@ -92,7 +92,7 @@ public class StringifyVisitor implements ExpressionVisitor<String>, StatementVis
 
     @Override
     public String visitPointerDeref(PointerDeref pointerDeref) {
-        return "*" + pointerDeref.visit(this);
+        return "*" + pointerDeref.deref.visit(this);
     }
 
     @Override
@@ -123,6 +123,11 @@ public class StringifyVisitor implements ExpressionVisitor<String>, StatementVis
     @Override
     public String visitRefAccessIndex(RefAccessIndex refAccessIndex) {
         return "&%s[%s]".formatted(refAccessIndex.value.visit(this), refAccessIndex.index.visit(this));
+    }
+
+    @Override
+    public String visitSizeOf(SizeOf sizeOf) {
+        return "sizeof(%s)".formatted(sizeOf.type);
     }
 
     @Override

@@ -13,14 +13,24 @@ public class PointerType extends ConcreteType {
     private static final Map<ConcreteType, PointerType> registry = new HashMap<>();
 
     public static PointerType of(ConcreteType to) {
-        if(registry.containsKey(to)) return registry.get(to);
+        if (registry.containsKey(to)) return registry.get(to);
         registry.put(to, new PointerType(to));
         return registry.get(to);
     }
 
+    private static ConcreteType p(ConcreteType to) {
+        System.out.println("EEEEEEE" + to);
+        return to;
+    }
+
     private PointerType(ConcreteType to) {
-        super(to.typeRef == null ? null : LLVMPointerType(to.typeRef, 0), false, true, to.name + "*");
+        super(p(to).typeRef == null ? null : LLVMPointerType(to.typeRef, 0), false, true, to.name + "*");
         this.to = to;
+    }
+
+    @Override
+    public String toString() {
+        return "Pointer[%s]".formatted(to);
     }
 
     @Override

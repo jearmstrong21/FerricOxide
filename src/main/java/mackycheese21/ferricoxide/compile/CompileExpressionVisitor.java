@@ -236,8 +236,9 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
     @Override
     public LLVMValueRef visitStringConstant(StringConstant stringConstant) {
         String str = StringConstant.unescape(stringConstant.value);
-        if (strings.containsKey(str)) return strings.get(str);
-        LLVMValueRef valueRef = LLVMBuildGlobalString(builder, str, "StringConstant.Value");
+        LLVMValueRef valueRef;
+        if (strings.containsKey(str)) valueRef = strings.get(str);
+        else valueRef = LLVMBuildGlobalString(builder, str, "StringConstant.Value");
         strings.put(str, valueRef);
 //        return valueRef;
         // TODO: unhack this into ArrayType(ConcreteType, int) and cast from ArrayType <-> any pointer type <-> any pointer type
@@ -267,10 +268,12 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
 
         PointerType pointerType = AnalysisException.requirePointer(objectType);
         int index = pointerType.to.getFieldIndex(fieldName);
+//        int index = objectType.to.getFieldIndex(fieldName);
         if (index == -1) throw AnalysisException.noSuchField(objectType, fieldName);
         return LLVMBuildInBoundsGEP2(
                 builder,
                 pointerType.to.typeRef,
+//                objectType.typeRef,
                 objectRef,
                 new PointerPointer<>(
                         new IntConstant(0).visit(this),
@@ -297,5 +300,10 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
                 ),
                 1,
                 "AccessIndex.GEP");
+    }
+
+    @Override
+    public LLVMValueRef visitSizeOf(SizeOf sizeOf) {
+        return LLVMBuildTrunc(builder, LLVMSizeOf(sizeOf.type.typeRef), ConcreteType.I32.typeRef, "SizeOf.trunc");
     }
 }

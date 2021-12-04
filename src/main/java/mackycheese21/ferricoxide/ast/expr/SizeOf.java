@@ -3,19 +3,17 @@ package mackycheese21.ferricoxide.ast.expr;
 import mackycheese21.ferricoxide.ast.type.ConcreteType;
 import mackycheese21.ferricoxide.ast.visitor.ExpressionVisitor;
 
-public class CastExpr extends Expression {
+public class SizeOf extends Expression {
 
-    public ConcreteType target;
-    public final Expression value;
+    public ConcreteType type;
 
-    public CastExpr(ConcreteType target, Expression value) {
+    public SizeOf(ConcreteType type) {
         super(false);
-        this.target = target;
-        this.value = value;
+        this.type = type;
     }
 
     @Override
     public <T> T visit(ExpressionVisitor<T> visitor) {
-        return visitor.visitCastExpr(this);
+        return visitor.visitSizeOf(this);
     }
 }

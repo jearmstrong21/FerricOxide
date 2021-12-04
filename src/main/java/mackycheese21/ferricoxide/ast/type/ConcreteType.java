@@ -27,13 +27,13 @@ public class ConcreteType {
         this.typeRef = typeRef;
         this.numeric = numeric;
         this.complete = typeRef != null;
-        this.declarable = declarable && complete;
+        this.declarable = declarable;
         this.name = name;
     }
 
     @Override
     public String toString() {
-        return name;
+        return "Concrete[%s]".formatted(name);
     }
 
     private static ConcreteType intType(int width, String name) {

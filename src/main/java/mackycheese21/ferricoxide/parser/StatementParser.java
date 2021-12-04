@@ -1,5 +1,6 @@
 package mackycheese21.ferricoxide.parser;
 
+import mackycheese21.ferricoxide.AnalysisException;
 import mackycheese21.ferricoxide.SourceCodeException;
 import mackycheese21.ferricoxide.ast.expr.BinaryOperator;
 import mackycheese21.ferricoxide.ast.expr.CallExpr;
@@ -139,7 +140,12 @@ public class StatementParser {
 
     private static Statement attemptAssign(TokenScanner scanner) {
         TokenScanner s = scanner.copy();
-        Expression left = ExpressionParser.parse(s, true);
+        Expression left;
+        try {
+            left = ExpressionParser.parse(s, true);
+        } catch (AnalysisException e) {
+            return null;
+        }
         if (!s.peek().is(Token.Punctuation.EQ)) return null;
         s.next();
         scanner.index = s.index;
@@ -166,11 +172,11 @@ public class StatementParser {
         stmt = attemptDeclareVar(scanner);
         if (stmt != null) return stmt;
 
-        stmt = attemptCall(scanner);
-        if (stmt != null) return stmt;
-
         stmt = attemptAssign(scanner);
         if (stmt != null) return stmt; // TODO should this be null?
+
+        stmt = attemptCall(scanner);
+        if (stmt != null) return stmt;
 
         return null;
     }

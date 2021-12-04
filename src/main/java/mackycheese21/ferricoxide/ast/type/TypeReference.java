@@ -6,4 +6,9 @@ public class TypeReference extends ConcreteType {
         super(null, false, false, name);
     }
 
+    @Override
+    public String toString() {
+        return "Reference[%s]".formatted(name);
+    }
+
 }

@@ -90,6 +90,8 @@ public class Token {
     }
 
     public enum Keyword {
+        SIZEOF("sizeof"),
+
         FUNC("func"),
         RETURN("return"),
         EXTERN("extern"),

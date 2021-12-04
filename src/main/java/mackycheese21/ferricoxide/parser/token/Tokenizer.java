@@ -11,6 +11,18 @@ public class Tokenizer {
         while (scanner.hasNext() && Character.isWhitespace(scanner.peek().unwrapUnsafe())) {
             scanner.next();
         }
+        if(scanner.hasNextSequence("/*")) {
+            scanner.next();
+            scanner.next();
+            while(!scanner.hasNextSequence("*/")) {
+                scanner.next();
+            }
+            scanner.next();
+            scanner.next();
+        }
+        while (scanner.hasNext() && Character.isWhitespace(scanner.peek().unwrapUnsafe())) {
+            scanner.next();
+        }
     }
 
     public static List<Token> tokenize(String data) throws SourceCodeException {
@@ -19,6 +31,7 @@ public class Tokenizer {
         while (true) {
             purgeWhitespace(scanner);
             if (!scanner.hasNext()) break;
+
             CodeScanner s;
 
             s = scanner.copy();

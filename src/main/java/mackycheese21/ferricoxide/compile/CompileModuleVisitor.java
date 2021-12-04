@@ -50,6 +50,11 @@ public class CompileModuleVisitor implements ModuleVisitor<CompiledModule> {
 
         // Function prototypes
         for (Function function : module.functions) {
+            System.out.println("name " + function.name);
+            System.out.println("resref " + function.type.result.typeRef);
+            function.type.params.forEach(p -> System.out.println("\tparamref " + p.typeRef));
+            System.out.println(function.type + " " + function.type.name);
+            System.out.println(function.type.typeRef);
             LLVMValueRef valueRef = LLVMAddFunction(moduleRef, function.name, function.type.typeRef);
             LLVMSetFunctionCallConv(valueRef, LLVMCCallConv);
             LLVMSetLinkage(valueRef, LLVMExternalLinkage); // (LLVM)Value(Ref) : (LLVM)Global(Ref)

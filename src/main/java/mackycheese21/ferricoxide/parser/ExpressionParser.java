@@ -88,6 +88,15 @@ public class ExpressionParser {
         return new AccessVar(name);
     }
 
+    private static Expression attemptSizeOf(TokenScanner scanner) {
+        if (!scanner.peek().is(Token.Keyword.SIZEOF)) return null;
+        scanner.next();
+        scanner.next().mustBe(Token.Punctuation.L_PAREN);
+        ConcreteType type = StatementParser.forceType(scanner);
+        scanner.next().mustBe(Token.Punctuation.R_PAREN);
+        return new SizeOf(type);
+    }
+
     private static Expression attemptStructInit(TokenScanner scanner) {
         if (!scanner.peek().is(Token.Keyword.NEW)) return null;
         scanner.next();
@@ -129,6 +138,9 @@ public class ExpressionParser {
         if (expr != null) return expr;
 
         expr = attemptStructInit(scanner);
+        if (expr != null) return expr;
+
+        expr = attemptSizeOf(scanner);
         if (expr != null) return expr;
 
         expr = attemptBool(scanner);

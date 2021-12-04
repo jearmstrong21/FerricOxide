@@ -1,11 +1,11 @@
 package mackycheese21.ferricoxide.compile;
 
+import mackycheese21.ferricoxide.ast.IdentifierMap;
+import mackycheese21.ferricoxide.ast.stmt.*;
 import mackycheese21.ferricoxide.ast.type.ConcreteType;
 import mackycheese21.ferricoxide.ast.type.FunctionType;
-import mackycheese21.ferricoxide.ast.IdentifierMap;
 import mackycheese21.ferricoxide.ast.type.PointerType;
 import mackycheese21.ferricoxide.ast.type.StructType;
-import mackycheese21.ferricoxide.ast.stmt.*;
 import mackycheese21.ferricoxide.ast.visitor.StatementVisitor;
 import mackycheese21.ferricoxide.ast.visitor.TypeValidatorVisitor;
 import org.bytedeco.llvm.LLVM.LLVMBasicBlockRef;
@@ -40,7 +40,7 @@ public class CompileStatementVisitor implements StatementVisitor<Void> {
 
     @Override
     public Void visitAssign(Assign assign) {
-        if(assign.a.visit(typeValidator) instanceof PointerType pointer) {
+        if (assign.a.visit(typeValidator) instanceof PointerType pointer) {
             LLVMBuildStore(builder, assign.b.visit(compileExpression), assign.a.visit(compileExpression));
             return null;
         } else {
@@ -50,29 +50,37 @@ public class CompileStatementVisitor implements StatementVisitor<Void> {
 
     @Override
     public Void visitIfStmt(IfStmt ifStmt) {
-        LLVMBasicBlockRef then = LLVMAppendBasicBlock(currentFunction, "IfStmt.then");
-        LLVMBasicBlockRef end = LLVMAppendBasicBlock(currentFunction, "IfStmt.end");
         LLVMValueRef condition = ifStmt.condition.visit(compileExpression);
         if (ifStmt.otherwise == null) {
+            LLVMBasicBlockRef then = LLVMAppendBasicBlock(currentFunction, "IfStmt.then");
+            LLVMBasicBlockRef end = LLVMAppendBasicBlock(currentFunction, "IfStmt.end");
             LLVMBuildCondBr(builder, condition, then, end);
-
             LLVMPositionBuilderAtEnd(builder, then);
             visitBlock(ifStmt.then);
-            if(!ifStmt.then.terminal) LLVMBuildBr(builder, end);
+            if (!ifStmt.then.terminal) LLVMBuildBr(builder, end);
+            LLVMPositionBuilderAtEnd(builder, end);
         } else {
+            LLVMBasicBlockRef then = LLVMAppendBasicBlock(currentFunction, "IfStmt.then");
             LLVMBasicBlockRef otherwise = LLVMAppendBasicBlock(currentFunction, "IfStmt.otherwise");
-            LLVMBuildCondBr(builder, condition, then, otherwise);
+            if (ifStmt.terminal) {
+                LLVMBuildCondBr(builder, condition, then, otherwise);
+                LLVMPositionBuilderAtEnd(builder, then);
+                visitBlock(ifStmt.then);
 
-            LLVMPositionBuilderAtEnd(builder, then);
-            visitBlock(ifStmt.then);
-            if(!ifStmt.then.terminal) LLVMBuildBr(builder, end);
-
-            LLVMPositionBuilderAtEnd(builder, otherwise);
-            visitBlock(ifStmt.otherwise);
-
-            LLVMBuildBr(builder, end);
+                LLVMPositionBuilderAtEnd(builder, otherwise);
+                visitBlock(ifStmt.otherwise);
+            } else {
+                LLVMBasicBlockRef end = LLVMAppendBasicBlock(currentFunction, "IfStmt.end");
+                LLVMBuildCondBr(builder, condition, then, otherwise);
+                LLVMPositionBuilderAtEnd(builder, then);
+                visitBlock(ifStmt.then);
+                if (!ifStmt.then.terminal) LLVMBuildBr(builder, end);
+                LLVMPositionBuilderAtEnd(builder, otherwise);
+                visitBlock(ifStmt.otherwise);
+                if (!ifStmt.otherwise.terminal) LLVMBuildBr(builder, end);
+                LLVMPositionBuilderAtEnd(builder, end);
+            }
         }
-        LLVMPositionBuilderAtEnd(builder, end);
         return null;
     }
 
@@ -88,7 +96,7 @@ public class CompileStatementVisitor implements StatementVisitor<Void> {
 
     @Override
     public Void visitReturnStmt(ReturnStmt returnStmt) {
-        if(returnStmt.value == null) LLVMBuildRetVoid(builder);
+        if (returnStmt.value == null) LLVMBuildRetVoid(builder);
         else LLVMBuildRet(builder, returnStmt.value.visit(compileExpression));
         return null;
     }
