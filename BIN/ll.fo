@@ -19,14 +19,14 @@ struct ll {
     struct node* ptr;
 }
 
-func struct node* node_new(i32 data) {
+struct node* node_new(i32 data) {
     struct node* ptr = (struct node*) malloc(sizeof(struct node));
     ptr.data = data;
     ptr.next = (struct node*) nullptr;
     return ptr;
 }
 
-func struct node* node_get_last(struct node* ptr) {
+struct node* node_get_last(struct node* ptr) {
     if ptr.next == (struct node*) nullptr {
         return ptr;
     } else {
@@ -67,7 +67,7 @@ void node_free(struct node* ptr) {
     free((i8*) ptr);
 }
 
-func struct ll* ll_new() {
+struct ll* ll_new() {
     struct ll* ll = (struct ll*) malloc(sizeof(struct ll));
     ll.ptr = (struct node*) nullptr;
     return ll;

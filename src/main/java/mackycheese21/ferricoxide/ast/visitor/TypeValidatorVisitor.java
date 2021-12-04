@@ -172,8 +172,6 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
     public Void visitAssign(Assign assign) {
         PointerType a = AnalysisException.requirePointer(assign.a.visit(this));
         ConcreteType b = assign.b.visit(this);
-        System.out.println(new StringifyVisitor("").visitAssign(assign));
-        System.out.println(a + " " + b);
         AnalysisException.requireType(a.to, b);
         return null;
     }

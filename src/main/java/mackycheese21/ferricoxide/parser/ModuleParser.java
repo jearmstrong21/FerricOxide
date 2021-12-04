@@ -17,7 +17,6 @@ import java.util.List;
 public class ModuleParser {
 
     private static Function forceFunction(TokenScanner scanner) {
-        if(scanner.hasNext(Token.Keyword.FUNC)) scanner.next();
         boolean inline = scanner.peek().is(Token.Keyword.INLINE);
         if (inline) scanner.next();
         boolean extern = scanner.peek().is(Token.Keyword.EXTERN);
@@ -29,8 +28,6 @@ public class ModuleParser {
         List<String> paramNames = new ArrayList<>();
         while (!scanner.peek().is(Token.Punctuation.R_PAREN)) {
             if (paramTypes.size() > 0) scanner.next().mustBe(Token.Punctuation.COMMA);
-            System.out.println(scanner.peek());
-            System.out.println("attempting type");
             ConcreteType type = StatementParser.forceType(scanner);
             String paramName = scanner.next().identifier();
             paramTypes.add(type);
@@ -49,28 +46,31 @@ public class ModuleParser {
     }
 
     public static StructType attemptStruct(TokenScanner scanner) {
-        boolean packed = scanner.peek().is(Token.Keyword.PACKED);
-        if (packed) {
-            scanner.next().mustBe(Token.Keyword.STRUCT);
-        } else {
-            if (!scanner.peek().is(Token.Keyword.STRUCT)) return null;
-            scanner.next();
-        }
-
-        String name = scanner.next().identifier();
+        TokenScanner s = scanner.copy();
+        boolean packed = s.peek().is(Token.Keyword.PACKED);
+        if(packed) s.next();
+        if(!s.peek().is(Token.Keyword.STRUCT)) return null;
+        s.next();
+        if(!packed && !s.peek().is(Token.Type.IDENTIFIER)) return null;
+        String name = s.next().identifier();
         List<String> fieldNames = new ArrayList<>();
         List<ConcreteType> fieldTypes = new ArrayList<>();
 
-        scanner.next().mustBe(Token.Punctuation.L_BRACKET);
-        while (!scanner.peek().is(Token.Punctuation.R_BRACKET)) {
-            fieldTypes.add(StatementParser.forceType(scanner));
-            fieldNames.add(scanner.next().identifier());
-            scanner.next().mustBe(Token.Punctuation.SEMICOLON);
-        }
-        scanner.next();
-        if (scanner.hasNext(Token.Punctuation.SEMICOLON)) scanner.next();
+        if(s.peek().is(Token.Punctuation.L_BRACKET) || packed) {
+            scanner.index = s.index;
+            scanner.next().mustBe(Token.Punctuation.L_BRACKET);
+            while (!scanner.peek().is(Token.Punctuation.R_BRACKET)) {
+                fieldTypes.add(StatementParser.forceType(scanner));
+                fieldNames.add(scanner.next().identifier());
+                scanner.next().mustBe(Token.Punctuation.SEMICOLON);
+            }
+            scanner.next();
+            if (scanner.hasNext(Token.Punctuation.SEMICOLON)) scanner.next();
 
-        return new StructType(name, fieldNames, fieldTypes, packed);
+            return new StructType(name, fieldNames, fieldTypes, packed);
+        } else {
+            return null;
+        }
     }
 
     private static GlobalVariable attemptGlobal(TokenScanner scanner) {

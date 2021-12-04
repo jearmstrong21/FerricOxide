@@ -19,7 +19,6 @@ public class PointerType extends ConcreteType {
     }
 
     private static ConcreteType p(ConcreteType to) {
-        System.out.println("EEEEEEE" + to);
         return to;
     }
 

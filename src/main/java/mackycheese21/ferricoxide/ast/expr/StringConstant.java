@@ -9,7 +9,6 @@ public class StringConstant extends Expression {
     public StringConstant(String value) {
         super(false);
         this.value = value;
-        System.out.println(unescape(value));
     }
 
     @Override

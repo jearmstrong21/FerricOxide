@@ -140,7 +140,6 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
         PointerType pointerType = AnalysisException.requirePointer(objectType);
         int index = pointerType.to.getFieldIndex(fieldName);
         if (index == -1) throw AnalysisException.noSuchField(objectType, fieldName);
-//        System.out.println("GEP " + objectType + " " + fieldName + " " + index);
         return LLVMBuildInBoundsGEP2(
                 builder,
                 pointerType.to.typeRef,
@@ -156,7 +155,6 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
 
     public LLVMValueRef GEP(ConcreteType objectType, LLVMValueRef index, LLVMValueRef objectRef) {
         PointerType pointerType = AnalysisException.requirePointer(objectType);
-//        System.out.println("GEP " + pointerType);
         return LLVMBuildInBoundsGEP2(
                 builder,
                 pointerType.to.typeRef,
@@ -287,7 +285,6 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
     @Override
     public LLVMValueRef visitRefAccessIndex(RefAccessIndex refAccessIndex) {
         PointerType arrayRefType = AnalysisException.requirePointer(refAccessIndex.value.visit(typeValidator));
-        System.out.println("art = " + arrayRefType);
         ConcreteType arrayValueType = arrayRefType.to;
 //        LLVMValueRef load = LLVMBuildLoad2(builder, arrayRefType.typeRef, refAccessIndex.value.visit(this), "AccessIndex.load");
         LLVMValueRef load = refAccessIndex.value.visit(this);

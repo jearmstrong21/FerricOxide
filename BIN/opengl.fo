@@ -208,7 +208,7 @@ struct gl_vao {
     i32 vertex_count;
 }
 
-func struct gl_vao gl_vao_new() {
+struct gl_vao gl_vao_new() {
     i32 vao = 0;
     glGenVertexArrays(1, &vao);
     return new gl_vao { id: vao, vertex_count: 0 };

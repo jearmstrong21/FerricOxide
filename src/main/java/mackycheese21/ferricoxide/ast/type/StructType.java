@@ -7,7 +7,7 @@ import java.util.List;
 
 import static org.bytedeco.llvm.global.LLVM.*;
 
-public class StructType extends ConcreteType { // tmrw: the error is because new TypeRef("compl") != new TypeRef("compl"), need to "resolve" TypeRefs - dod so in line 171 of typevalidatevisitor? thats one place, at least. maybe a method on FOModule!! YES!! method on FOModule to resolve types, this can alsoo do stuff like template instantiation later
+public class StructType extends ConcreteType {
 
     public final List<String> fieldNames;
     public final List<ConcreteType> fieldTypes;
@@ -45,7 +45,6 @@ public class StructType extends ConcreteType { // tmrw: the error is because new
 
     @Override
     public int getFieldIndex(String fieldName) {
-        System.out.println("STRUCT GETFIELDTYPE " + fieldName + " " + fieldNames);
         return fieldNames.indexOf(fieldName);
     }
 }
