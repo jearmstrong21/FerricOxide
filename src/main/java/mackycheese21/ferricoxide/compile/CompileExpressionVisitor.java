@@ -51,7 +51,7 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
     private LLVMValueRef implicitResolve(ConcreteType expected, ConcreteType actual, LLVMValueRef valueRef) {
         while (actual instanceof PointerType pointer && expected != actual) {
             actual = pointer.to;
-            valueRef = LLVMBuildLoad2(builder, actual.typeRef, valueRef, "ImplicitResolve");
+            valueRef = LLVMBuildLoad2(builder, actual.typeRef, valueRef, "deref");
         }
         if (expected == actual) return valueRef;
         return CastOperator.compile(builder, actual, expected, valueRef);
@@ -63,7 +63,7 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
         LLVMValueRef valueRef;
         if (globalRefs.mapHas(accessVar.name)) valueRef = globalRefs.mapGet(accessVar.name);
         else valueRef = variableRefs.mapGet(accessVar.name);
-        return LLVMBuildLoad2(builder, accessVar.visit(typeValidator).typeRef, valueRef, "AccessVar");
+        return LLVMBuildLoad2(builder, accessVar.visit(typeValidator).typeRef, valueRef, accessVar.name);
     }
 
     @Override
@@ -88,13 +88,13 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
 
     @Override
     public LLVMValueRef visitIfExpr(IfExpr ifExpr) {
-        LLVMBasicBlockRef then = LLVMAppendBasicBlock(currentFunction, "IfExpr.then");
-        LLVMBasicBlockRef otherwise = LLVMAppendBasicBlock(currentFunction, "IfExpr.otherwise");
-        LLVMBasicBlockRef end = LLVMAppendBasicBlock(currentFunction, "IfExpr.end");
+        LLVMBasicBlockRef then = LLVMAppendBasicBlock(currentFunction, "if_then");
+        LLVMBasicBlockRef otherwise = LLVMAppendBasicBlock(currentFunction, "if_else");
+        LLVMBasicBlockRef end = LLVMAppendBasicBlock(currentFunction, "if_end");
 
         LLVMTypeRef resultType = ifExpr.visit(typeValidator).typeRef;
 
-        LLVMValueRef result = LLVMBuildAlloca(builder, resultType, "IfExpr.result");
+        LLVMValueRef result = LLVMBuildAlloca(builder, resultType, "if_res");
 
         LLVMValueRef condition = ifExpr.condition.visit(this);
 
@@ -110,7 +110,7 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
 
         LLVMPositionBuilderAtEnd(builder, end);
 
-        return LLVMBuildLoad2(builder, resultType, result, "IfExpr.result");
+        return LLVMBuildLoad2(builder, resultType, result, "if_res");
     }
 
     @Override
@@ -130,7 +130,7 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
                     callExpr.params.get(i).visit(this)));
         }
         if (result.declarable) {
-            return LLVMBuildCall2(builder, functionTypes.mapGet(callExpr.name).typeRef, functionRefs.mapGet(callExpr.name), args, callExpr.params.size(), "CallExpr");
+            return LLVMBuildCall2(builder, functionTypes.mapGet(callExpr.name).typeRef, functionRefs.mapGet(callExpr.name), args, callExpr.params.size(), callExpr.name);
         } else {
             LLVMBuildCall2(builder, functionTypes.mapGet(callExpr.name).typeRef, functionRefs.mapGet(callExpr.name), args, callExpr.params.size(), "");
             return null;
@@ -150,7 +150,7 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
                         new IntConstant(index).visit(this)
                 ),
                 2,
-                "GEP.Field"
+                "gep_" + fieldName
         );
     }
 
@@ -164,7 +164,7 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
                         index
                 ),
                 1,
-                "GEP.Array"
+                "gep_" + LLVMGetValueName(index).getString()
         );
     }
 
@@ -186,28 +186,28 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
                         new IntConstant(index).visit(this)
                 ),
                 2,
-                "GEP.Field"
+                "gep_" + accessField.field
         );
-        return LLVMBuildLoad2(builder, pointerType.to.getFieldType(fieldName).typeRef, GEP, "AccessField");
+        return LLVMBuildLoad2(builder, pointerType.to.getFieldType(fieldName).typeRef, GEP, accessField.field);
     }
 
     @Override
     public LLVMValueRef visitStructInit(StructInit structInit) {
         StructType struct = structs.mapGet(structInit.struct);
         PointerType pointer = PointerType.of(struct);
-        LLVMValueRef structPtr = LLVMBuildAlloca(builder, struct.typeRef, "StructInit.alloca");
+        LLVMValueRef structPtr = LLVMBuildAlloca(builder, struct.typeRef, struct.name);
         for (int i = 0; i < structInit.fieldNames.size(); i++) {
             LLVMValueRef fieldValue = structInit.fieldValues.get(i).visit(this);
             LLVMValueRef fieldPtr = GEP(pointer, structInit.fieldNames.get(i), structPtr);
             ConcreteType fieldType = structInit.fieldValues.get(i).visit(typeValidator);
             LLVMBuildStore(builder, implicitResolve(struct.getFieldType(structInit.fieldNames.get(i)), fieldType, fieldValue), fieldPtr);
         }
-        return LLVMBuildLoad2(builder, struct.typeRef, structPtr, "StructInit.load");
+        return LLVMBuildLoad2(builder, struct.typeRef, structPtr, struct.name);
     }
 
     @Override
     public LLVMValueRef visitPointerDeref(PointerDeref pointerDeref) {
-        return LLVMBuildLoad2(builder, pointerDeref.deref.visit(typeValidator).typeRef, pointerDeref.deref.visit(this), "PointerDeref");
+        return LLVMBuildLoad2(builder, pointerDeref.deref.visit(typeValidator).typeRef, pointerDeref.deref.visit(this), "deref");
     }
 
     @Override
@@ -217,20 +217,19 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
 
     @Override
     public LLVMValueRef visitAccessIndex(AccessIndex accessIndex) {
-        PointerType arrayRefType = AnalysisException.requirePointer(accessIndex.value.visit(typeValidator));
-        PointerType arrayType = AnalysisException.requirePointer(arrayRefType.to);
-        ConcreteType arrayValueType = arrayType.to;
-        LLVMValueRef load = LLVMBuildLoad2(builder, arrayType.typeRef, accessIndex.value.visit(this), "AccessIndex.load");
-        return LLVMBuildLoad2(builder, arrayValueType.typeRef, LLVMBuildInBoundsGEP2(
+        PointerType arrayRefType = AnalysisException.requirePointer(accessIndex.value.visit(typeValidator)); // i32*
+        ConcreteType arrayType = arrayRefType.to; // i32
+//        LLVMValueRef load = LLVMBuildLoad2(builder, arrayRefType.typeRef, accessIndex.value.visit(this), "AccessIndex.load");
+        return LLVMBuildLoad2(builder, arrayType.typeRef, LLVMBuildInBoundsGEP2(
                 builder,
-                arrayValueType.typeRef,
-                load,
+                arrayType.typeRef,
+                accessIndex.value.visit(this),
                 new PointerPointer<>(
                         new LLVMValueRef[]{accessIndex.index.visit(this)}
                 ),
                 1,
-                "AccessIndex.GEP"
-        ), "AccessIndex");
+                "gep_[index]"
+        ), "gep_[index]");
     }
 
     @Override
@@ -238,7 +237,7 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
         String str = StringConstant.unescape(stringConstant.value);
         LLVMValueRef valueRef;
         if (strings.containsKey(str)) valueRef = strings.get(str);
-        else valueRef = LLVMBuildGlobalString(builder, str, "StringConstant.Value");
+        else valueRef = LLVMBuildGlobalString(builder, str, "string");
         strings.put(str, valueRef);
 //        return valueRef;
         // TODO: unhack this into ArrayType(ConcreteType, int) and cast from ArrayType <-> any pointer type <-> any pointer type
@@ -251,7 +250,7 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
                         new IntConstant(0).visit(this),
                         new IntConstant(0).visit(this)
                 ),
-                2, "StringConstant.GEP");
+                2, "string");
     }
 
     @Override
@@ -280,7 +279,7 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
                         new IntConstant(index).visit(this)
                 ),
                 2,
-                "GEP.Field"
+                "gep_" + refAccessField.field
         );
     }
 
@@ -298,12 +297,12 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
                         new LLVMValueRef[]{refAccessIndex.index.visit(this)}
                 ),
                 1,
-                "AccessIndex.GEP");
+                "gep_[index]");
     }
 
     @Override
     public LLVMValueRef visitSizeOf(SizeOf sizeOf) {
-        return LLVMBuildTrunc(builder, LLVMSizeOf(sizeOf.type.typeRef), ConcreteType.I32.typeRef, "SizeOf.trunc");
+        return LLVMBuildTrunc(builder, LLVMSizeOf(sizeOf.type.typeRef), ConcreteType.I32.typeRef, "sizeof");
     }
 
     @Override

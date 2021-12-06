@@ -127,7 +127,7 @@ public enum BinaryOperator {
 
     public LLVMValueRef compile(LLVMBuilderRef builder, LLVMValueRef a, LLVMValueRef b, ConcreteType operand) {
         if (this == DISCARD_FIRST) return b;
-        String name = "BinaryOperator." + this;
+        String name = toString().toLowerCase();
         switch (this) {
             case MUL -> {
                 if (operand == ConcreteType.I8) return LLVMBuildMul(builder, a, b, name);

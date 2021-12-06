@@ -250,10 +250,6 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
         for (GlobalVariable global : module.globals) {
             globals.mapAdd(global.name, global.type);
         }
-        this.variables = new IdentifierMap<>(null);
-        for (GlobalVariable global : module.globals) {
-            AnalysisException.requireType(global.type, global.value.visit(this));
-        }
         for (Function function : module.functions) {
             if (function.inline && function.isExtern()) {
                 throw AnalysisException.cannotCombineInlineExtern();
@@ -264,6 +260,10 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
                 }
             }
             functions.mapAdd(function.name, function.type);
+        }
+        this.variables = new IdentifierMap<>(null);
+        for (GlobalVariable global : module.globals) {
+            AnalysisException.requireType(global.type, global.value.visit(this));
         }
         for (Function function : module.functions) {
             if (function.isExtern()) continue;

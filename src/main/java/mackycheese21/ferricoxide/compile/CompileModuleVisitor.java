@@ -7,9 +7,11 @@ import mackycheese21.ferricoxide.ast.module.FOModule;
 import mackycheese21.ferricoxide.ast.module.Function;
 import mackycheese21.ferricoxide.ast.module.GlobalVariable;
 import mackycheese21.ferricoxide.ast.stmt.Block;
+import mackycheese21.ferricoxide.ast.stmt.DeclareVar;
 import mackycheese21.ferricoxide.ast.type.ConcreteType;
 import mackycheese21.ferricoxide.ast.type.FunctionType;
 import mackycheese21.ferricoxide.ast.type.StructType;
+import mackycheese21.ferricoxide.ast.visitor.AllDeclaredVariablesVisitor;
 import mackycheese21.ferricoxide.ast.visitor.ModuleVisitor;
 import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacpp.PointerPointer;
@@ -89,16 +91,19 @@ public class CompileModuleVisitor implements ModuleVisitor<CompiledModule> {
             if (function.isExtern()) continue;
             LLVMValueRef valueRef = functionRefs.mapGet(function.name);
 
-            LLVMBasicBlockRef entry = LLVMAppendBasicBlock(valueRef, "entry");
+            LLVMBasicBlockRef entry = LLVMAppendBasicBlock(valueRef, "entry_" + function.name);
             LLVMPositionBuilderAtEnd(builder, entry);
 
-            CompileStatementVisitor compileStatement = new CompileStatementVisitor(builder, valueRef, globalTypes, globalRefs, strings, structs, functionTypes, functionRefs);
+            AllDeclaredVariablesVisitor allDeclaredVariablesVisitor = new AllDeclaredVariablesVisitor(builder);
+            allDeclaredVariablesVisitor.visitBlock(function.body);
+
+            CompileStatementVisitor compileStatement = new CompileStatementVisitor(builder, valueRef, allDeclaredVariablesVisitor.variableRefs, globalTypes, globalRefs, strings, structs, functionTypes, functionRefs);
             for (int i = 0; i < function.paramNames.size(); i++) {
                 LLVMValueRef alloc = LLVMBuildAlloca(builder, function.type.params.get(i).typeRef, "param" + i);
                 LLVMBuildStore(builder, LLVMGetParam(valueRef, i), alloc);
 
                 compileStatement.variableTypes.mapAdd(function.paramNames.get(i), function.type.params.get(i));
-                compileStatement.variableRefs.mapAdd(function.paramNames.get(i), alloc);
+                compileStatement.localVariableRefs.mapAdd(function.paramNames.get(i), alloc);
             }
 
             function.body.visit(compileStatement);
@@ -130,10 +135,8 @@ public class CompileModuleVisitor implements ModuleVisitor<CompiledModule> {
         }
 
         pm = LLVMCreatePassManager();
-        LLVMAddNewGVNPass(pm);
-        LLVMAddCFGSimplificationPass(pm);
-        LLVMAddPromoteMemoryToRegisterPass(pm);
         LLVMAddAggressiveInstCombinerPass(pm);
+        LLVMAddPromoteMemoryToRegisterPass(pm);
         LLVMAddStripDeadPrototypesPass(pm);
         LLVMAddStripSymbolsPass(pm);
         LLVMRunPassManager(pm, moduleRef);

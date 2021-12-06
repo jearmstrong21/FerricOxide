@@ -25,8 +25,23 @@ void printInt(int x) {
     printf("FO says: %d\n", x);
 }
 
+void printPtr(void*x){
+    printf("FO says ptr: %p\n", x);
+}
+
+void c_check_stack() {
+    int x = 0;
+    printf("FO stack check: %p\n", &x);
+}
+
 int loadGLAD() {
     return gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
+}
+
+void make_i32(int x) {
+}
+
+void make_i8(char x) {
 }
 
 int main(int argc, char** argv)
