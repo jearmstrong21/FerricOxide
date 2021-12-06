@@ -1,0 +1,373 @@
+extern i8* fopen(i8* filename, i8* mode);
+extern i32 fclose(i8* ptr);
+
+extern void c_fwrite_str(i8* ptr, i8* str);
+extern void c_fwrite_i32(i8* ptr, i32 x);
+extern void c_fwrite_space(i8* ptr);
+extern void c_fwrite_newline(i8* ptr);
+
+extern i8* malloc(i32 size);
+extern void free(i8* ptr);
+
+extern f32 sqrtf(f32 x);
+extern f32 fabsf(f32 x);
+
+extern f32 zero();
+extern f32 one();
+
+extern void printInt(i32 x);
+
+
+
+i32 img_width = 700;
+i32 img_height = 700;
+i32 depth = 10;
+
+
+
+struct texture red_texture = new texture { primary: new v3f { x: 1, y: ((f32)8)/10, z: ((f32)8)/10}, secondary: new v3f { x: 0, y: 0, z: 0}, checkered: false, checker_size: 0 };
+struct texture green_texture = new texture { primary: new v3f { x: ((f32)8)/10, y: 1, z: ((f32)8)/10}, secondary: new v3f { x: 0, y: 0, z: 0}, checkered: false, checker_size: 0 };
+struct texture blue_texture = new texture { primary: new v3f { x: ((f32)8)/10, y: ((f32)8)/10, z: 1 }, secondary: new v3f { x: 0, y: 0, z: 0}, checkered: false, checker_size: 0 };
+struct texture checkerboard_texture = new texture { primary: new v3f { x: 1, y: 1, z: 1 }, secondary: new v3f { x: ((f32)5)/10, y: ((f32)5)/10, z: ((f32)5)/10 }, checkered: true, checker_size: 1 };
+
+struct material sphere1_material = new material { reflect: ((f32) 8) / 10, texture: red_texture };
+struct material sphere2_material = new material { reflect: ((f32) 8) / 10, texture: green_texture };
+struct material sphere3_material = new material { reflect: ((f32) 8) / 10, texture: blue_texture };
+struct material plane_material = new material { reflect: ((f32)1) / 2, texture: checkerboard_texture };
+
+struct sphere obj_s1 = new sphere { p: new v3f { x: 3, y: 2, z: 4 }, r: 1, material: sphere1_material };
+struct sphere obj_s2 = new sphere { p: new v3f { x: -3, y: 2, z: 4 }, r: 1, material: sphere2_material };
+//struct sphere obj_s3 = new sphere { p: new v3f { x: 0, y: 4, z: 4 }, r: 1, material: sphere3_material };
+struct sphere obj_s3 = new sphere { p: new v3f { x: 0, y: 2, z: 6 }, r: 1, material: sphere3_material };
+struct plane  obj_p1 = new plane { p: new v3f { x: 0, y: 0, z: 0 }, n: new v3f { x: 0, y: 1, z: 0 }, material: plane_material };
+
+
+
+
+
+
+
+
+
+struct fo_file {
+    i8* ptr;
+}
+struct fo_file* fo_file_open(i8* filename, bool write) {
+    struct fo_file* file = (struct fo_file*) malloc(sizeof(struct fo_file));
+    file->ptr = fopen(filename, if write { "w" } else { "r" });
+    return file;
+}
+void fo_file_close(struct fo_file* file) {
+    fclose(file->ptr);
+    free((i8*) file);
+}
+void fo_file_append_str(struct fo_file* file, i8* str) {
+    c_fwrite_str(file->ptr, str);
+}
+void fo_file_append_i32(struct fo_file* file, i32 x) {
+    c_fwrite_i32(file->ptr, x);
+}
+
+
+
+struct v3f {
+    f32 x;
+    f32 y;
+    f32 z;
+}
+struct v3f vzero() {
+    return new v3f { x: zero(), y: zero(), z: zero() };
+}
+struct v3f vadd(struct v3f a, struct v3f b) {
+    return new v3f { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z };
+}
+struct v3f vsub(struct v3f a, struct v3f b) {
+    return new v3f { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
+}
+struct v3f vcopy(struct v3f a) {
+    return new v3f { x: a.x, y: a.y, z: a.z };
+}
+f32 vmag(struct v3f a) {
+    return sqrtf(a.x * a.x + a.y * a.y + a.z * a.z);
+}
+struct v3f vmul(f32 a, struct v3f b) {
+    return new v3f { x: a * b.x, y: a * b.y, z: a * b.z };
+}
+struct v3f vnorm(struct v3f a) {
+    f32 m = vmag(a);
+    return vmul(one() / m, a);
+}
+f32 vdot(struct v3f a, struct v3f b) {
+    return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+
+
+
+struct material {
+    f32 reflect;
+    struct texture texture;
+}
+
+struct texture {
+    struct v3f primary;
+    struct v3f secondary;
+    bool checkered;
+    f32 checker_size;
+}
+
+struct texture texture_checkered(struct v3f primary, struct v3f secondary, f32 checker_size) {
+    return new texture { primary: primary, secondary: secondary, checkered: true, checker_size: checker_size };
+}
+
+struct v3f texture_eval(struct texture texture, struct ray_hit ray_hit) {
+    if texture.checkered {
+        i32 x = (i32) (ray_hit.hit_pos.x / texture.checker_size);
+        i32 z = (i32) (ray_hit.hit_pos.z / texture.checker_size);
+        return if (x + z) % 2 == 0 { texture.primary } else { texture.secondary };
+    } else {
+        return texture.primary;
+    }
+}
+
+struct ray {
+    struct v3f x0;
+    struct v3f d; /* norm */
+}
+
+struct sphere {
+    struct v3f p;
+    f32 r;
+    struct material material;
+}
+
+struct plane {
+    struct v3f p;
+    struct v3f n;
+    struct material material;
+}
+
+struct ray_hit {
+    bool success;
+    f32 dist;
+    struct v3f incoming_ray;
+    struct v3f hit_pos;
+    struct v3f normal;
+    struct material material;
+}
+
+/* t0 <= t1 */
+bool try_quadratic_solve(f32 a, f32 b, f32 c, f32* t0, f32* t1) {
+    f32 discr = b * b - ((f32)4) * a * c;
+    if discr < 0 { return false; }
+    discr = sqrtf(discr);
+    t0[0] = (-b - discr) / (((f32)2) * a);
+    t1[0] = (-b + discr) / (((f32)2) * a);
+    return true;
+}
+
+void try_sphere_ray_hit(struct sphere sphere, struct ray ray, struct ray_hit* ray_hit) {
+    struct v3f p = sphere.p;
+    f32 r = sphere.r;
+    struct v3f x0 = ray.x0;
+    struct v3f d = ray.d;
+
+//    struct v3f L = vsub(p, x0);
+//    f32 tca = vdot(L, d);
+//    f32 d2 = vdot(L, L) - tca * tca;
+//    if d2 > r * r { return; }
+//    f32 thc = sqrtf(r * r - d2);
+//    f32 t0 = tca - thc;
+
+    f32 a = vdot(d, d);
+    f32 b = ((f32)2) * vdot(d, x0) - ((f32)2) * vdot(d, p);
+    f32 c = vdot(p, p) - ((f32)2) * vdot(x0, p) + vdot(x0, x0) - r * r;
+
+    f32 t0 = (f32) 0;
+    f32 t1 = (f32) 0;
+
+    if !try_quadratic_solve(a, b, c, &t0, &t1) { return; }
+
+    f32 t = (f32) 0;
+
+    if t0 < 0 && t1 < 0 { return; }
+    if t0 < 0 && t1 >= 0 { t = t1; }
+    if t0 >= 0 && t1 < 0 { t = t0; }
+    if t0 >= 0 && t1 >= 0 { t = if t0 < t1 { t0 } else { t1 }; }
+
+    ray_hit->success = true;
+    ray_hit->dist = t0;
+    ray_hit->hit_pos = vadd(x0, vmul(t0, d));
+    ray_hit->normal = vnorm(vsub(ray_hit->hit_pos, p));
+//    ray_hit->normal = vnorm(vsub(x0, p));
+    ray_hit->material = sphere.material;
+}
+void try_plane_ray_hit(struct plane plane, struct ray ray, struct ray_hit* ray_hit) {
+    struct v3f p = plane.p;
+    struct v3f n = plane.n;
+    struct v3f x0 = ray.x0;
+    struct v3f d = ray.d;
+
+    f32 div = vdot(d, n);
+    if fabsf(div) < ((f32)1) / 1000 { return; }
+
+    f32 t = vdot(vsub(p, x0), n) / div;
+    if t < 0 { return; }
+
+    ray_hit->success = true;
+    ray_hit->dist = t;
+    ray_hit->hit_pos = vadd(x0, vmul(t, d));
+    ray_hit->normal = n;
+    ray_hit->material = plane.material;
+}
+
+f32 flerp(f32 a, f32 b, f32 t) { return a + (b - a) * t; }
+f32 fnorm(f32 x, f32 a, f32 b) { return (x - a) / (b - a); }
+f32 fmap(f32 x, f32 a1, f32 b1, f32 a2, f32 b2) { return flerp(a2, b2, fnorm(x, a1, b1)); }
+struct v3f vmap(struct v3f x, f32 a1, f32 b1, f32 a2, f32 b2) {
+    return new v3f {
+        x: fmap(x.x, a1, b1, a2, b2),
+        y: fmap(x.y, a1, b1, a2, b2),
+        z: fmap(x.z, a1, b1, a2, b2)
+    };
+}
+
+struct ray_hit ray_hit_closest(struct ray_hit a, struct ray_hit b) {
+    if !a.success { return b; }
+    if !b.success { return a; }
+    if a.dist < b.dist { return a; }
+    else { return b; }
+}
+
+struct ray_hit cast_ray(struct ray ray) {
+    struct ray_hit rh_s1 = zeroinit(struct ray_hit);
+    struct ray_hit rh_s2 = zeroinit(struct ray_hit);
+    struct ray_hit rh_s3 = zeroinit(struct ray_hit);
+    struct ray_hit rh_p1 = zeroinit(struct ray_hit);
+
+    try_sphere_ray_hit(obj_s1, ray, &rh_s1);
+    try_sphere_ray_hit(obj_s2, ray, &rh_s2);
+    try_sphere_ray_hit(obj_s3, ray, &rh_s3);
+    try_plane_ray_hit(obj_p1, ray, &rh_p1);
+
+    struct ray_hit final_hit = zeroinit(struct ray_hit);
+    final_hit = ray_hit_closest(final_hit, rh_s1);
+    final_hit = ray_hit_closest(final_hit, rh_s2);
+    final_hit = ray_hit_closest(final_hit, rh_s3);
+    final_hit = ray_hit_closest(final_hit, rh_p1);
+
+    final_hit.incoming_ray = ray.d;
+//    final_hit.hit_pos = vadd(ray.x0, vmul(final_hit.dist, ray.d));
+
+    return final_hit;
+}
+
+struct v3f eval_ray_hit(struct ray_hit ray_hit, i32 depth) {
+    if !ray_hit.success { return new v3f { x: 1, y: 1, z: 1}; }
+    struct v3f base_color = texture_eval(ray_hit.material.texture, ray_hit);
+//    base_color = vmap(ray_hit.normal, -1, 1, 0, 1);
+    if depth == 0 {
+        return base_color;
+//        return vmap(ray_hit.normal,-1,1,0,1);
+    }
+
+//    struct v3f reflected_ray = vsub(ray_hit.incoming_ray, vmul(
+//    ((f32)2) * vdot(ray_hit.incoming_ray, ray_hit.normal),
+//    ray_hit.normal
+//    ));
+    struct v3f I = ray_hit.incoming_ray;
+    struct v3f N = ray_hit.normal;
+    struct v3f outgoing_ray =
+        vsub(
+            I,
+            vmul(
+                ((f32)2) * vdot(N, I),
+                N
+            )
+        );
+
+    f32 epsilon = ((f32)1)/1000;
+
+    struct v3f ray_start_pos = vadd(ray_hit.hit_pos, vmul(epsilon, ray_hit.normal));
+    ray_start_pos = vnorm(ray_start_pos);
+//    printInt((i32)(ray_start_pos.x*100));
+
+    struct ray_hit next_hit = cast_ray(new ray { x0: ray_start_pos, d: outgoing_ray });
+
+    struct v3f reflect_color = eval_ray_hit(next_hit, depth - 1);
+
+    /* reflect = 0 => no reflection component, reflect = 1 => full reflection */
+//    reflect_color = vmap(reflect_color, 0, 1, ((f32)1) - ray_hit.material.reflect, 1);
+    struct v3f color = new v3f {
+        x: base_color.x * reflect_color.x,
+        y: base_color.y * reflect_color.y,
+        z: base_color.z * reflect_color.z
+    };
+    struct v3f dl = new v3f { x: ((f32)-8)/10, y: ((f32)-5)/10, z: ((f32)-3)/10 };
+    dl = vnorm(dl);
+    f32 m = vdot(dl, ray_hit.normal);
+    m = fmap(m, -1, 1, ((f32)5)/10, 1);
+
+    color = vmul(m, color);
+    return color;
+//    return reflect_color;
+}
+
+struct v3f get_color(f32 x, f32 y) {
+    f32 range = ((f32) 8) / 10;
+    f32 fx = fmap(x, 0, img_width, -range, range);
+    f32 fy = fmap(y, 0, img_height, range, -range);
+
+    struct v3f x0 = new v3f { x: 0, y: 1, z: 0 };
+    struct v3f d = new v3f { x: fx, y: fy, z: 1 };
+
+    d = vnorm(d);
+
+    struct ray r = new ray { x0: x0, d: d };
+    return eval_ray_hit(cast_ray(r), depth);
+}
+
+struct v3f get_aa_color(f32 x, f32 y) {
+    i32 sample_grid_size = 5;
+    struct v3f sum = vzero();
+    f32 count = (f32) 0;
+    f32 half = ((f32)1) / 2;
+    for(i32 i = 0; i < sample_grid_size; i = i + 1;) {
+        for(i32 j = 0; j < sample_grid_size; j = j + 1;) {
+            f32 ox = fmap(i, 0, sample_grid_size - 1, -half, half);
+            f32 oy = fmap(j, 0, sample_grid_size - 1, -half, half);
+            sum = vadd(sum, get_color(x + ox, y + oy));
+            count = count + 1;
+        }
+    }
+
+    return vmul(((f32)1) / count, sum);
+}
+
+i32 get_color_r(struct v3f a) { return (i32) fmap(a.x, 0, 1, 0, 255); }
+i32 get_color_g(struct v3f a) { return (i32) fmap(a.y, 0, 1, 0, 255); }
+i32 get_color_b(struct v3f a) { return (i32) fmap(a.z, 0, 1, 0, 255); }
+
+i32 run(i32 argc, i8** argv) {
+    struct fo_file* file = fo_file_open("output.ppm", true);
+    fo_file_append_str(file, "P3\n");
+    fo_file_append_i32(file, img_width);
+    fo_file_append_str(file, " ");
+    fo_file_append_i32(file, img_height);
+    fo_file_append_str(file, "\n");
+    fo_file_append_str(file, "256\n");
+    for(i32 y = 0; y < img_height; y = y + 1;) {
+        for(i32 x = 0; x < img_width; x = x + 1;) {
+            struct v3f c = get_aa_color(x, y);
+            fo_file_append_i32(file, get_color_r(c));
+            fo_file_append_str(file, " ");
+            fo_file_append_i32(file, get_color_g(c));
+            fo_file_append_str(file, " ");
+            fo_file_append_i32(file, get_color_b(c));
+            fo_file_append_str(file, "\n");
+        }
+        if y % 50 == 0 { printInt(y); }
+    }
+    return 0;
+}
+

@@ -111,6 +111,5 @@ public class ModuleParser {
         }
         return new FOModule(globals, structs, functions);
     }
-    // TODO redo module ast / structure, preprocessor mayb?
 
 }

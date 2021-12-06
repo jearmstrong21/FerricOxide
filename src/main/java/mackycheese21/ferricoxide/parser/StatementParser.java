@@ -19,7 +19,7 @@ import java.util.List;
 public class StatementParser {
 
     private static ConcreteType attemptTypeFirst(TokenScanner scanner) {
-        if(scanner.peek().is(Token.Keyword.I8)) {
+        if (scanner.peek().is(Token.Keyword.I8)) {
             scanner.next();
             return ConcreteType.I8;
         }
@@ -107,6 +107,10 @@ public class StatementParser {
     private static Statement attemptReturn(TokenScanner scanner) {
         if (!scanner.peek().is(Token.Keyword.RETURN)) return null;
         scanner.next();
+        if (scanner.peek().is(Token.Punctuation.SEMICOLON)) {
+            scanner.next();
+            return new ReturnStmt(null);
+        }
         Expression expr = ExpressionParser.parse(scanner, false);
         scanner.next().mustBe(Token.Punctuation.SEMICOLON);
         return new ReturnStmt(expr);
@@ -144,6 +148,7 @@ public class StatementParser {
         try {
             left = ExpressionParser.parse(s, true);
         } catch (AnalysisException e) {
+            if(s.peek().is(Token.Punctuation.EQ)) throw e;
             return null;
         }
         if (!s.peek().is(Token.Punctuation.EQ)) return null;
@@ -151,11 +156,27 @@ public class StatementParser {
         scanner.index = s.index;
         Expression right = ExpressionParser.parse(scanner, false);
         scanner.next().mustBe(Token.Punctuation.SEMICOLON);
-        return new Assign(left, right, BinaryOperator.DISCARD_FIRST); // TODO += -= etc
+        return new Assign(left, right, BinaryOperator.DISCARD_FIRST);
+    }
+
+    private static Statement attemptFor(TokenScanner scanner) {
+        if (!scanner.hasNext(Token.Keyword.FOR)) return null;
+        scanner.next();
+        scanner.next().mustBe(Token.Punctuation.L_PAREN);
+        Statement init = parse(scanner);
+        Expression condition = ExpressionParser.parse(scanner, false);
+        scanner.next().mustBe(Token.Punctuation.SEMICOLON);
+        Statement update = parse(scanner);
+        scanner.next().mustBe(Token.Punctuation.R_PAREN);
+        Block block = forceBlock(scanner);
+        return WhileStmt.forStmt(init, condition, update, block);
     }
 
     private static Statement parse(TokenScanner scanner) {
         Statement stmt;
+
+        stmt = attemptFor(scanner);
+        if (stmt != null) return stmt;
 
         stmt = attemptBlock(scanner);
         if (stmt != null) return stmt;
@@ -173,7 +194,7 @@ public class StatementParser {
         if (stmt != null) return stmt;
 
         stmt = attemptAssign(scanner);
-        if (stmt != null) return stmt; // TODO should this be null?
+        if (stmt != null) return stmt;
 
         stmt = attemptCall(scanner);
         if (stmt != null) return stmt;

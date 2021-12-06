@@ -39,7 +39,12 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
             actual = pointer.to;
         }
         if (expected == actual) return actual;
-        throw AnalysisException.incorrectImplicitResolveType(expected, actual, original);
+        try {
+            CastOperator.verify(actual, expected);
+            return expected;
+        } catch (AnalysisException e) {
+            throw AnalysisException.incorrectImplicitResolveType(expected, actual, original);
+        }
     }
 
     @Override
@@ -103,19 +108,20 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
     public ConcreteType visitStructInit(StructInit structInit) {
         StructType struct = structs.mapGet(structInit.struct);
         if (struct.fieldTypes.size() != structInit.fieldNames.size())
-            throw AnalysisException.incorrectStructInitializer();
+            throw AnalysisException.incorrectStructInitializer("expected %s fields, got %s".formatted(struct.fieldTypes.size(), structInit.fieldNames.size()));
         if (struct.fieldTypes.size() != structInit.fieldValues.size())
-            throw AnalysisException.incorrectStructInitializer();
+            throw AnalysisException.incorrectStructInitializer("expected %s fields, got %s".formatted(struct.fieldTypes.size(), structInit.fieldNames.size()));
 
         for (int i = 0; i < struct.fieldTypes.size(); i++) {
             if (!struct.fieldNames.contains(structInit.fieldNames.get(i)))
-                throw AnalysisException.incorrectStructInitializer();
+                throw AnalysisException.incorrectStructInitializer("field name %s not present in struct".formatted(structInit.fieldNames.get(i)));
             if (!structInit.fieldNames.contains(struct.fieldNames.get(i)))
-                throw AnalysisException.incorrectStructInitializer();
+                throw AnalysisException.incorrectStructInitializer("field name %s not present in init".formatted(struct.fieldNames.get(i)));
             String fieldName = structInit.fieldNames.get(i);
             Expression fieldValue = structInit.fieldValues.get(i);
             int actualStructIndex = struct.fieldNames.indexOf(fieldName);
-            AnalysisException.requireType(struct.fieldTypes.get(actualStructIndex), fieldValue.visit(this));
+            implicitResolve(struct.fieldTypes.get(actualStructIndex), fieldValue.visit(this));
+//            AnalysisException.requireType(struct.fieldTypes.get(actualStructIndex), fieldValue.visit(this));
         }
         return struct;
     }
@@ -166,6 +172,11 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
     @Override
     public ConcreteType visitSizeOf(SizeOf sizeOf) {
         return ConcreteType.I32;
+    }
+
+    @Override
+    public ConcreteType visitZeroInit(ZeroInit zeroInit) {
+        return zeroInit.type;
     }
 
     @Override
@@ -233,12 +244,15 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
         structs = new IdentifierMap<>(null);
         functions = new IdentifierMap<>(null);
 
-        for (GlobalVariable global : module.globals) {
-            globals.mapAdd(global.name, global.type);
-            AnalysisException.requireType(global.type, global.value.visit(this));
-        }
         for (StructType struct : module.structs) {
             structs.mapAdd(struct.name, struct);
+        }
+        for (GlobalVariable global : module.globals) {
+            globals.mapAdd(global.name, global.type);
+        }
+        this.variables = new IdentifierMap<>(null);
+        for (GlobalVariable global : module.globals) {
+            AnalysisException.requireType(global.type, global.value.visit(this));
         }
         for (Function function : module.functions) {
             if (function.inline && function.isExtern()) {

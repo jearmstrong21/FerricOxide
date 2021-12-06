@@ -58,6 +58,7 @@ public class Token {
         EQEQ("=="),
         NEQ("!="),
         EQ("="),
+        PERCENT("%"),
         COMMA(","),
         L_PAREN("("),
         R_PAREN(")"),
@@ -90,6 +91,7 @@ public class Token {
     }
 
     public enum Keyword {
+        ZEROINIT("zeroinit"),
         SIZEOF("sizeof"),
 
         RETURN("return"),

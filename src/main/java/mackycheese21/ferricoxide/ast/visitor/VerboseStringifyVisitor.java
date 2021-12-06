@@ -89,4 +89,9 @@ public class VerboseStringifyVisitor implements ExpressionVisitor<String> {
     public String visitSizeOf(SizeOf sizeOf) {
         return "sizeof[%s]".formatted(sizeOf.type);
     }
+
+    @Override
+    public String visitZeroInit(ZeroInit zeroInit) {
+        return "zeroinit[%s]".formatted(zeroInit.type);
+    }
 }

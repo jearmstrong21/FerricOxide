@@ -29,6 +29,8 @@ public enum UnaryOperator {
             case NEGATE -> {
                 if (operand == ConcreteType.I32)
                     return ConcreteType.I32;
+                if (operand == ConcreteType.F32)
+                    return ConcreteType.F32;
             }
             case LOGICAL_NOT -> {
                 if (operand == ConcreteType.BOOL)
@@ -50,6 +52,8 @@ public enum UnaryOperator {
             case NEGATE -> {
                 if (operand == ConcreteType.I32)
                     return LLVMBuildSub(builder, LLVMConstInt(operand.typeRef, 0, 0), a, name);
+                if (operand == ConcreteType.F32)
+                    return LLVMBuildFNeg(builder, a, name);
             }
             case LOGICAL_NOT -> {
                 if (operand == ConcreteType.BOOL)

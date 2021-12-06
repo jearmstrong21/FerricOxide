@@ -5,7 +5,7 @@ import mackycheese21.ferricoxide.ast.type.ConcreteType;
 
 public class GlobalVariable {
 
-    public final ConcreteType type;
+    public ConcreteType type;
     public final String name;
     public final Expression value;
 

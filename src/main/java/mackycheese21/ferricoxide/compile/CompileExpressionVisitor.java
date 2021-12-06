@@ -54,7 +54,8 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
             valueRef = LLVMBuildLoad2(builder, actual.typeRef, valueRef, "ImplicitResolve");
         }
         if (expected == actual) return valueRef;
-        throw AnalysisException.incorrectType(expected, actual);
+        return CastOperator.compile(builder, actual, expected, valueRef);
+//        throw AnalysisException.incorrectType(expected, actual);
     }
 
     @Override
@@ -198,7 +199,8 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
         for (int i = 0; i < structInit.fieldNames.size(); i++) {
             LLVMValueRef fieldValue = structInit.fieldValues.get(i).visit(this);
             LLVMValueRef fieldPtr = GEP(pointer, structInit.fieldNames.get(i), structPtr);
-            LLVMBuildStore(builder, fieldValue, fieldPtr);
+            ConcreteType fieldType = structInit.fieldValues.get(i).visit(typeValidator);
+            LLVMBuildStore(builder, implicitResolve(struct.getFieldType(structInit.fieldNames.get(i)), fieldType, fieldValue), fieldPtr);
         }
         return LLVMBuildLoad2(builder, struct.typeRef, structPtr, "StructInit.load");
     }
@@ -302,5 +304,10 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
     @Override
     public LLVMValueRef visitSizeOf(SizeOf sizeOf) {
         return LLVMBuildTrunc(builder, LLVMSizeOf(sizeOf.type.typeRef), ConcreteType.I32.typeRef, "SizeOf.trunc");
+    }
+
+    @Override
+    public LLVMValueRef visitZeroInit(ZeroInit zeroInit) {
+        return LLVMConstNull(zeroInit.type.typeRef);
     }
 }

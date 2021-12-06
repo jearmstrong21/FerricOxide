@@ -131,6 +131,11 @@ public class StringifyVisitor implements ExpressionVisitor<String>, StatementVis
     }
 
     @Override
+    public String visitZeroInit(ZeroInit zeroInit) {
+        return "zeroinit(%s)".formatted(zeroInit.type);
+    }
+
+    @Override
     public String visitAssign(Assign assign) {
         return String.format("%s%s = %s;\n", indent, assign.a.visit(this), assign.b.visit(this));
     }

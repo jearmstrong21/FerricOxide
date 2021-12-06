@@ -131,8 +131,20 @@ public class ExpressionParser {
         return null;
     }
 
+    private static Expression attemptZeroinit(TokenScanner scanner) {
+        if (!scanner.hasNext(Token.Keyword.ZEROINIT)) return null;
+        scanner.next();
+        scanner.next().mustBe(Token.Punctuation.L_PAREN);
+        ConcreteType type = StatementParser.forceType(scanner);
+        scanner.next().mustBe(Token.Punctuation.R_PAREN);
+        return new ZeroInit(type);
+    }
+
     private static Expression simpleFirst(TokenScanner scanner) {
         Expression expr;
+
+        expr = attemptZeroinit(scanner);
+        if (expr != null) return expr;
 
         expr = attemptString(scanner);
         if (expr != null) return expr;
@@ -180,10 +192,10 @@ public class ExpressionParser {
         while (scanner.hasNext(Token.Punctuation.PERIOD, Token.Punctuation.ARROW, Token.Punctuation.L_BRACE)) {
             if (scanner.hasNext(Token.Punctuation.PERIOD)) {
                 scanner.next();
-                simple = new AccessField(simple, scanner.next().identifier());
+                simple = new AccessField(simple.makeLValue(), scanner.next().identifier());
             } else if (scanner.hasNext(Token.Punctuation.ARROW)) {
                 scanner.next();
-                simple = new PointerDeref(simple);
+//                simple = new PointerDeref(simple);
                 simple = new AccessField(simple, scanner.next().identifier());
             } else if (scanner.hasNext(Token.Punctuation.L_BRACE)) {
                 scanner.next();
@@ -223,27 +235,6 @@ public class ExpressionParser {
     private static Expression binaryExpr(TokenScanner scanner) {
         return binaryExpr(scanner, 0);
     }
-
-//    // https://en.wikipedia.org/wiki/Operator-precedence_parser
-//    private static Expression binaryExpr(TokenScanner scanner, Expression lhs, int minPriority) {
-//        BinaryOperator lookahead = peekBinaryOperator(scanner);
-//        while (lookahead != null && lookahead.priority >= minPriority) {
-//            BinaryOperator op = lookahead;
-//            scanner.next();
-//            Expression rhs = parse(scanner);
-//            lookahead = peekBinaryOperator(scanner);
-//            while (lookahead != null && lookahead.priority >= op.priority) {
-//                rhs = binaryExpr(scanner, rhs, op.priority + 1);
-//                lookahead = peekBinaryOperator(scanner);
-//            }
-//            lhs = new BinaryExpr(lhs, rhs, op);
-//        }
-//        return lhs;
-//    }
-//
-//    private static Expression binaryExpr(TokenScanner scanner) {
-//        return binaryExpr(scanner, simple(scanner), 0);
-//    }
 
     // NotNull
     public static @NotNull Expression parse(TokenScanner scanner, boolean requestLValue) {

@@ -215,7 +215,7 @@ struct gl_vao gl_vao_new() {
 }
 
 void gl_vao_add_attrib(struct gl_vao* vao, i32 layout, i32 dimension, i32 vertex_count, f32* data) {
-    glBindVertexArray(vao.id);
+    glBindVertexArray(vao->id);
     i32 vbo = 0;
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -223,12 +223,12 @@ void gl_vao_add_attrib(struct gl_vao* vao, i32 layout, i32 dimension, i32 vertex
     glVertexAttribPointer(layout, dimension, GL_FLOAT, GL_FALSE, dimension * 4, (i8**) nullptr);
     glEnableVertexAttribArray(layout);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    vao.vertex_count = vertex_count;
+    vao->vertex_count = vertex_count;
 }
 
 void gl_vao_render(struct gl_vao* vao) {
-    glBindVertexArray(vao.id);
-    glDrawArrays(GL_TRIANGLES, 0, vao.vertex_count);
+    glBindVertexArray(vao->id);
+    glDrawArrays(GL_TRIANGLES, 0, vao->vertex_count);
 }
 
 i32 run(i32 argc, i8** argv) {

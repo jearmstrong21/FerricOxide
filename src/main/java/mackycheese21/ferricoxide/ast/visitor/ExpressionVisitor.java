@@ -38,4 +38,6 @@ public interface ExpressionVisitor<T> {
 
     T visitSizeOf(SizeOf sizeOf);
 
+    T visitZeroInit(ZeroInit zeroInit);
+
 }

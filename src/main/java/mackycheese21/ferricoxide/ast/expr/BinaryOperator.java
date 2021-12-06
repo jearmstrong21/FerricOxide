@@ -12,6 +12,7 @@ import static org.bytedeco.llvm.global.LLVM.*;
 public enum BinaryOperator {
     MUL(140, true, Token.Punctuation.STAR),
     DIV(130, true, Token.Punctuation.SLASH),
+    MOD(125, true, Token.Punctuation.PERCENT),
 
     ADD(120, true, Token.Punctuation.PLUS),
     SUB(110, true, Token.Punctuation.MINUS),
@@ -55,6 +56,10 @@ public enum BinaryOperator {
                 if (operand == ConcreteType.I8) return ConcreteType.I8;
                 if (operand == ConcreteType.I32) return ConcreteType.I32;
                 if (operand == ConcreteType.F32) return ConcreteType.F32;
+            }
+            case MOD -> {
+                if (operand == ConcreteType.I8) return ConcreteType.I8;
+                if (operand == ConcreteType.I32) return ConcreteType.I32;
             }
             case ADD -> {
                 if (operand == ConcreteType.I8) return ConcreteType.I8;
@@ -111,8 +116,10 @@ public enum BinaryOperator {
                 if (operand == ConcreteType.I32) return ConcreteType.I32;
             }
             case LOGICAL_AND -> {
+                if(operand == ConcreteType.BOOL) return ConcreteType.BOOL;
             }
             case LOGICAL_OR -> {
+                if(operand == ConcreteType.BOOL) return ConcreteType.BOOL;
             }
         }
         throw AnalysisException.cannotApplyBinaryOperator(this, operand);
@@ -131,6 +138,10 @@ public enum BinaryOperator {
                 if (operand == ConcreteType.I8) return LLVMBuildSDiv(builder, a, b, name);
                 if (operand == ConcreteType.I32) return LLVMBuildSDiv(builder, a, b, name);
                 if (operand == ConcreteType.F32) return LLVMBuildFDiv(builder, a, b, name);
+            }
+            case MOD -> {
+                if (operand == ConcreteType.I8) return LLVMBuildSRem(builder, a, b, name);
+                if (operand == ConcreteType.I32) return LLVMBuildSRem(builder, a, b, name);
             }
             case ADD -> {
                 if (operand == ConcreteType.I8) return LLVMBuildAdd(builder, a, b, name);
@@ -193,8 +204,10 @@ public enum BinaryOperator {
                 if (operand == ConcreteType.I32) return LLVMBuildOr(builder, a, b, name);
             }
             case LOGICAL_AND -> {
+                if(operand == ConcreteType.BOOL) return LLVMBuildAnd(builder, a, b, name);
             }
             case LOGICAL_OR -> {
+                if(operand == ConcreteType.BOOL) return LLVMBuildOr(builder, a, b, name);
             }
         }
         throw AnalysisException.cannotApplyBinaryOperator(this, operand);

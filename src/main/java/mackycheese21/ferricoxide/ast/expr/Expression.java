@@ -16,7 +16,8 @@ public abstract class Expression {
 
     public Expression makeLValue() {
 //        throw AnalysisException.expectedLValue(getClass().getName());
-        throw AnalysisException.expectedLValue(visit(new StringifyVisitor("")));
+//        throw AnalysisException.expectedLValue(visit(new StringifyVisitor("")));
+        return this;
     }
 
 }

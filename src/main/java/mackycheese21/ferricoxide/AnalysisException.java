@@ -37,9 +37,8 @@ public class AnalysisException extends RuntimeException {
         return new AnalysisException("cannot declare type " + type);
     }
 
-    public static AnalysisException incorrectStructInitializer() {
-        //TODO
-        throw new AnalysisException("the error message writer guild is on strike");
+    public static AnalysisException incorrectStructInitializer(String msg) {
+        throw new AnalysisException("incorrect struct initializer: " + msg);
     }
 
     public static AnalysisException noSuchField(ConcreteType object, String field) {

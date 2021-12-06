@@ -7,21 +7,55 @@ import java.util.List;
 
 public class Tokenizer {
 
-    private static void purgeWhitespace(CodeScanner scanner) {
+    private static int helperPWS(CodeScanner scanner) {
+        int x = 0;
         while (scanner.hasNext() && Character.isWhitespace(scanner.peek().unwrapUnsafe())) {
             scanner.next();
+            x++;
         }
-        if(scanner.hasNextSequence("/*")) {
+        return x;
+    }
+
+    private static int helperPCS2(CodeScanner scanner) {
+        int x = 0;
+        if (scanner.hasNextSequence("//")) {
             scanner.next();
             scanner.next();
-            while(!scanner.hasNextSequence("*/")) {
+            x++;
+            x++;
+            while (!scanner.hasNextSequence("\n")) {
                 scanner.next();
+                x++;
+            }
+        }
+        return x;
+    }
+
+    private static int helperPCS(CodeScanner scanner) {
+        int x = 0;
+        if (scanner.hasNextSequence("/*")) {
+            scanner.next();
+            scanner.next();
+            x++;
+            x++;
+            while (!scanner.hasNextSequence("*/")) {
+                scanner.next();
+                x++;
             }
             scanner.next();
             scanner.next();
+            x++;
+            x++;
         }
-        while (scanner.hasNext() && Character.isWhitespace(scanner.peek().unwrapUnsafe())) {
-            scanner.next();
+        return x;
+    }
+
+    private static void purgeWhitespace(CodeScanner scanner) {
+        while (true) {
+            int x = helperPWS(scanner);
+            int y = helperPCS(scanner);
+            int z = helperPCS2(scanner);
+            if (x + y + z == 0) return;
         }
     }
 

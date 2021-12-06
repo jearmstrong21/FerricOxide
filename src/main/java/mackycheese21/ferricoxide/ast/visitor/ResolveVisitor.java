@@ -27,6 +27,10 @@ public class ResolveVisitor implements ExpressionVisitor<Void>, StatementVisitor
             }
             struct.resolved();
         }
+        for (int i = 0; i < module.globals.size(); i++) {
+            module.globals.get(i).type = fix(module.globals.get(i).type);
+            module.globals.get(i).value.visit(this);
+        }
         for (int i = 0; i < module.functions.size(); i++) {
             Function function = module.functions.get(i);
             function.type = fixFunction(function.type);
@@ -215,6 +219,12 @@ public class ResolveVisitor implements ExpressionVisitor<Void>, StatementVisitor
     @Override
     public Void visitSizeOf(SizeOf sizeOf) {
         sizeOf.type = fix(sizeOf.type);
+        return null;
+    }
+
+    @Override
+    public Void visitZeroInit(ZeroInit zeroInit) {
+        zeroInit.type = fix(zeroInit.type);
         return null;
     }
 }
