@@ -44,6 +44,10 @@ void make_i32(int x) {
 void make_i8(char x) {
 }
 
+void pp_v3f(float x,float y,float z){
+    printf("[%f, %f, %f]\n",x,y,z);
+}
+
 int main(int argc, char** argv)
 {
     if(fo__runtime_global_init() != 0) {
