@@ -153,7 +153,22 @@ public class Tokenizer {
     }
 
     private static Token decimal(CodeScanner scanner) {
-        return null;
+        Token integer = integer(scanner);
+        if (integer == null) {
+            return null;
+        }
+        if (scanner.hasNextSequence("f")) {
+            scanner.next();
+            return Token.decimal(integer.span, integer.integer());
+        } else if (scanner.hasNextSequence(".")) {
+            scanner.next();
+            Token integer2 = integer(scanner);
+            if (integer2 == null)
+                return null;
+            return Token.decimal(new Span(integer.span.start, integer2.span.end), Double.parseDouble(integer.integer() + "." + integer2.integer()));
+        } else {
+            return null;
+        }
     }
 
     private static int hexDigit(char c) {

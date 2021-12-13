@@ -309,4 +309,9 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
     public LLVMValueRef visitZeroInit(ZeroInit zeroInit) {
         return LLVMConstNull(zeroInit.type.typeRef);
     }
+
+    @Override
+    public LLVMValueRef visitFloatConstant(FloatConstant floatConstant) {
+        return LLVMConstReal(ConcreteType.F32.typeRef, floatConstant.value);
+    }
 }

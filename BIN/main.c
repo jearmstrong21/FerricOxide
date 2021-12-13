@@ -1,6 +1,7 @@
 #include "glad.h"
 #include <GLFW/glfw3.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 int glfwContextVersionMajor() { return GLFW_CONTEXT_VERSION_MAJOR; }
 int glfwContextVersionMinor() { return GLFW_CONTEXT_VERSION_MINOR; }
@@ -46,6 +47,10 @@ void make_i8(char x) {
 
 void pp_v3f(float x,float y,float z){
     printf("[%f, %f, %f]\n",x,y,z);
+}
+
+float c_randFloat() {
+    return (float)((double)rand()/(double)(RAND_MAX));
 }
 
 int main(int argc, char** argv)

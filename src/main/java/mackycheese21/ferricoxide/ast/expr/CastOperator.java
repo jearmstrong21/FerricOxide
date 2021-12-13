@@ -24,6 +24,9 @@ public class CastOperator {
 
         if (from == ConcreteType.F32 && to == ConcreteType.I8) return;
         if (from == ConcreteType.F32 && to == ConcreteType.I32) return;
+        if (from == ConcreteType.F32 && to == ConcreteType.F64) return;
+
+        if (from == ConcreteType.F64 && to == ConcreteType.F32) return;
         throw AnalysisException.invalidCast(from, to);
     }
 
@@ -46,6 +49,11 @@ public class CastOperator {
             return LLVMBuildFPToSI(builder, valueRef, to.typeRef, name);
         if (from == ConcreteType.F32 && to == ConcreteType.I32)
             return LLVMBuildFPToSI(builder, valueRef, to.typeRef, name);
+        if (from == ConcreteType.F32 && to == ConcreteType.F64)
+            return LLVMBuildFPExt(builder, valueRef, to.typeRef, name);
+
+        if (from == ConcreteType.F64 && to == ConcreteType.F32)
+            return LLVMBuildFPTrunc(builder, valueRef, to.typeRef, name);
         throw AnalysisException.invalidCast(from, to);
     }
 

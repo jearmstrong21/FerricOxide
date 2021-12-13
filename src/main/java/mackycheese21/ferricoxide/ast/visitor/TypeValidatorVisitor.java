@@ -180,6 +180,11 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
     }
 
     @Override
+    public ConcreteType visitFloatConstant(FloatConstant floatConstant) {
+        return ConcreteType.F32;
+    }
+
+    @Override
     public Void visitAssign(Assign assign) {
         PointerType a = AnalysisException.requirePointer(assign.a.visit(this));
         ConcreteType b = assign.b.visit(this);

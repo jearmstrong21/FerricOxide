@@ -140,8 +140,16 @@ public class ExpressionParser {
         return new ZeroInit(type);
     }
 
+    private static Expression attemptFloat(TokenScanner scanner) {
+        if (scanner.hasNext(Token.Type.DECIMAL)) return new FloatConstant((float) scanner.next().decimal());
+        return null;
+    }
+
     private static Expression simpleFirst(TokenScanner scanner) {
         Expression expr;
+
+        expr = attemptFloat(scanner);
+        if (expr != null) return expr;
 
         expr = attemptZeroinit(scanner);
         if (expr != null) return expr;

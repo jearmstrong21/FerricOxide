@@ -227,4 +227,9 @@ public class ResolveVisitor implements ExpressionVisitor<Void>, StatementVisitor
         zeroInit.type = fix(zeroInit.type);
         return null;
     }
+
+    @Override
+    public Void visitFloatConstant(FloatConstant floatConstant) {
+        return null;
+    }
 }

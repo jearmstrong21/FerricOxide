@@ -40,4 +40,6 @@ public interface ExpressionVisitor<T> {
 
     T visitZeroInit(ZeroInit zeroInit);
 
+    T visitFloatConstant(FloatConstant floatConstant);
+
 }

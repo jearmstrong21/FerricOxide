@@ -8,6 +8,8 @@ extern void c_fwrite_newline(i8* ptr);
 
 extern f32 sqrtf(f32 x);
 extern f32 fabsf(f32 x);
+extern f64 atan(f64 x);
+extern f64 atan2(f64 y, f64 x);
 
 extern f32 zero();
 extern f32 one();
@@ -21,60 +23,39 @@ extern i8* malloc(i32 size);
 extern void free(i8* ptr);
 
 
+extern f32 c_randFloat();
 
-i32 img_width = 10000;
-i32 img_height = 10000;
-i32 img_depth = 50;
+f32 PI = 3.1415926536;
+
+i32 img_width = 500;
+i32 img_height = 500;
+i32 img_depth = 10;
 //i32 img_width = 300;
 //i32 img_height = 300;
 //i32 img_depth = 3;
-i32 sample_grid_size = 20;
+i32 sample_grid_size = 10;
 
-struct texture texture_pure(f32 x, f32 y, f32 z) {
-    return new texture { primary: new v3f { x: x, y: y, z: z }, secondary: vzero(), checkered: false, checker_size: 0 };
-}
+struct v3f col_white = new v3f { x: 1, y: 1, z: 1 };
+struct v3f col_orange = new v3f { x: 0.9, y: 0.3, z: 0 };
+struct v3f col_sky = new v3f { x: 0.15, y: 0.15, z: 0.25 };
 
-struct texture red_texture = texture_pure(1, ((f32)8) / 10, ((f32)8) / 10);
-struct texture green_texture = texture_pure(((f32)8) / 10, 1, ((f32)8) / 10);
-struct texture blue_texture = texture_pure(((f32)8) / 10, ((f32)8) / 10, 1);
-struct texture white_texture = texture_pure(1, 1, 1);
+struct material sphere1_material = new material { reflect: 0.5, color: col_white, emit: false };
+struct material sphere2_material = new material { reflect: 1, color: col_white, emit: false };
+struct material sphere3_material = new material { reflect: 0, color: vmul(50, col_white), emit: true };
 
-struct texture checkerboard_texture = new texture { primary: new v3f { x: 1, y: 1, z: 1 }, secondary: new v3f { x: ((f32)5)/10, y: ((f32)5)/10, z: ((f32)5)/10 }, checkered: true, checker_size: 5 };
+struct material orange_plane_material = new material { reflect: 0, color: col_orange, emit: false };
 
-struct material sphere1_material = new material { reflect: ((f32) 8) / 10, texture: red_texture };
-struct material sphere2_material = new material { reflect: ((f32) 8) / 10, texture: green_texture };
-struct material sphere3_material = new material { reflect: ((f32) 8) / 10, texture: blue_texture };
+struct sphere obj_s1 = new sphere { p: new v3f { x: 3, y: 4, z: -5 }, r: 9, material: sphere1_material };
+struct sphere obj_s2 = new sphere { p: new v3f { x: -15, y: 4, z: -5 }, r: 6, material: sphere2_material };
+struct sphere obj_s3 = new sphere { p: new v3f { x: 0, y: 20, z: 0 }, r: 5, material: sphere3_material };
+struct plane  obj_p1 = new plane { p: new v3f { x: 0, y: 0, z: 0 }, n: new v3f { x: 0, y: 1, z: 0 }, material: orange_plane_material, dist: 1000, euclid: true};
 
-//f32 wall_reflect = ((f32)5) / 10;
-f32 wall_reflect = (f32) 0;
-struct material white_plane_material = new material { reflect: wall_reflect, texture: white_texture };
-struct material red_plane_material = new material { reflect: wall_reflect, texture: red_texture };
-struct material green_plane_material = new material { reflect: wall_reflect, texture: green_texture };
-struct material blue_plane_material = new material { reflect: wall_reflect, texture: blue_texture };
-struct material checker_plane_material = new material { reflect: ((f32)1)/4, texture: checkerboard_texture };
+struct v3f camera_pos = new v3f { x: 5, y: 6, z: 15 };
+struct v3f camera_target = vzero();
 
-
-struct sphere obj_s1 = new sphere { p: new v3f { x: 0, y: 4, z: 0 }, r: 4, material: sphere1_material };
-struct sphere obj_s2 = new sphere { p: new v3f { x: -8, y: 5, z: 5 }, r: 5, material: sphere2_material };
-struct sphere obj_s3 = new sphere { p: new v3f { x: 0, y: 6, z: 10 }, r: 6, material: sphere3_material };
-//struct sphere obj_s3 = new sphere { p: new v3f { x: 0, y: 4, z: 5 }, r: 2, material: sphere3_material };
-
-//floor
-struct plane  obj_p1 = new plane { p: new v3f { x: 0, y: 0, z: 0 }, n: new v3f { x: 0, y: 1, z: 0 }, material: checker_plane_material};
-
-//back wall
-struct plane  obj_p2 = new plane { p: new v3f { x: 0, y: 0, z: 10 }, n: new v3f { x: 0, y: 0, z: -1 }, material: blue_plane_material };
-
-//left wall
-struct plane  obj_p3 = new plane { p: new v3f { x: -10, y: 0, z: 0 }, n: new v3f { x: 1, y: 0, z: 0 }, material: red_plane_material };
-
-//right wall
-struct plane  obj_p4 = new plane { p: new v3f { x: 10, y: 0, z: 0 }, n: new v3f { x: -1, y: 0, z: 0 }, material: green_plane_material };
-
-//ceiling
-struct plane  obj_p5 = new plane { p: new v3f { x: 0, y: 20, z: 0 }, n: new v3f { x: 0, y: -1, z: 0 }, material: white_plane_material };
-
-struct v3f camera_pos = new v3f { x: 0, y: 10, z: -18 };
+struct v3f camera_up = new v3f { x: 0, y: 1, z: 0 };
+struct v3f camera_look = vnorm(vsub(camera_target, camera_pos));
+struct v3f camera_left = vcross(camera_up, camera_look);
 
 struct ray_hit cast_ray(struct ray ray) {
     final_hit = zeroinit(struct ray_hit);
@@ -123,29 +104,19 @@ struct v3f vreflect(struct v3f I, struct v3f N) {
         )
     ));
 }
-
+struct v3f vcross(struct v3f a, struct v3f b) {
+    return new v3f {
+        x: a.y * b.z - a.z * b.y,
+        y: a.z * b.x - a.x * b.z,
+        z: a.x * b.y - a.y * b.x
+    };
+}
 
 
 struct material {
     f32 reflect;
-    struct texture texture;
-}
-struct texture {
-    struct v3f primary;
-    struct v3f secondary;
-    bool checkered;
-    f32 checker_size;
-}
-struct texture texture_checkered(struct v3f primary, struct v3f secondary, f32 checker_size) { return new texture { primary: primary, secondary: secondary, checkered: true, checker_size: checker_size }; }
-struct v3f texture_eval(struct texture texture, struct ray_hit ray_hit) {
-    if texture.checkered {
-        // (x/z + 10000) because at coordinate axis it doubles and looks gross
-        i32 x = (i32) ((ray_hit.hit_pos.x + 10000) / texture.checker_size);
-        i32 z = (i32) ((ray_hit.hit_pos.z + 10000) / texture.checker_size);
-        return if (x + z) % 2 == 0 { texture.primary } else { texture.secondary };
-    } else {
-        return texture.primary;
-    }
+    struct v3f color;
+    bool emit;
 }
 struct ray {
     struct v3f x0;
@@ -160,6 +131,8 @@ struct plane {
     struct v3f p;
     struct v3f n;
     struct material material;
+    f32 dist;
+    bool euclid;
 }
 struct ray_hit {
     bool success;
@@ -186,26 +159,6 @@ void try_sphere_ray_hit(struct sphere sphere, struct ray ray) {
     struct v3f x0 = ray.x0;
     struct v3f d = ray.d;
 
-//    struct v3f L = vsub(p, x0);
-//    f32 tca = vdot(L, d);
-//    f32 d2 = vdot(L, L) - tca * tca;
-//    if d2 > r * r { return; }
-//    f32 thc = sqrtf(r * r - d2);
-//    f32 t0 = tca - thc;
-//    f32 t1 = tca + thc;
-//
-//    if t0 > t1 {
-//        f32 temp = t0;
-//        t0 = t1;
-//        t1 = temp;
-//    }
-//
-//    if t0 < 0 {
-//        t0 = t1;
-//        if t0 < 0 { return; }
-//    }
-//    f32 t = t0;
-
     struct v3f L = vsub(x0, p);
 
     f32 a = vdot(d, d);
@@ -230,18 +183,13 @@ void try_sphere_ray_hit(struct sphere sphere, struct ray ray) {
     }
     f32 t = t0;
 
-//    ray_hit->success = true;
-//    ray_hit->dist = t0;
     struct v3f hit_pos = vadd(x0, vmul(t0, d));
-//    ray_hit->normal = vnorm(vsub(ray_hit->hit_pos, p));
-//    ray_hit->material = sphere.material;
     final_hit = ray_hit_closest(final_hit, new ray_hit {
         success: true,
         dist: t0,
         incoming_ray: d,
         hit_pos: hit_pos,
         normal: vnorm(vsub(hit_pos, p)),
-//        normal: vnorm(L),
         material: sphere.material
     });
 }
@@ -257,11 +205,19 @@ void try_plane_ray_hit(struct plane plane, struct ray ray) {
     f32 t = vdot(vsub(p, x0), n) / div;
     if t < 0 { return; }
 
+    struct v3f hit_pos = vadd(x0, vmul(t, d));
+    f32 dist = if plane.euclid { vmag(vsub(hit_pos, p)) } else {
+        fabsf(hit_pos.x - p.x) +
+        fabsf(hit_pos.y - p.y) +
+        fabsf(hit_pos.z - p.z)
+    };
+    if dist > plane.dist { return; }
+
     final_hit = ray_hit_closest(final_hit, new ray_hit {
         success: true,
         dist: t,
         incoming_ray: d,
-        hit_pos: vadd(x0, vmul(t, d)),
+        hit_pos: hit_pos,
         normal: n,
         material: plane.material
     });
@@ -289,43 +245,55 @@ struct ray_hit ray_hit_closest(struct ray_hit a, struct ray_hit b) {
 }
 
 struct v3f simple_eval_ray_hit(struct ray_hit ray_hit) {
-    if !ray_hit.success { return new v3f { x: 1, y: 1, z: 1 }; }
-    struct v3f base_color = texture_eval(ray_hit.material.texture, ray_hit);
-    return base_color;
+    if !ray_hit.success { return col_sky; }
+    return ray_hit.material.color;
 }
 
 struct v3f eval_ray_hit(struct ray_hit ray_hit, i32 depth) {
-    if !ray_hit.success { return new v3f { x: 1, y: 1, z: 1}; }
 
     struct v3f base_color = simple_eval_ray_hit(ray_hit);
 
-    if depth <= 1 {
+    if depth <= 1 || !ray_hit.success || ray_hit.material.emit {
         return base_color;
     }
 
-    struct v3f outgoing_ray_d = vreflect(ray_hit.incoming_ray, ray_hit.normal);
+//    struct v3f outgoing_ray_d = vreflect(ray_hit.incoming_ray, ray_hit.normal);
+
+    // radius r, inclination theta, azimuth phi
+    // physics convention for spherical coordinates
+    // god this is screwing with my head
+    f32 x = c_randFloat() * 2 - 1;
+    f32 y = c_randFloat() * 2 - 1;
+    f32 z = c_randFloat() * 2 - 1;
+    f32 d = sqrtf(x*x+y*y+z*z);
+    while d > 1 || x*ray_hit.normal.x+y*ray_hit.normal.y+z*ray_hit.normal.z < 0 {
+        x = c_randFloat() * 2 - 1;
+        y = c_randFloat() * 2 - 1;
+        z = c_randFloat() * 2 - 1;
+        d = sqrtf(x*x+y*y+z*z);
+    }
+    struct v3f outgoing_ray_d = new v3f { x: x / d, y: y / d, z: z / d };
+    struct v3f refl = vreflect(ray_hit.incoming_ray, ray_hit.normal);
+
+    outgoing_ray_d.x = flerp(outgoing_ray_d.x, refl.x, ray_hit.material.reflect);
+    outgoing_ray_d.y = flerp(outgoing_ray_d.y, refl.y, ray_hit.material.reflect);
+    outgoing_ray_d.z = flerp(outgoing_ray_d.z, refl.z, ray_hit.material.reflect);
+
     struct ray outgoing_ray = new ray { x0: vadd(ray_hit.hit_pos, vmul(((f32)1)/1000, outgoing_ray_d)), d: outgoing_ray_d };
+//    if ray_hit.material.reflect == 1.0 {
+//        outgoing_ray.d = vreflect(ray_hit.incoming_ray, ray_hit.normal);
+//    }
     struct ray_hit refl_hit = cast_ray(outgoing_ray);
 
     struct v3f reflect_color = eval_ray_hit(refl_hit, depth - 1);
+    reflect_color = vmul(vdot(outgoing_ray_d, ray_hit.normal), reflect_color);
 
-//    return eval_ray_hit(refl_hit, depth - 1);
-
-//    return simple_eval_ray_hit(refl_hit);
-    /* reflect = 0 => no reflection component, reflect = 1 => full reflection */
-//    reflect_color = vmap(reflect_color, 0, 1, ((f32)1) - ray_hit.material.reflect, 1);
     struct v3f color = new v3f {
         x: base_color.x * reflect_color.x,
         y: base_color.y * reflect_color.y,
         z: base_color.z * reflect_color.z
     };
     return color;
-
-//    struct v3f dl = new v3f { x: ((f32)0)/10, y: ((f32)-5)/10, z: ((f32)-3)/10 };
-//    dl = vnorm(dl);
-//    f32 m = vdot(dl, ray_hit.normal);
-//    m = fmap(m, -1, 1, ((f32)3)/10, 1);
-//    color = vmul(m, color);
 }
 
 struct v3f get_color(f32 x, f32 y) {
@@ -334,14 +302,24 @@ struct v3f get_color(f32 x, f32 y) {
     f32 fy = fmap(y, 0, img_height, range, -range);
 
     struct v3f x0 = camera_pos;
-    struct v3f d = new v3f { x: fx, y: fy, z: 1 };
+    struct v3f d = new v3f { x: fx, y: fy, z: 1 }; // looking towards +z
+    d = vnorm(d);
+
+    d = vadd(
+        vmul(d.x, camera_left),
+        vadd(
+            vmul(d.y, camera_up),
+            vmul(d.z, camera_look)
+        )
+    );
     d = vnorm(d);
 
     struct ray ray = new ray { x0: x0, d: d };
 
     struct ray r = new ray { x0: x0, d: d };
     struct ray_hit h = cast_ray(r);
-    return eval_ray_hit(h, img_depth);
+    struct v3f v = eval_ray_hit(h, img_depth);
+    return v;
 }
 struct v3f get_aa_color(f32 x, f32 y) {
     struct v3f sum = vzero();
@@ -356,7 +334,15 @@ struct v3f get_aa_color(f32 x, f32 y) {
         }
     }
 
-    return vmul(((f32)1) / count, sum);
+    struct v3f v = vmul(((f32)1) / count, sum);
+
+    if v.x > 1 || v.y > 1 || v.z > 1 {
+        f32 largest = v.x;
+        if v.y > largest { largest = v.y; }
+        if v.z > largest { largest = v.z; }
+        v = vmul(1f / largest, v);
+    }
+    return v;
 }
 
 i32 get_color_r(struct v3f a) { return (i32) (a.x * 256); }
@@ -377,13 +363,6 @@ i32 run(i32 argc, i8** argv) {
     i32* g_array = (i32*) malloc(sizeof(i32) * img_width * img_height);
     i32* b_array = (i32*) malloc(sizeof(i32) * img_width * img_height);
 
-    struct v3f N = vnorm(new v3f{x:0,y:1,z:0});
-    struct v3f I = vnorm(new v3f{x:2,y:-1,z:0});
-    struct v3f R = vreflect(I,N);
-    pp_v3f(N.x,N.y,N.z);
-    pp_v3f(I.x,I.y,I.z);
-    pp_v3f(R.x,R.y,R.z);
-
     i32 i = 0;
     for(i32 y = 0; y < img_height; y = y + 1;) {
         for(i32 x = 0; x < img_width; x = x + 1;) {
@@ -403,7 +382,7 @@ i32 run(i32 argc, i8** argv) {
             b_array[i] = get_color_b(col);
             i = i + 1;
         }
-        if y % 200 == 0 { printInt(y); }
+        if y % 5 == 0 { printInt(y); }
     }
 
 

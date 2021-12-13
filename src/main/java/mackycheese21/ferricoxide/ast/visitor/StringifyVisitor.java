@@ -194,4 +194,9 @@ public class StringifyVisitor implements ExpressionVisitor<String>, StatementVis
     public String visitCallStmt(CallStmt callStmt) {
         return "%s%s\n".formatted(indent, visitCallExpr(callStmt.callExpr));
     }
+
+    @Override
+    public String visitFloatConstant(FloatConstant floatConstant) {
+        return floatConstant.value + "";
+    }
 }

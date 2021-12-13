@@ -94,4 +94,9 @@ public class VerboseStringifyVisitor implements ExpressionVisitor<String> {
     public String visitZeroInit(ZeroInit zeroInit) {
         return "zeroinit[%s]".formatted(zeroInit.type);
     }
+
+    @Override
+    public String visitFloatConstant(FloatConstant floatConstant) {
+        return "f32[%s]".formatted(floatConstant.value);
+    }
 }
