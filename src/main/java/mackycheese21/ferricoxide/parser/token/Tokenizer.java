@@ -2,7 +2,12 @@ package mackycheese21.ferricoxide.parser.token;
 
 import mackycheese21.ferricoxide.SourceCodeException;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class Tokenizer {
@@ -59,8 +64,8 @@ public class Tokenizer {
         }
     }
 
-    public static List<Token> tokenize(String data) throws SourceCodeException {
-        CodeScanner scanner = new CodeScanner(data);
+    private static List<Token> tokenize(String data, Path path) throws SourceCodeException {
+        CodeScanner scanner = new CodeScanner(data, path);
         List<Token> tokens = new ArrayList<>();
         while (true) {
             purgeWhitespace(scanner);
@@ -109,7 +114,7 @@ public class Tokenizer {
             }
 
             if (scanner.hasNext()) {
-                throw SourceCodeException.unexpectedChar(scanner.next().unwrapUnsafe(), new Span(scanner.index, scanner.index + 1));
+                throw SourceCodeException.unexpectedChar(scanner.next().unwrapUnsafe(), scanner.latestChar());
             }
         }
         return tokens;
@@ -117,7 +122,7 @@ public class Tokenizer {
 
     private static Token identifier(CodeScanner scanner) {
         String identifier = "";
-        int start = scanner.index;
+        CodeScanner.Snapshot snapshot = scanner.snapshot();
         if (scanner.hasNext(Token.IDENTIFIER_START)) {
             identifier += scanner.next().unwrapUnsafe();
         } else {
@@ -126,19 +131,18 @@ public class Tokenizer {
         while (scanner.hasNext(Token.IDENTIFIER_REST)) {
             identifier += scanner.next().unwrapUnsafe();
         }
-        int end = scanner.index;
         for (Token.Keyword keyword : Token.Keyword.values()) {
             if (keyword.str.equals(identifier)) {
-                return Token.keyword(new Span(start, end), keyword);
+                return Token.keyword(snapshot.into(), keyword);
             }
         }
-        return Token.identifier(new Span(start, end), identifier);
+        return Token.identifier(snapshot.into(), identifier);
     }
 
     private static Token string(CodeScanner scanner) {
         String string = "";
         char quote;
-        int start = scanner.index;
+        CodeScanner.Snapshot snapshot = scanner.snapshot();
         if (scanner.hasNext(Token.QUOTES)) {
             quote = scanner.next().unwrapUnsafe();
         } else {
@@ -148,8 +152,7 @@ public class Tokenizer {
             string += scanner.next().unwrapUnsafe();
         }
         scanner.next();
-        int end = scanner.index;
-        return Token.string(new Span(start, end), string);
+        return Token.string(snapshot.into(), string);
     }
 
     private static Token decimal(CodeScanner scanner) {
@@ -165,7 +168,8 @@ public class Tokenizer {
             Token integer2 = integer(scanner);
             if (integer2 == null)
                 return null;
-            return Token.decimal(new Span(integer.span.start, integer2.span.end), Double.parseDouble(integer.integer() + "." + integer2.integer()));
+            return Token.decimal(integer.span, Double.parseDouble(integer.integer() + "." + integer2.integer()));
+            // TODO combine spans legitimately, ideally without storing too much info in Span itself
         } else {
             return null;
         }
@@ -179,14 +183,14 @@ public class Tokenizer {
 
     private static Token integer(CodeScanner scanner) {
         int integer = 0;
-        int start = scanner.index;
+        CodeScanner.Snapshot snapshot = scanner.snapshot();
         if (scanner.hasNextSequence("0x")) {
             scanner.next();
             scanner.next();
             while (scanner.hasNext("0123456789ABCDEF")) {
                 integer = 16 * integer + hexDigit(scanner.next().unwrapUnsafe());
             }
-            return Token.integer(new Span(start, scanner.index), integer);
+            return Token.integer(snapshot.into(), integer);
         }
         if (scanner.hasNext(Token.DIGITS)) {
             integer = scanner.next().unwrapUnsafe() - '0';
@@ -196,13 +200,11 @@ public class Tokenizer {
         while (scanner.hasNext(Token.DIGITS)) {
             integer = 10 * integer + (scanner.next().unwrapUnsafe() - '0');
         }
-        int end = scanner.index;
-        return Token.integer(new Span(start, end), integer);
+        return Token.integer(snapshot.into(), integer);
     }
 
     private static Token punctuation(CodeScanner scanner) {
-        int start = scanner.index;
-        Token.Punctuation punctuation = null;
+        CodeScanner.Snapshot snapshot = scanner.snapshot();
         for (Token.Punctuation p : Token.Punctuation.values()) {
             CodeScanner s = scanner.copy();
             boolean bad = false;
@@ -214,14 +216,46 @@ public class Tokenizer {
                 }
             }
             if (!bad) {
-                scanner.index = s.index;
-                punctuation = p;
-                break;
+                scanner.copyFrom(s);
+                return Token.punctuation(snapshot.into(), p);
             }
         }
-        if (punctuation == null) return null;
-        int end = scanner.index;
-        return Token.punctuation(new Span(start, end), punctuation);
+        return null;
+    }
+
+    public static List<String> INCLUDE_SEARCH_PATHS = new ArrayList<>();
+
+    private static Path resolveFile(String name) {
+        for(String str : INCLUDE_SEARCH_PATHS) {
+            Path path = Path.of(str, name);
+            if(path.toFile().exists()) {
+                return path;
+            }
+        }
+        throw new RuntimeException("unable to resolve file " + name);
+    }
+
+    public static List<Token> loadStr(String name) {
+        Path path = resolveFile(name);
+        try {
+            return preprocess(tokenize(Files.readString(path), path));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static List<Token> preprocess(List<Token> tokens) {
+        List<Token> out = new ArrayList<>();
+        Iterator<Token> iter = tokens.iterator();
+        while (iter.hasNext()) {
+            Token next = iter.next();
+            if (next.is(Token.Keyword.PP_INCLUDE)) {
+                out.addAll(loadStr(iter.next().string()));
+            } else {
+                out.add(next);
+            }
+        }
+        return out;
     }
 
 }

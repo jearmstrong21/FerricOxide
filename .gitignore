@@ -10,4 +10,5 @@ gradle-app.setting
 
 BIN/build
 BIN/main
-BIN/output-10k.ppm
+BIN/*.ppm
+BIN/exe

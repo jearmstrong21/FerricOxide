@@ -1,0 +1,132 @@
+extern i32 puts(i8* str);
+
+i8* nullptr = (i8*) 0;
+
+extern f32 zero();
+extern f32 one();
+
+extern i8* malloc(i32 size);
+extern void free(i8* ptr);
+
+extern void printInt(i32 x);
+
+struct node {
+    struct node* next;
+    i32 data;
+}
+
+struct ll {
+    struct node* ptr;
+}
+
+struct node* node_new(i32 data) {
+    struct node* ptr = (struct node*) malloc(sizeof(struct node));
+    ptr->data = data;
+    ptr->next = (struct node*) nullptr;
+    return ptr;
+}
+
+struct node* node_get_last(struct node* ptr) {
+    if ptr->next == (struct node*) nullptr {
+        return ptr;
+    } else {
+        return node_get_last(ptr->next);
+    }
+}
+
+i32 node_len(struct node* ptr) {
+    if ptr->next == (struct node*) nullptr {
+        return 1;
+    } else {
+        return 1 + node_len(ptr->next);
+    }
+}
+
+void node_add(struct node* ptr, i32 data) {
+    node_get_last(ptr).next = node_new(data);
+}
+
+void node_print(struct node* ptr) {
+    printInt(ptr->data);
+    if ptr->next != (struct node*) nullptr {
+        node_print(ptr->next);
+    }
+}
+
+void node_print_rev(struct node* ptr) {
+    if ptr->next != (struct node*) nullptr {
+        node_print_rev(ptr->next);
+    }
+    printInt(ptr->data);
+}
+
+void node_free(struct node* ptr) {
+    if ptr->next != (struct node*) nullptr {
+        node_free(ptr->next);
+    }
+    free((i8*) ptr);
+}
+
+struct ll* ll_new() {
+    struct ll* ll = (struct ll*) malloc(sizeof(struct ll));
+    ll->ptr = (struct node*) nullptr;
+    return ll;
+}
+
+i32 ll_len(struct ll* ll) {
+    if ll->ptr == (struct node*) nullptr {
+        return 0;
+    } else {
+        return node_len(ll->ptr);
+    }
+}
+
+void ll_add(struct ll* ll, i32 data) {
+    if ll->ptr == (struct node*) nullptr {
+        ll->ptr = node_new(data);
+    } else {
+        node_add(ll->ptr, data);
+    }
+}
+
+void ll_print(struct ll* ll) {
+    if ll->ptr == (struct node*) nullptr {
+        puts("Empty list");
+    } else {
+        puts("List:");
+        node_print(ll->ptr);
+    }
+    puts("");
+}
+
+void ll_print_rev(struct ll* ll) {
+    if ll->ptr == (struct node*) nullptr {
+        puts("Empty list");
+    } else {
+        puts("List:");
+        node_print_rev(ll->ptr);
+    }
+    puts("");
+}
+
+void ll_free(struct ll* ll) {
+    if ll->ptr != (struct node*) nullptr {
+        node_free(ll->ptr);
+    }
+    free((i8*) ll);
+}
+
+i32 run(i32 argc, i8** argv) {
+
+    struct ll* ll = ll_new();
+    ll_add(ll, 5);
+    ll_add(ll, 8);
+    ll_print(ll);
+    ll_add(ll, 2);
+    ll_print(ll);
+    puts("Rev:");
+    ll_print_rev(ll);
+    ll_free(ll);
+
+    return 0;
+}

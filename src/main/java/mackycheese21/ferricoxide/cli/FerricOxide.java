@@ -11,9 +11,7 @@ import mackycheese21.ferricoxide.parser.token.TokenScanner;
 import mackycheese21.ferricoxide.parser.token.Tokenizer;
 import org.apache.commons.cli.*;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.List;
 
 public class FerricOxide {
@@ -28,61 +26,26 @@ public class FerricOxide {
     public static void main(String[] args) {
         options = new Options();
 
-        Option in = Option.builder()
-                .option("i")
-                .longOpt("in")
-                .argName("file")
-                .desc("input source")
+        Option include = Option.builder()
+                .option("I")
                 .hasArg()
-                .numberOfArgs(1)
-                .required()
                 .build();
         Option out = Option.builder()
                 .option("o")
-                .longOpt("out")
-                .argName("file")
-                .desc("output binary")
                 .hasArg()
                 .numberOfArgs(1)
                 .required()
                 .build();
-//        Option llvm = Option.builder()
-//                .option("l")
-//                .longOpt("llvm")
-//                .argName("file")
-//                .desc("output llvm")
-//                .hasArg()
-//                .numberOfArgs(1)
-//                .build();
-        Option help = Option.builder()
-                .option("h")
-                .longOpt("help")
-                .desc("show help")
-                .hasArg(false)
-                .build();
-        Option riscv = Option.builder()
-                .option("r")
-                .longOpt("riscv")
-                .argName("file")
-                .desc("output riscv")
+        Option main = Option.builder()
+                .option("i")
                 .hasArg()
                 .numberOfArgs(1)
-                .build();
-        Option x86 = Option.builder()
-                .option("x")
-                .longOpt("x86")
-                .argName("file")
-                .desc("output x86")
-                .hasArg()
-                .numberOfArgs(1)
+                .required()
                 .build();
 
-        options.addOption(in);
+        options.addOption(include);
         options.addOption(out);
-//        options.addOption(llvm);
-        options.addOption(help);
-        options.addOption(riscv);
-        options.addOption(x86);
+        options.addOption(main);
 
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd;
@@ -93,44 +56,35 @@ public class FerricOxide {
             help();
             return;
         }
-        if (cmd.hasOption(help)) {
-            help();
-        }
 
-        if (!cmd.hasOption(in)) {
-            System.out.println("in parameter required");
-            help();
-        }
-        String data = null;
+        Tokenizer.INCLUDE_SEARCH_PATHS.addAll(Arrays.asList(cmd.getOptionValues(include)));
 
+        String outFilename = cmd.getOptionValue(out);
+        String mainFilename = cmd.getOptionValue(main);
+
+        System.out.println("0 Starting...");
         try {
-            data = Files.readString(Path.of(cmd.getOptionValues(in)[0]));
-            System.out.println("File read...");
-            List<Token> tokens = Tokenizer.tokenize(data);
-            System.out.println("Tokenized...");
+            List<Token> tokens = Tokenizer.loadStr(mainFilename);
+            System.out.println("1 Tokenized...");
+
             FOModule module = ModuleParser.parse(new TokenScanner(tokens));
+            System.out.println("2 FO parsed...");
+
             module.resolve();
-            System.out.println("FO parsed...");
-            String x86_assembly = cmd.getOptionValue(x86, null);
-            String x86_binary = cmd.getOptionValue(out);
-            String riscv_assembly = cmd.getOptionValue(riscv, null);
-            System.out.println("CLI parsed...");
+            System.out.println("3 FO resolved...");
+
             new TypeValidatorVisitor().visit(module);
-            System.out.println("Validated...");
+            System.out.println("4 Validated...");
+
             CompiledModule compiledModule = new CompileModuleVisitor().visit(module);
-            System.out.println("CompiledModule...");
-            if (riscv_assembly != null) compiledModule.outputRISCV(riscv_assembly);
-            compiledModule.outputX86(x86_assembly, x86_binary);
-            System.out.println("Dumped");
+            System.out.println("5 CompiledModule...");
+
+            compiledModule.outputX86(null, outFilename);
+            System.out.println("6 Dumped");
         } catch (SourceCodeException e) {
-            int line = 1;
-            for (int i = 0; i <= e.span.start; i++) {
-                if (data.charAt(i) == '\n') line++;
-            }
-            System.out.println(line + ":" + (e.span.end - e.span.start));
             System.out.println(e.span);
-            e.printStackTrace();
-        } catch (IOException e) {
+            System.out.println(e.span.file);
+            System.out.printf("%d:%d [%d]\n", e.span.line, e.span.start, e.span.distance);
             e.printStackTrace();
         }
     }

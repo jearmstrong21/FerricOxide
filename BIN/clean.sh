@@ -1,2 +1,2 @@
 rm build/*
-rm main
+rm exe/*

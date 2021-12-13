@@ -37,7 +37,7 @@ public class Token {
     }
 
     public static final String IDENTIFIER_START = ALPHABET + IDENTIFIER_PUNCTUATION;
-    public static final String IDENTIFIER_REST = IDENTIFIER_START + DIGITS + IDENTIFIER_PUNCTUATION;
+    public static final String IDENTIFIER_REST = IDENTIFIER_START + DIGITS;
 
     public enum Type {
         IDENTIFIER,
@@ -51,6 +51,7 @@ public class Token {
     public enum Punctuation {
 //        DOUBLE_QUOTE("\""),
 //        SINGLE_QUOTE("\'"),
+
         L_BRACE("["),
         R_BRACE("]"),
         ARROW("->"),
@@ -91,6 +92,8 @@ public class Token {
     }
 
     public enum Keyword {
+        PP_INCLUDE("#include"),
+
         ZEROINIT("zeroinit"),
         SIZEOF("sizeof"),
 
