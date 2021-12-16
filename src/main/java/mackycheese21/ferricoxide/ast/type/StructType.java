@@ -1,5 +1,6 @@
 package mackycheese21.ferricoxide.ast.type;
 
+import mackycheese21.ferricoxide.ast.Identifier;
 import org.bytedeco.javacpp.PointerPointer;
 import org.bytedeco.llvm.LLVM.LLVMTypeRef;
 
@@ -9,12 +10,14 @@ import static org.bytedeco.llvm.global.LLVM.*;
 
 public class StructType extends ConcreteType {
 
+    public final Identifier identifier;
     public final List<String> fieldNames;
     public final List<ConcreteType> fieldTypes;
     public final boolean packed;
 
-    public StructType(String name, List<String> fieldNames, List<ConcreteType> fieldTypes, boolean packed) {
-        super(LLVMStructCreateNamed(LLVMGetGlobalContext(), name), false, true, name);
+    public StructType(Identifier identifier, List<String> fieldNames, List<ConcreteType> fieldTypes, boolean packed) {
+        super(LLVMStructCreateNamed(LLVMGetGlobalContext(), identifier.toString()), false, true, identifier.toString());
+        this.identifier = identifier;
         this.fieldNames = fieldNames;
         this.fieldTypes = fieldTypes;
         this.packed = packed;

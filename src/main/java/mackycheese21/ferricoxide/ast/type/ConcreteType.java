@@ -1,5 +1,6 @@
 package mackycheese21.ferricoxide.ast.type;
 
+import mackycheese21.ferricoxide.ast.Identifier;
 import org.bytedeco.llvm.LLVM.LLVMTypeRef;
 
 import static org.bytedeco.llvm.global.LLVM.*;

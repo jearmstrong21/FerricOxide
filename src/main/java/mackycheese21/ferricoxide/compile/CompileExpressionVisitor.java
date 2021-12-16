@@ -1,6 +1,7 @@
 package mackycheese21.ferricoxide.compile;
 
 import mackycheese21.ferricoxide.AnalysisException;
+import mackycheese21.ferricoxide.ast.Identifier;
 import mackycheese21.ferricoxide.ast.IdentifierMap;
 import mackycheese21.ferricoxide.ast.expr.*;
 import mackycheese21.ferricoxide.ast.type.ConcreteType;
@@ -29,12 +30,16 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
     private final IdentifierMap<StructType> structs;
     private final IdentifierMap<ConcreteType> variableTypes;
     private final IdentifierMap<LLVMValueRef> variableRefs;
-    private final IdentifierMap<FunctionType> functionTypes;
-    private final IdentifierMap<LLVMValueRef> functionRefs;
     private final TypeValidatorVisitor typeValidator;
 
-    public CompileExpressionVisitor(LLVMBuilderRef builder, LLVMValueRef currentFunction, Map<String, LLVMValueRef> strings, IdentifierMap<ConcreteType> globalTypes, IdentifierMap<LLVMValueRef> globalRefs, IdentifierMap<StructType> structs, IdentifierMap<ConcreteType> variableTypes, IdentifierMap<LLVMValueRef> variableRefs,
-                                    IdentifierMap<FunctionType> functionTypes, IdentifierMap<LLVMValueRef> functionRefs) {
+    public CompileExpressionVisitor(LLVMBuilderRef builder,
+                                    LLVMValueRef currentFunction,
+                                    Map<String, LLVMValueRef> strings,
+                                    IdentifierMap<ConcreteType> globalTypes,
+                                    IdentifierMap<LLVMValueRef> globalRefs,
+                                    IdentifierMap<StructType> structs,
+                                    IdentifierMap<ConcreteType> variableTypes,
+                                    IdentifierMap<LLVMValueRef> variableRefs) {
         this.builder = builder;
         this.currentFunction = currentFunction;
         this.strings = strings;
@@ -43,9 +48,7 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
         this.structs = structs;
         this.variableTypes = variableTypes;
         this.variableRefs = variableRefs;
-        this.functionTypes = functionTypes;
-        this.functionRefs = functionRefs;
-        this.typeValidator = new TypeValidatorVisitor(globalTypes, structs, variableTypes, functionTypes);
+        this.typeValidator = new TypeValidatorVisitor(globalTypes, structs, variableTypes);
     }
 
     private LLVMValueRef implicitResolve(ConcreteType expected, ConcreteType actual, LLVMValueRef valueRef) {
@@ -60,10 +63,8 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
 
     @Override
     public LLVMValueRef visitAccessVar(AccessVar accessVar) {
-        LLVMValueRef valueRef;
-        if (globalRefs.mapHas(accessVar.name)) valueRef = globalRefs.mapGet(accessVar.name);
-        else valueRef = variableRefs.mapGet(accessVar.name);
-        return LLVMBuildLoad2(builder, accessVar.visit(typeValidator).typeRef, valueRef, accessVar.name);
+        LLVMValueRef valueRef = visitRefAccessVar(new RefAccessVar(accessVar.names));
+        return LLVMBuildLoad2(builder, accessVar.visit(typeValidator).typeRef, valueRef, LLVMGetValueName(valueRef).getString());
     }
 
     @Override
@@ -120,7 +121,8 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
 
     @Override
     public LLVMValueRef visitCallExpr(CallExpr callExpr) {
-        FunctionType functionType = functionTypes.mapGet(callExpr.name);
+        FunctionType functionType = AnalysisException.requireFunction(AnalysisException.requirePointer(callExpr.function.visit(typeValidator)).to);
+        LLVMValueRef functionRef = callExpr.function.visit(this);
         ConcreteType result = callExpr.visit(typeValidator);
         PointerPointer<LLVMValueRef> args = new PointerPointer<>(callExpr.params.size());
         for (int i = 0; i < callExpr.params.size(); i++) {
@@ -130,9 +132,9 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
                     callExpr.params.get(i).visit(this)));
         }
         if (result.declarable) {
-            return LLVMBuildCall2(builder, functionTypes.mapGet(callExpr.name).typeRef, functionRefs.mapGet(callExpr.name), args, callExpr.params.size(), callExpr.name);
+            return LLVMBuildCall2(builder, functionType.typeRef, functionRef, args, callExpr.params.size(), "call");
         } else {
-            LLVMBuildCall2(builder, functionTypes.mapGet(callExpr.name).typeRef, functionRefs.mapGet(callExpr.name), args, callExpr.params.size(), "");
+            LLVMBuildCall2(builder, functionType.typeRef, functionRef, args, callExpr.params.size(), "");
             return null;
         }
     }
@@ -255,8 +257,16 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
 
     @Override
     public LLVMValueRef visitRefAccessVar(RefAccessVar refAccessVar) {
-        if (globalRefs.mapHas(refAccessVar.name)) return globalRefs.mapGet(refAccessVar.name);
-        return variableRefs.mapGet(refAccessVar.name);
+        for (Identifier identifier : refAccessVar.names) {
+            if (identifier.global) {
+                if (globalRefs.mapHas(identifier)) return globalRefs.mapGet(identifier);
+            } else {
+                if (variableRefs.mapHas(identifier)) return variableRefs.mapGet(identifier);
+            }
+        }
+        throw new RuntimeException();
+//        if (globalRefs.mapHas(refAccessVar.name)) return globalRefs.mapGet(refAccessVar.name);
+//        return variableRefs.mapGet(refAccessVar.name);
     }
 
     @Override

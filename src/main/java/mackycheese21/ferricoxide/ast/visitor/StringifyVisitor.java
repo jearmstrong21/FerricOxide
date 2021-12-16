@@ -30,7 +30,7 @@ public class StringifyVisitor implements ExpressionVisitor<String>, StatementVis
 
     @Override
     public String visitAccessVar(AccessVar accessVar) {
-        return accessVar.name;
+        return accessVar.names[0].toString();
     }
 
     @Override
@@ -68,7 +68,7 @@ public class StringifyVisitor implements ExpressionVisitor<String>, StatementVis
 
     @Override
     public String visitCallExpr(CallExpr callExpr) {
-        return "%s(%s)".formatted(callExpr.name, callExpr.params.stream().map(expr -> expr.visit(this)).collect(Collectors.joining(", ")));
+        return "%s(%s)".formatted(callExpr.function.visit(this), callExpr.params.stream().map(expr -> expr.visit(this)).collect(Collectors.joining(", ")));
     }
 
     @Override
@@ -112,7 +112,7 @@ public class StringifyVisitor implements ExpressionVisitor<String>, StatementVis
 
     @Override
     public String visitRefAccessVar(RefAccessVar refAccessVar) {
-        return "&" + refAccessVar.name;
+        return "&" + refAccessVar.names[0];
     }
 
     @Override

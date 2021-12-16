@@ -1,0 +1,44 @@
+#include "std/math.fo"
+
+struct v3f {
+    f32 x;
+    f32 y;
+    f32 z;
+}
+
+mod v3f {
+    struct v3f zero = v3f::from(0);
+    fn from(x: f32) -> struct v3f { return new v3f { x: x, y: x, z: x }; }
+    fn add(a: struct v3f, b: struct v3f) -> struct v3f { return new v3f { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z }; }
+    fn sub(a: struct v3f, b: struct v3f) -> struct v3f { return new v3f { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z }; }
+    fn mag(a: struct v3f) -> f32 { return math::sqrt(a.x * a.x + a.y * a.y + a.z * a.z); }
+    fn mul(a: f32, b: struct v3f) -> struct v3f { return new v3f { x: a * b.x, y: a * b.y, z: a * b.z }; }
+    fn norm(a: struct v3f) -> struct v3f {
+        f32 m = mag(a);
+        return mul(1.0 / m, a);
+    }
+    fn dot(a: struct v3f, b: struct v3f) -> f32 { return a.x * b.x + a.y * b.y + a.z * b.z; }
+    fn reflect(I: struct v3f, N: struct v3f) -> struct v3f {
+        return norm(sub(
+            I,
+            mul(
+                ((f32)2) * dot(N, I) / dot(N, N),
+                N
+            )
+        ));
+    }
+    fn cross(a: struct v3f, b: struct v3f) -> struct v3f {
+        return new v3f {
+            x: a.y * b.z - a.z * b.y,
+            y: a.z * b.x - a.x * b.z,
+            z: a.x * b.y - a.y * b.x
+        };
+    }
+    fn map(x: struct v3f, a1: struct v3f, b1: struct v3f, a2: struct v3f, b2: struct v3f) -> struct v3f {
+        return new v3f {
+            x: math::map(x.x, a1.x, b1.x, a2.x, b2.x),
+            y: math::map(x.y, a1.y, b1.y, a2.y, b2.y),
+            z: math::map(x.z, a1.z, b1.z, a2.z, b2.z)
+        };
+    }
+}

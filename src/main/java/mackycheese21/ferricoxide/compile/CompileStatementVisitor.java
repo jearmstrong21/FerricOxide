@@ -1,10 +1,10 @@
 package mackycheese21.ferricoxide.compile;
 
 import mackycheese21.ferricoxide.AnalysisException;
+import mackycheese21.ferricoxide.ast.Identifier;
 import mackycheese21.ferricoxide.ast.IdentifierMap;
 import mackycheese21.ferricoxide.ast.stmt.*;
 import mackycheese21.ferricoxide.ast.type.ConcreteType;
-import mackycheese21.ferricoxide.ast.type.FunctionType;
 import mackycheese21.ferricoxide.ast.type.PointerType;
 import mackycheese21.ferricoxide.ast.type.StructType;
 import mackycheese21.ferricoxide.ast.visitor.StatementVisitor;
@@ -29,7 +29,13 @@ public class CompileStatementVisitor implements StatementVisitor<Void> {
     private final CompileExpressionVisitor compileExpression;
     private final TypeValidatorVisitor typeValidator;
 
-    public CompileStatementVisitor(LLVMBuilderRef builder, LLVMValueRef currentFunction, Map<DeclareVar, LLVMValueRef> allVariableRefs, IdentifierMap<ConcreteType> globalTypes, IdentifierMap<LLVMValueRef> globalRefs, Map<String, LLVMValueRef> strings, IdentifierMap<StructType> structs, IdentifierMap<FunctionType> functionTypes, IdentifierMap<LLVMValueRef> functionRefs) {
+    public CompileStatementVisitor(LLVMBuilderRef builder,
+                                   LLVMValueRef currentFunction,
+                                   Map<DeclareVar, LLVMValueRef> allVariableRefs,
+                                   IdentifierMap<ConcreteType> globalTypes,
+                                   IdentifierMap<LLVMValueRef> globalRefs,
+                                   Map<String, LLVMValueRef> strings,
+                                   IdentifierMap<StructType> structs) {
         this.builder = builder;
         this.currentFunction = currentFunction;
         this.allVariableRefs = allVariableRefs;
@@ -37,8 +43,8 @@ public class CompileStatementVisitor implements StatementVisitor<Void> {
         this.globalRefs = globalRefs;
         this.variableTypes = new IdentifierMap<>(null);
         this.localVariableRefs = new IdentifierMap<>(null);
-        this.compileExpression = new CompileExpressionVisitor(builder, currentFunction, strings, globalTypes, globalRefs, structs, variableTypes, localVariableRefs, functionTypes, functionRefs);
-        this.typeValidator = new TypeValidatorVisitor(globalTypes, structs, variableTypes, functionTypes);
+        this.compileExpression = new CompileExpressionVisitor(builder, currentFunction, strings, globalTypes, globalRefs, structs, variableTypes, localVariableRefs);
+        this.typeValidator = new TypeValidatorVisitor(globalTypes, structs, variableTypes);
     }
 
     @Override
@@ -106,15 +112,11 @@ public class CompileStatementVisitor implements StatementVisitor<Void> {
 
     @Override
     public Void visitDeclareVar(DeclareVar declareVar) {
-        if(!allVariableRefs.containsKey(declareVar)) throw AnalysisException.noSuchKey(declareVar.name);
+        if(!allVariableRefs.containsKey(declareVar)) throw AnalysisException.noSuchKey(new Identifier(declareVar.name, false));
         LLVMBuildStore(builder, declareVar.value.visit(compileExpression), allVariableRefs.get(declareVar));
-        variableTypes.mapAdd(declareVar.name, declareVar.type);
-        localVariableRefs.mapAdd(declareVar.name, allVariableRefs.get(declareVar));
+        variableTypes.mapAdd(new Identifier(declareVar.name, false), declareVar.type);
+        localVariableRefs.mapAdd(new Identifier(declareVar.name, false), allVariableRefs.get(declareVar));
         return null;
-//        LLVMValueRef alloc = LLVMBuildAlloca(builder, declareVar.type.typeRef, "DeclareVar");
-//        LLVMBuildStore(builder, declareVar.value.visit(compileExpression), alloc);
-//        variableTypes.mapAdd(declareVar.name, declareVar.type);
-//        return null;
     }
 
     @Override

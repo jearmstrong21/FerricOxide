@@ -1,0 +1,23 @@
+struct Thing {
+    fn()->i32 foo;
+}
+
+fn fnA() -> i32 {
+    return 1;
+}
+
+fn fnB() -> i32 {
+    return 2 + 3;
+}
+
+extern fn printInt(x: i32);
+
+export("fo_run") fn run() -> i32 {
+    struct Thing ptr = new Thing { foo: &fnA };
+    fn()->i32 func = ptr.foo;
+//    fn(i32) func2 = printInt;
+//    func2(5);
+    printInt(5);
+//    printInt(ptr.foo());
+    return 0;
+}

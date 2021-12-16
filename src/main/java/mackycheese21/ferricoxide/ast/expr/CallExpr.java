@@ -6,12 +6,12 @@ import java.util.List;
 
 public class CallExpr extends Expression {
 
-    public final String name;
+    public final Expression function;
     public final List<Expression> params;
 
-    public CallExpr(String name, List<Expression> params) {
+    public CallExpr(Expression function, List<Expression> params) {
         super(false);
-        this.name = name;
+        this.function = function;
         this.params = params;
     }
 

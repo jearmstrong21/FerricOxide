@@ -131,11 +131,13 @@ public class Tokenizer {
         while (scanner.hasNext(Token.IDENTIFIER_REST)) {
             identifier += scanner.next().unwrapUnsafe();
         }
+//        if(identifier.startsWith("#")) identifier = identifier.toLowerCase();
         for (Token.Keyword keyword : Token.Keyword.values()) {
             if (keyword.str.equals(identifier)) {
                 return Token.keyword(snapshot.into(), keyword);
             }
         }
+//        if(identifier.startsWith("#")) throw new RuntimeException("unrecognized preprocessor directive");
         return Token.identifier(snapshot.into(), identifier);
     }
 
@@ -237,12 +239,18 @@ public class Tokenizer {
 
     public static List<Token> loadStr(String name) {
         Path path = resolveFile(name);
+        if(includedPaths.contains(path)) return new ArrayList<>();
+        includedPaths.add(path);
         try {
             return preprocess(tokenize(Files.readString(path), path));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
+
+    private static final List<Path> includedPaths = new ArrayList<>();
+
+//    private static List<String> defines = new ArrayList<>();
 
     private static List<Token> preprocess(List<Token> tokens) {
         List<Token> out = new ArrayList<>();

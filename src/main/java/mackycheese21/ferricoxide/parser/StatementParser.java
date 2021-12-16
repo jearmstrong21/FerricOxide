@@ -7,8 +7,8 @@ import mackycheese21.ferricoxide.ast.expr.CallExpr;
 import mackycheese21.ferricoxide.ast.expr.Expression;
 import mackycheese21.ferricoxide.ast.stmt.*;
 import mackycheese21.ferricoxide.ast.type.ConcreteType;
+import mackycheese21.ferricoxide.ast.type.FunctionType;
 import mackycheese21.ferricoxide.ast.type.PointerType;
-import mackycheese21.ferricoxide.ast.type.TypeReference;
 import mackycheese21.ferricoxide.parser.token.Token;
 import mackycheese21.ferricoxide.parser.token.TokenScanner;
 import org.jetbrains.annotations.NotNull;
@@ -19,6 +19,27 @@ import java.util.List;
 public class StatementParser {
 
     private static ConcreteType attemptTypeFirst(TokenScanner scanner) {
+        if (scanner.peek().is(Token.Keyword.FN)) {
+            TokenScanner s = scanner.copy();
+            s.next();
+            if (!s.hasNext(Token.Punctuation.L_PAREN)) return null;
+            scanner.index = s.index;
+            scanner.next();
+            List<ConcreteType> params = new ArrayList<>();
+            while (!scanner.peek().is(Token.Punctuation.R_PAREN)) {
+                if (params.size() > 0) scanner.next().mustBe(Token.Punctuation.COMMA);
+                params.add(forceType(scanner));
+            }
+            ConcreteType result;
+            scanner.next().mustBe(Token.Punctuation.R_PAREN);
+            if (scanner.peek().is(Token.Punctuation.ARROW)) {
+                scanner.next();
+                result = forceType(scanner);
+            } else {
+                result = ConcreteType.VOID;
+            }
+            return PointerType.of(FunctionType.of(result, params));
+        }
         if (scanner.peek().is(Token.Keyword.I8)) {
             scanner.next();
             return ConcreteType.I8;
@@ -49,7 +70,7 @@ public class StatementParser {
         }
         if (scanner.peek().is(Token.Keyword.STRUCT)) {
             scanner.next();
-            return new TypeReference(scanner.next().identifier());
+            return ModuleParser.forceTypeReference(scanner);
         }
         return null;
     }
@@ -148,7 +169,7 @@ public class StatementParser {
         try {
             left = ExpressionParser.parse(s, true);
         } catch (AnalysisException e) {
-            if(s.peek().is(Token.Punctuation.EQ)) throw e;
+            if (s.peek().is(Token.Punctuation.EQ)) throw e;
             return null;
         }
         if (!s.peek().is(Token.Punctuation.EQ)) return null;

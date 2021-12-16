@@ -1,5 +1,6 @@
 package mackycheese21.ferricoxide.ast.module;
 
+import mackycheese21.ferricoxide.ast.Identifier;
 import mackycheese21.ferricoxide.ast.expr.BinaryOperator;
 import mackycheese21.ferricoxide.ast.expr.IntConstant;
 import mackycheese21.ferricoxide.ast.expr.RefAccessVar;
@@ -15,6 +16,7 @@ import mackycheese21.ferricoxide.ast.visitor.ResolveVisitor;
 import java.util.ArrayList;
 import java.util.List;
 
+// mutable data class
 public class FOModule {
 
     public final List<GlobalVariable> globals;
@@ -33,12 +35,13 @@ public class FOModule {
 
     public void initializeGlobals() {
         List<Statement> statements = new ArrayList<>();
-        for (int i = 0; i < globals.size(); i++) {
-            statements.add(new Assign(new RefAccessVar(globals.get(i).name), globals.get(i).value, BinaryOperator.DISCARD_FIRST));
+        for (GlobalVariable global : globals) {
+            System.out.println("TODO GLOBAL NAMESPACE");
+            statements.add(new Assign(new RefAccessVar(new Identifier[]{global.name}), global.value, BinaryOperator.DISCARD_FIRST));
         }
         statements.add(new ReturnStmt(new IntConstant(0)));
         FunctionType functionType = FunctionType.of(ConcreteType.I32, new ArrayList<>());
-        Function function = new Function("fo__runtime_global_init", false, functionType, new ArrayList<>(), new Block(statements));
+        Function function = new Function(new Identifier("fo_global_init", true), false, functionType, new ArrayList<>(), new Block(statements), "fo_global_init");
         functions.add(function);
     }
 

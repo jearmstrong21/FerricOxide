@@ -20,6 +20,10 @@ SourceCodeException extends RuntimeException {
         return new SourceCodeException("expected type", scanner.currentOrLast().span);
     }
 
+    public static SourceCodeException expectedIdentifier(TokenScanner scanner) {
+        return new SourceCodeException("expected identifier", scanner.currentOrLast().span);
+    }
+
     public static SourceCodeException expectedStatement(TokenScanner scanner) {
         return new SourceCodeException("expected statement", scanner.currentOrLast().span);
     }

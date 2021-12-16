@@ -1,9 +1,16 @@
 package mackycheese21.ferricoxide.ast.type;
 
+import mackycheese21.ferricoxide.ast.Identifier;
+
 public class TypeReference extends ConcreteType {
 
-    public TypeReference(String name) {
-        super(null, false, false, name);
+    public final Identifier usePath;
+    public final Identifier identifier;
+
+    public TypeReference(Identifier usePath, Identifier identifier) {
+        super(null, false, false, identifier.toString());
+        this.usePath = usePath;
+        this.identifier = identifier;
     }
 
     @Override

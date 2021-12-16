@@ -13,4 +13,10 @@ public class Span {
         this.distance = distance;
         this.file = file;
     }
+
+    @Override
+    public String toString() {
+        return "%d:%d [%d] (%s)".formatted(line, start, distance, file);
+    }
+
 }

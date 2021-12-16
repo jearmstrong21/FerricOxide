@@ -52,6 +52,7 @@ public class Token {
 //        DOUBLE_QUOTE("\""),
 //        SINGLE_QUOTE("\'"),
 
+        DOUBLE_COLON("::"),
         L_BRACE("["),
         R_BRACE("]"),
         ARROW("->"),
@@ -93,21 +94,28 @@ public class Token {
 
     public enum Keyword {
         PP_INCLUDE("#include"),
+        PP_DEFINE("#define"),
+        PP_IFDEF("#ifdef"),
+        PP_IFNDEF("#ifndef"),
+        PP_ENDIF("#endif"),
 
         ZEROINIT("zeroinit"),
         SIZEOF("sizeof"),
 
         RETURN("return"),
         EXTERN("extern"),
+        EXPORT("export"),
         INLINE("inline"),
 
         STRUCT("struct"),
         PACKED("packed"),
         NEW("new"),
+        MOD("mod"),
 
         TRUE("true"),
         FALSE("false"),
 
+        FN("fn"),
         I8("i8"),
         I32("i32"),
         I64("i64"),

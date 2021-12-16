@@ -1,6 +1,8 @@
 package mackycheese21.ferricoxide;
 
+import mackycheese21.ferricoxide.ast.Identifier;
 import mackycheese21.ferricoxide.ast.type.ConcreteType;
+import mackycheese21.ferricoxide.ast.type.FunctionType;
 import mackycheese21.ferricoxide.ast.type.PointerType;
 import mackycheese21.ferricoxide.ast.type.TypeReference;
 import mackycheese21.ferricoxide.ast.expr.UnaryOperator;
@@ -29,6 +31,11 @@ public class AnalysisException extends RuntimeException {
         throw new AnalysisException("expected pointer type, got " + type);
     }
 
+    public static FunctionType requireFunction(ConcreteType type) {
+        if(type instanceof FunctionType function) return function;
+        throw new AnalysisException("expected function type, got " + type);
+    }
+
     public static AnalysisException cannotDeclareType(ConcreteType type) {
         return new AnalysisException("cannot declare type " + type);
     }
@@ -53,11 +60,11 @@ public class AnalysisException extends RuntimeException {
         return new AnalysisException("cannot combine inline and extern");
     }
 
-    public static AnalysisException noSuchKey(String key) {
+    public static AnalysisException noSuchKey(Identifier key) {
         return new AnalysisException(String.format("no such key %s", key));
     }
 
-    public static AnalysisException keyAlreadyExists(String key) {
+    public static AnalysisException keyAlreadyExists(Identifier key) {
         return new AnalysisException(String.format("key already exists %s", key));
     }
 
@@ -75,7 +82,7 @@ public class AnalysisException extends RuntimeException {
     }
 
     public static AnalysisException noTypeDeclared(TypeReference reference) {
-        return new AnalysisException("no type declared %s".formatted(reference));
+        return new AnalysisException("no type declared %s (usePath=%s)".formatted(reference.identifier, reference.usePath));
     }
 
     public static AnalysisException cannotApplyBinaryOperator(BinaryOperator operator, ConcreteType operand) {

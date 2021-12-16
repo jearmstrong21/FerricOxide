@@ -1,6 +1,7 @@
 package mackycheese21.ferricoxide.parser;
 
 import mackycheese21.ferricoxide.SourceCodeException;
+import mackycheese21.ferricoxide.ast.Identifier;
 import mackycheese21.ferricoxide.ast.expr.*;
 import mackycheese21.ferricoxide.ast.type.ConcreteType;
 import mackycheese21.ferricoxide.parser.token.Token;
@@ -53,7 +54,7 @@ public class ExpressionParser {
     private static Expression attemptUnaryExpr(TokenScanner scanner) {
         UnaryOperator operator = attemptUnaryOperator(scanner);
         if (operator == null) return null;
-        return new UnaryExpr(simple(scanner), operator);
+        return new UnaryExpr(simple(scanner, true), operator);
     }
 
     private static Expression attemptBool(TokenScanner scanner) {
@@ -62,9 +63,10 @@ public class ExpressionParser {
     }
 
     public static CallExpr attemptCall(TokenScanner scanner) {
-        if (!scanner.peek().is(Token.Type.IDENTIFIER)) return null;
+//        if (!scanner.peek().is(Token.Type.IDENTIFIER)) return null;
         TokenScanner s = scanner.copy();
-        String name = s.next().identifier();
+        Expression function = simple(s, false).makeLValue();
+//        String name = s.next().identifier();
         if (!s.peek().is(Token.Punctuation.L_PAREN)) return null;
         s.next();
         scanner.index = s.index;
@@ -79,13 +81,24 @@ public class ExpressionParser {
             }
             params.add(parse(scanner, false));
         }
-        return new CallExpr(name, params);
+        return new CallExpr(function, params);
     }
 
     private static Expression attemptAccessVar(TokenScanner scanner) {
         if (!scanner.peek().is(Token.Type.IDENTIFIER)) return null;
-        String name = scanner.next().identifier();
-        return new AccessVar(name);
+        Identifier identifier = ModuleParser.forceIdentifier(scanner);
+        if (identifier.global) {
+            // If explicitly global then its simply a canonical ID, nothing about it
+            return new AccessVar(new Identifier[]{identifier});
+        } else {
+            // If its not explicitly global lets try it locally (BUT NOT GLOBALLY)
+            if(!identifier.equals(Identifier.concat(false, identifier))) throw new RuntimeException(); // sanity check
+            return new AccessVar(new Identifier[]{
+                    Identifier.concat(false, identifier), // == identifier, this is here for clarity
+                    Identifier.concat(true, ModuleParser.currentModPath(), identifier),
+                    Identifier.concat(true, identifier),
+            });
+        }
     }
 
     private static Expression attemptSizeOf(TokenScanner scanner) {
@@ -100,7 +113,7 @@ public class ExpressionParser {
     private static Expression attemptStructInit(TokenScanner scanner) {
         if (!scanner.peek().is(Token.Keyword.NEW)) return null;
         scanner.next();
-        String name = scanner.next().identifier();
+        Identifier struct = ModuleParser.forceIdentifier(scanner);
         scanner.next().mustBe(Token.Punctuation.L_BRACKET);
         List<String> fieldNames = new ArrayList<>();
         List<Expression> fieldValues = new ArrayList<>();
@@ -111,8 +124,7 @@ public class ExpressionParser {
             fieldValues.add(parse(scanner, false));
         }
         scanner.next();
-        return new StructInit(name, fieldNames, fieldValues);
-//        return new StructInit(name, new ArrayList<>(), new ArrayList<>());
+        return new StructInit(struct, fieldNames, fieldValues);
     }
 
     private static Expression attemptCast(TokenScanner scanner) {
@@ -122,7 +134,7 @@ public class ExpressionParser {
         if (type == null) return null;
         scanner.index = s.index;
         scanner.next().mustBe(Token.Punctuation.R_PAREN);
-        return new CastExpr(type, simple(scanner));
+        return new CastExpr(type, simple(scanner, true));
     }
 
     private static Expression attemptString(TokenScanner scanner) {
@@ -145,8 +157,10 @@ public class ExpressionParser {
         return null;
     }
 
-    private static Expression simpleFirst(TokenScanner scanner) {
+    private static Expression simpleFirst(TokenScanner scanner, boolean canBeCall) {
         Expression expr;
+
+//        System.out.println("simpleFirst " + scanner.peek());
 
         expr = attemptFloat(scanner);
         if (expr != null) return expr;
@@ -181,25 +195,30 @@ public class ExpressionParser {
         expr = attemptUnaryExpr(scanner);
         if (expr != null) return expr;
 
-        expr = attemptCall(scanner);
-        if (expr != null) return expr;
+        if (canBeCall) {
+            expr = attemptCall(scanner);
+            if (expr != null) return expr;
+        }
 
         expr = attemptAccessVar(scanner);
         if (expr != null) return expr;
 
+//        System.out.println("EXPECTED SIMPLE " + scanner.peek());
         throw SourceCodeException.expectedSimple(scanner);
     }
 
-    private static Expression simple(TokenScanner scanner) {
+    private static Expression simple(TokenScanner scanner, boolean canBeCall) {
         int refs = 0;
         while (scanner.hasNext(Token.Punctuation.AND)) {
             scanner.next();
             refs++;
         }
-        Expression simple = simpleFirst(scanner);
+        Expression simple = simpleFirst(scanner, canBeCall);
         while (scanner.hasNext(Token.Punctuation.PERIOD, Token.Punctuation.ARROW, Token.Punctuation.L_BRACE)) {
+//            System.out.println("simple append to " + simple.stringify() + " with " + scanner.peek().punctuation());
             if (scanner.hasNext(Token.Punctuation.PERIOD)) {
                 scanner.next();
+//                System.out.println("\tfield = " + scanner.peek().identifier());
                 simple = new AccessField(simple.makeLValue(), scanner.next().identifier());
             } else if (scanner.hasNext(Token.Punctuation.ARROW)) {
                 scanner.next();
@@ -214,6 +233,7 @@ public class ExpressionParser {
         for (int i = 0; i < refs; i++) { // FOR before IF because "int x = 5; &x = 3;" is legitimate and equivalent to "x = 3;"
             simple = simple.makeLValue();
         }
+//        System.out.println("parsed simple " + simple.stringify());
         return simple;
     }
 
@@ -229,7 +249,7 @@ public class ExpressionParser {
 
     // https://eli.thegreenplace.net/2012/08/02/parsing-expressions-by-precedence-climbing
     private static Expression binaryExpr(TokenScanner scanner, int minPriority) {
-        Expression result = simple(scanner);
+        Expression result = simple(scanner, true);
         BinaryOperator operator = peekBinaryOperator(scanner);
         while (operator != null && operator.priority >= minPriority) {
             scanner.next();

@@ -7,7 +7,7 @@ import java.util.stream.Collectors;
 
 public class IdentifierMap<T> {
 
-    private final List<Map<String, T>> stack;
+    private final List<Map<Identifier, T>> stack;
     private final T defaultValue;
 
     public IdentifierMap(T defaultValue) {
@@ -16,8 +16,8 @@ public class IdentifierMap<T> {
         this.defaultValue = defaultValue;
     }
 
-    public boolean mapHas(String id) {
-        for (Map<String, T> map : stack) {
+    public boolean mapHas(Identifier id) {
+        for (Map<Identifier, T> map : stack) {
             if (map.containsKey(id)) return true;
         }
         return defaultValue != null;
@@ -36,22 +36,22 @@ public class IdentifierMap<T> {
         return stack.toString();
     }
 
-    public T mapGet(String id) {
-        for (Map<String, T> map : stack) {
+    public T mapGet(Identifier id) {
+        for (Map<Identifier, T> map : stack) {
             if (map.containsKey(id)) return map.get(id);
         }
         if (defaultValue != null) return defaultValue;
         throw AnalysisException.noSuchKey(id);
     }
 
-    public void mapAdd(String id, T value) {
+    public void mapAdd(Identifier id, T value) {
         if (mapHas(id)) throw AnalysisException.keyAlreadyExists(id);
         stack.get(0).put(id, value);
     }
 
-    public void mapSet(String id, T value) {
+    public void mapSet(Identifier id, T value) {
         if (!mapHas(id)) throw AnalysisException.noSuchKey(id);
-        for (Map<String, T> map : stack) {
+        for (Map<Identifier, T> map : stack) {
             if (map.containsKey(id)) {
                 map.put(id, value);
                 break;

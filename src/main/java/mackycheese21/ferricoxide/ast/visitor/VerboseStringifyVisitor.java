@@ -7,7 +7,7 @@ import java.util.stream.Collectors;
 public class VerboseStringifyVisitor implements ExpressionVisitor<String> {
     @Override
     public String visitAccessVar(AccessVar accessVar) {
-        return "access[%s]".formatted(accessVar.name);
+        return "access[%s]".formatted(accessVar.names[0]);
     }
 
     @Override
@@ -37,7 +37,7 @@ public class VerboseStringifyVisitor implements ExpressionVisitor<String> {
 
     @Override
     public String visitCallExpr(CallExpr callExpr) {
-        return "%s(%s)".formatted(callExpr.name, callExpr.params.stream().map(expr -> expr.visit(this)).collect(Collectors.joining(", ")));
+        return "%s(%s)".formatted(callExpr.function.visit(this), callExpr.params.stream().map(expr -> expr.visit(this)).collect(Collectors.joining(", ")));
     }
 
     @Override
@@ -72,7 +72,7 @@ public class VerboseStringifyVisitor implements ExpressionVisitor<String> {
 
     @Override
     public String visitRefAccessVar(RefAccessVar refAccessVar) {
-        return "refaccess[%s]".formatted(refAccessVar.name);
+        return "refaccess[%s]".formatted(refAccessVar.names[0]);
     }
 
     @Override

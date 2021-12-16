@@ -1,6 +1,7 @@
 package mackycheese21.ferricoxide.ast.visitor;
 
 import mackycheese21.ferricoxide.AnalysisException;
+import mackycheese21.ferricoxide.ast.Identifier;
 import mackycheese21.ferricoxide.ast.IdentifierMap;
 import mackycheese21.ferricoxide.ast.expr.*;
 import mackycheese21.ferricoxide.ast.module.FOModule;
@@ -47,25 +48,52 @@ public class ResolveVisitor implements ExpressionVisitor<Void>, StatementVisitor
     private final IdentifierMap<StructType> fixedStructs = new IdentifierMap<>(null);
 
     private StructType fixStruct(StructType struct) {
-        fixedStructs.mapAdd(struct.name, new StructType(struct.name, struct.fieldNames, struct.fieldTypes, struct.packed));
-        return fixedStructs.mapGet(struct.name);
+        fixedStructs.mapAdd(struct.identifier, new StructType(struct.identifier, struct.fieldNames, struct.fieldTypes, struct.packed));
+        return fixedStructs.mapGet(struct.identifier);
     }
 
     private FunctionType fixFunction(FunctionType function) {
         return FunctionType.of(fix(function.result), function.params.stream().map(this::fix).collect(Collectors.toList()));
     }
 
+    private StructType resolveIdentifier(Identifier identifier) {
+        if (fixedStructs.mapHas(identifier)) return fixedStructs.mapGet(identifier);
+        for (StructType s : module.structs) {
+            if (s.identifier.equals(identifier)) {
+                return fixStruct(s);
+            }
+        }
+        return null;
+    }
+
+//    private Identifier resolveIdentifierToIdentifier(Identifier identifier, boolean canBeType) {
+//        if()
+//    }
+
     private ConcreteType fix(ConcreteType type) {
         if (type instanceof StructType struct) return struct;
         if (type instanceof FunctionType function) return fixFunction(function);
         if (type instanceof PointerType pointer) return PointerType.of(fix(pointer.to));
         if (type instanceof TypeReference reference) {
-            if (fixedStructs.mapHas(reference.name)) return fixedStructs.mapGet(reference.name);
-            for (StructType s : module.structs) {
-                if (s.name.equals(reference.name)) {
-                    return fixStruct(s);
-                }
+//            if (fixedStructs.mapHas(reference.identifier)) return fixedStructs.mapGet(reference.identifier);
+//            for (StructType s : module.structs) {
+//                if (s.name.equals(reference.name)) {
+//                    return fixStruct(s);
+//                }
+//            }
+            StructType result;
+
+            if(!reference.identifier.global) {
+                result = resolveIdentifier(Identifier.concat(true, reference.identifier));
+                if (result != null) return result;
             }
+
+            result = resolveIdentifier(reference.identifier);
+            if (result != null) return result;
+
+            result = resolveIdentifier(Identifier.concat(true, reference.usePath, reference.identifier));
+            if (result != null) return result;
+
             throw AnalysisException.noTypeDeclared(reference);
         }
         if (!type.complete) throw new UnsupportedOperationException(type.getClass().toString());
@@ -121,6 +149,7 @@ public class ResolveVisitor implements ExpressionVisitor<Void>, StatementVisitor
 
     @Override
     public Void visitAccessVar(AccessVar accessVar) {
+//        accessVar.name = resolveIdentifierToIdentifier(accessVar.name, false);
         return null;
     }
 
@@ -157,6 +186,7 @@ public class ResolveVisitor implements ExpressionVisitor<Void>, StatementVisitor
 
     @Override
     public Void visitCallExpr(CallExpr callExpr) {
+        callExpr.function.visit(this);
         callExpr.params.forEach(e -> e.visit(this));
         return null;
     }
@@ -169,6 +199,7 @@ public class ResolveVisitor implements ExpressionVisitor<Void>, StatementVisitor
 
     @Override
     public Void visitStructInit(StructInit structInit) {
+//        structInit.struct = resolveIdentifierToIdentifier(structInit.struct, true);
         structInit.fieldValues.forEach(e -> e.visit(this));
         return null;
     }
@@ -200,6 +231,7 @@ public class ResolveVisitor implements ExpressionVisitor<Void>, StatementVisitor
 
     @Override
     public Void visitRefAccessVar(RefAccessVar refAccessVar) {
+//        refAccessVar.name = resolveIdentifierToIdentifier(refAccessVar.name, false);
         return null;
     }
 

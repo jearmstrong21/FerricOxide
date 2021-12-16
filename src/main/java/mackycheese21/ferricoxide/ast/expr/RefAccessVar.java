@@ -1,14 +1,15 @@
 package mackycheese21.ferricoxide.ast.expr;
 
+import mackycheese21.ferricoxide.ast.Identifier;
 import mackycheese21.ferricoxide.ast.visitor.ExpressionVisitor;
 
 public class RefAccessVar extends Expression {
 
-    public final String name;
+    public final Identifier[] names;
 
-    public RefAccessVar(String name) {
+    public RefAccessVar(Identifier[] names) {
         super(true);
-        this.name = name;
+        this.names = names;
     }
 
     @Override

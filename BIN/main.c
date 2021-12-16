@@ -9,9 +9,6 @@ int glfwOpenGLForwardCompat() { return GLFW_OPENGL_FORWARD_COMPAT; }
 int glfwOpenGLProfile() { return GLFW_OPENGL_PROFILE; }
 int glfwOpenGLCoreProfile() { return GLFW_OPENGL_CORE_PROFILE; }
 
-float zero() { return 0.0; }
-float one() { return 1.0; }
-
 void c_fwrite_str(FILE* ptr, char* str) {
     fprintf(ptr, "%s", str);
 }
@@ -19,8 +16,8 @@ void c_fwrite_i32(FILE* ptr, int x) {
     fprintf(ptr, "%d", x);
 }
 
-extern int fo__runtime_global_init();
-extern int run(int argc, char** argv);
+extern int fo_global_init();
+extern int fo_run(int argc, char** argv);
 
 void printInt(int x) {
     printf("FO says: %d\n", x);
@@ -39,25 +36,15 @@ int loadGLAD() {
     return gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 }
 
-void make_i32(int x) {
-}
-
-void make_i8(char x) {
-}
-
-void pp_v3f(float x,float y,float z){
-    printf("[%f, %f, %f]\n",x,y,z);
-}
-
 float c_randFloat() {
     return (float)((double)rand()/(double)(RAND_MAX));
 }
 
 int main(int argc, char** argv)
 {
-    if(fo__runtime_global_init() != 0) {
+    if(fo_global_init() != 0) {
         puts("FerricOxide runtime error: runtime global init failed");
         return 1;
     }
-    return run(argc, argv);
+    return fo_run(argc, argv);
 }

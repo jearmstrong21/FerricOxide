@@ -2,6 +2,7 @@ package mackycheese21.ferricoxide.ast.visitor;
 
 import mackycheese21.ferricoxide.AnalysisException;
 import mackycheese21.ferricoxide.CompilerException;
+import mackycheese21.ferricoxide.ast.Identifier;
 import mackycheese21.ferricoxide.ast.IdentifierMap;
 import mackycheese21.ferricoxide.ast.expr.*;
 import mackycheese21.ferricoxide.ast.module.FOModule;
@@ -18,15 +19,13 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
     private IdentifierMap<ConcreteType> globals;
     private IdentifierMap<StructType> structs;
     private IdentifierMap<ConcreteType> variables;
-    private IdentifierMap<FunctionType> functions;
     public ConcreteType requireReturnType;
     public boolean readOnly = false;
 
-    public TypeValidatorVisitor(IdentifierMap<ConcreteType> globals, IdentifierMap<StructType> structs, IdentifierMap<ConcreteType> variables, IdentifierMap<FunctionType> functions) {
+    public TypeValidatorVisitor(IdentifierMap<ConcreteType> globals, IdentifierMap<StructType> structs, IdentifierMap<ConcreteType> variables) {
         this.globals = globals;
         this.structs = structs;
         this.variables = variables;
-        this.functions = functions;
     }
 
     public TypeValidatorVisitor() {
@@ -49,8 +48,7 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
 
     @Override
     public ConcreteType visitAccessVar(AccessVar accessVar) {
-        if (globals.mapHas(accessVar.name)) return globals.mapGet(accessVar.name);
-        return variables.mapGet(accessVar.name);
+        return AnalysisException.requirePointer(visitRefAccessVar(new RefAccessVar(accessVar.names))).to;
     }
 
     @Override
@@ -88,7 +86,9 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
 
     @Override
     public ConcreteType visitCallExpr(CallExpr callExpr) {
-        FunctionType type = functions.mapGet(callExpr.name);
+        System.out.println("TVV visitCallExpr " + callExpr.verbose());
+        FunctionType type = AnalysisException.requireFunction(AnalysisException.requirePointer(AnalysisException.requirePointer(callExpr.function.visit(this)).to).to);
+//        FunctionType type = AnalysisException.requireFunction(AnalysisException.requirePointer(callExpr.function.visit(this)).to);
         AnalysisException.requireParamCount(type.params.size(), callExpr.params.size());
         for (int i = 0; i < type.params.size(); i++) {
             implicitResolve(type.params.get(i), callExpr.params.get(i).visit(this));
@@ -150,8 +150,17 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
 
     @Override
     public ConcreteType visitRefAccessVar(RefAccessVar refAccessVar) {
-        if (globals.mapHas(refAccessVar.name)) return PointerType.of(globals.mapGet(refAccessVar.name));
-        return PointerType.of(variables.mapGet(refAccessVar.name));
+        for (Identifier identifier : refAccessVar.names) {
+            if (identifier.global) {
+                if (globals.mapHas(identifier)) return PointerType.of(globals.mapGet(identifier));
+            } else {
+                if (variables.mapHas(identifier)) return PointerType.of(variables.mapGet(identifier));
+            }
+        }
+        throw AnalysisException.noSuchKey(refAccessVar.names[0]); // 0th = primary name
+//        throw new RuntimeException();
+//        if (globals.mapHas(refAccessVar.name)) return PointerType.of(globals.mapGet(refAccessVar.name));
+//        return PointerType.of(variables.mapGet(refAccessVar.name));
     }
 
     @Override
@@ -224,7 +233,7 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
         ConcreteType type = declareVar.value.visit(this);
         if (!type.declarable) throw AnalysisException.cannotDeclareType(type);
         AnalysisException.requireType(declareVar.type, type);
-        variables.mapAdd(declareVar.name, type);
+        variables.mapAdd(new Identifier(declareVar.name, false), type);
         return null;
     }
 
@@ -247,10 +256,9 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
 
         globals = new IdentifierMap<>(null);
         structs = new IdentifierMap<>(null);
-        functions = new IdentifierMap<>(null);
 
         for (StructType struct : module.structs) {
-            structs.mapAdd(struct.name, struct);
+            structs.mapAdd(struct.identifier, struct);
         }
         for (GlobalVariable global : module.globals) {
             globals.mapAdd(global.name, global.type);
@@ -264,17 +272,20 @@ public class TypeValidatorVisitor implements ExpressionVisitor<ConcreteType>, St
                     throw AnalysisException.cannotOverloadFunction();
                 }
             }
-            functions.mapAdd(function.name, function.type);
+            globals.mapAdd(function.name, PointerType.of(function.type));
+//            functions.mapAdd(function.name, function.type);
         }
         this.variables = new IdentifierMap<>(null);
         for (GlobalVariable global : module.globals) {
             AnalysisException.requireType(global.type, global.value.visit(this));
         }
         for (Function function : module.functions) {
+            System.out.println(function.name);
             if (function.isExtern()) continue;
             variables = new IdentifierMap<>(null);
             for (int i = 0; i < function.paramNames.size(); i++) {
-                variables.mapAdd(function.paramNames.get(i), function.type.params.get(i));
+                // local variables are single identifiers, vs creating globalaccess / refglobalaccess AST classes
+                variables.mapAdd(new Identifier(function.paramNames.get(i), false), function.type.params.get(i));
             }
             requireReturnType = function.type.result;
             visitBlock(function.body);
