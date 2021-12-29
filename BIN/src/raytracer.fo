@@ -22,38 +22,38 @@ extern fn c_randFloat() -> f32;
 
 f32 PI = 3.1415926536;
 
-i32 img_width = 500;
-i32 img_height = 500;
+i32 img_width = 10;
+i32 img_height = 10;
 i32 img_depth = 10;
 //i32 img_width = 300;
 //i32 img_height = 300;
 //i32 img_depth = 3;
 i32 sample_grid_size = 1;
 
-struct v3f col_white = new v3f { x: 1, y: 1, z: 1 };
-struct v3f col_orange = new v3f { x: 0.9, y: 0.3, z: 0 };
-struct v3f col_sky = new v3f { x: 0.15, y: 0.15, z: 0.25 };
+v3f col_white = v3f { x: 1, y: 1, z: 1 };
+v3f col_orange = v3f { x: 0.9, y: 0.3, z: 0 };
+v3f col_sky = v3f { x: 0.15, y: 0.15, z: 0.25 };
 
-struct material sphere1_material = new material { reflect: 0.5, color: col_white, emit: false };
-struct material sphere2_material = new material { reflect: 1, color: col_white, emit: false };
-struct material sphere3_material = new material { reflect: 0, color: v3f::mul(50, col_white), emit: true };
+material sphere1_material = material { reflect: 0.5, color: col_white, emit: false };
+material sphere2_material = material { reflect: 1f, color: col_white, emit: false };
+material sphere3_material = material { reflect: 0f, color: v3f::mul(50f, col_white), emit: true };
 
-struct material orange_plane_material = new material { reflect: 0, color: col_orange, emit: false };
+material orange_plane_material = material { reflect: 0, color: col_orange, emit: false };
 
-struct sphere obj_s1 = new sphere { p: new v3f { x: 3, y: 4, z: -5 }, r: 9, material: sphere1_material };
-struct sphere obj_s2 = new sphere { p: new v3f { x: -15, y: 4, z: -5 }, r: 6, material: sphere2_material };
-struct sphere obj_s3 = new sphere { p: new v3f { x: 0, y: 20, z: 0 }, r: 5, material: sphere3_material };
-struct plane  obj_p1 = new plane { p: new v3f { x: 0, y: 0, z: 0 }, n: new v3f { x: 0, y: 1, z: 0 }, material: orange_plane_material, dist: 1000, euclid: true};
+sphere obj_s1 = sphere { p: v3f { x: 3, y: 4, z: -5f }, r: 9, material: sphere1_material };
+sphere obj_s2 = sphere { p: v3f { x: -15f, y: 4, z: -5f }, r: 6, material: sphere2_material };
+sphere obj_s3 = sphere { p: v3f { x: 0, y: 20, z: 0f }, r: 5, material: sphere3_material };
+plane  obj_p1 = plane { p: v3f { x: 0, y: 0, z: 0 }, n: v3f { x: 0, y: 1, z: 0 }, material: orange_plane_material, dist: 1000, euclid: true};
 
-struct v3f camera_pos = new v3f { x: 5, y: 6, z: 15 };
-struct v3f camera_target = v3f::zero;
+v3f camera_pos = v3f { x: 5, y: 6, z: 15 };
+v3f camera_target = v3f::zero;
 
-struct v3f camera_up = new v3f { x: 0, y: 1, z: 0 };
-struct v3f camera_look = v3f::norm(v3f::sub(camera_target, camera_pos));
-struct v3f camera_left = v3f::cross(camera_up, camera_look);
+v3f camera_up = v3f { x: 0, y: 1, z: 0 };
+v3f camera_look = v3f::norm(v3f::sub(camera_target, camera_pos));
+v3f camera_left = v3f::cross(camera_up, camera_look);
 
-fn cast_ray(ray: struct ray) -> struct ray_hit {
-    final_hit = zeroinit(struct ray_hit);
+fn cast_ray(ray: ray) -> ray_hit {
+    final_hit = zeroinit(ray_hit);
 
     try_sphere_ray_hit(obj_s1, ray);
     try_sphere_ray_hit(obj_s2, ray);
@@ -68,76 +68,76 @@ fn cast_ray(ray: struct ray) -> struct ray_hit {
 
 struct material {
     f32 reflect;
-    struct v3f color;
+    v3f color;
     bool emit;
 }
 struct ray {
-    struct v3f x0;
-    struct v3f d; /* norm */
+    v3f x0;
+    v3f d; /* norm */
 }
 struct sphere {
-    struct v3f p;
+    v3f p;
     f32 r;
-    struct material material;
+    material material;
 }
 struct plane {
-    struct v3f p;
-    struct v3f n;
-    struct material material;
+    v3f p;
+    v3f n;
+    material material;
     f32 dist;
     bool euclid;
 }
 struct ray_hit {
     bool success;
     f32 dist;
-    struct v3f incoming_ray;
-    struct v3f hit_pos;
-    struct v3f normal;
-    struct material material;
+    v3f incoming_ray;
+    v3f hit_pos;
+    v3f normal;
+    material material;
 }
 
 fn try_quadratic_solve(a: f32, b: f32, c: f32, t0: f32*, t1: f32*) -> bool {
     f32 discr = b * b - 4f * a * c;
-    if discr < 0 { return false; }
+    if (discr < 0) { return false; }
     discr = math::sqrt(discr);
-    t0[0] = (-b - discr) / (2f * a);
-    t1[0] = (-b + discr) / (2f * a);
+    t0 = (-b - discr) / (2f * a);
+    t1 = (-b + discr) / (2f * a);
     return true;
 }
 
-struct ray_hit final_hit = zeroinit(struct ray_hit);
-fn try_sphere_ray_hit(sphere: struct sphere, ray: struct ray) {
-    struct v3f p = sphere.p;
+ray_hit final_hit = zeroinit(ray_hit);
+fn try_sphere_ray_hit(sphere: sphere, ray: ray) {
+    v3f p = sphere.p;
     f32 r = sphere.r;
-    struct v3f x0 = ray.x0;
-    struct v3f d = ray.d;
+    v3f x0 = ray.x0;
+    v3f d = ray.d;
 
-    struct v3f L = v3f::sub(x0, p);
+    v3f L = v3f::sub(x0, p);
 
     f32 a = v3f::dot(d, d);
     f32 b = v3f::dot(d, L) * 2;
     f32 c = v3f::dot(L, L) - r * r;
 
-    f32 t0 = (f32) 0;
-    f32 t1 = (f32) 0;
+    f32 t0 = 0;
+    f32 t1 = 0;
 
-    if !try_quadratic_solve(a, b, c, &t0, &t1) { return; }
+    if (!try_quadratic_solve(a, b, c, &t0, &t1)) { return; }
 
-    if t1 < t0 {
+    if (t1 < t0) {
         f32 temp = t0;
         t0 = t1;
         t1 = temp;
     }
-    if t0 < 0 {
+    if (t0 < 0) {
         t0 = t1;
     }
-    if t0 < 0 {
+    if (t0 < 0) {
         return;
     }
     f32 t = t0;
 
-    struct v3f hit_pos = v3f::add(x0, v3f::mul(t0, d));
-    final_hit = ray_hit_closest(final_hit, new ray_hit {
+    v3f hit_pos = v3f::add(x0, v3f::mul(t0, d));
+    final_hit = ray_hit_closest(final_hit, ray_hit {
         success: true,
         dist: t0,
         incoming_ray: d,
@@ -146,27 +146,27 @@ fn try_sphere_ray_hit(sphere: struct sphere, ray: struct ray) {
         material: sphere.material
     });
 }
-fn try_plane_ray_hit(plane: struct plane, ray: struct ray) {
-    struct v3f p = plane.p;
-    struct v3f n = plane.n;
-    struct v3f x0 = ray.x0;
-    struct v3f d = ray.d;
+fn try_plane_ray_hit(plane: plane, ray: ray) {
+    v3f p = plane.p;
+    v3f n = plane.n;
+    v3f x0 = ray.x0;
+    v3f d = ray.d;
 
     f32 div = v3f::dot(d, n);
-    if math::abs(div) < ((f32)1) / 1000 { return; }
+    if (math::abs(div) < 1f / 1000) { return; }
 
     f32 t = v3f::dot(v3f::sub(p, x0), n) / div;
-    if t < 0 { return; }
+    if (t < 0) { return; }
 
-    struct v3f hit_pos = v3f::add(x0, v3f::mul(t, d));
-    f32 dist = if plane.euclid { v3f::mag(v3f::sub(hit_pos, p)) } else {
+    v3f hit_pos = v3f::add(x0, v3f::mul(t, d));
+    f32 dist = if (plane.euclid) { v3f::mag(v3f::sub(hit_pos, p)) } else {
         math::abs(hit_pos.x - p.x) +
         math::abs(hit_pos.y - p.y) +
         math::abs(hit_pos.z - p.z)
     };
-    if dist > plane.dist { return; }
+    if (dist > plane.dist) { return; }
 
-    final_hit = ray_hit_closest(final_hit, new ray_hit {
+    final_hit = ray_hit_closest(final_hit, ray_hit {
         success: true,
         dist: t,
         incoming_ray: d,
@@ -176,22 +176,22 @@ fn try_plane_ray_hit(plane: struct plane, ray: struct ray) {
     });
 }
 
-fn ray_hit_closest(a: struct ray_hit, b: struct ray_hit) -> struct ray_hit {
-    if !a.success { return b; }
-    if !b.success { return a; }
-    if a.dist < b.dist { return a; }
+fn ray_hit_closest(a: ray_hit, b: ray_hit) -> ray_hit {
+    if (!a.success) { return b; }
+    if (!b.success) { return a; }
+    if (a.dist < b.dist) { return a; }
     else { return b; }
 }
 
-fn simple_eval_ray_hit(ray_hit: struct ray_hit) -> struct v3f {
-    if !ray_hit.success { return col_sky; }
+fn simple_eval_ray_hit(ray_hit: ray_hit) -> v3f {
+    if (!ray_hit.success) { return col_sky; }
     return ray_hit.material.color;
 }
 
-fn eval_ray_hit(ray_hit: struct ray_hit, depth: i32) -> struct v3f {
-    struct v3f base_color = simple_eval_ray_hit(ray_hit);
+fn eval_ray_hit(ray_hit: ray_hit, depth: i32) -> v3f {
+    v3f base_color = simple_eval_ray_hit(ray_hit);
 
-    if depth <= 1 || !ray_hit.success || ray_hit.material.emit {
+    if (depth <= 1 || !ray_hit.success || ray_hit.material.emit) {
         return base_color;
     }
 
@@ -202,29 +202,29 @@ fn eval_ray_hit(ray_hit: struct ray_hit, depth: i32) -> struct v3f {
     f32 y = c_randFloat() * 2 - 1;
     f32 z = c_randFloat() * 2 - 1;
     f32 d = math::sqrt(x*x+y*y+z*z);
-    while d > 1 || x*ray_hit.normal.x+y*ray_hit.normal.y+z*ray_hit.normal.z < 0 {
+    while (d > 1 || x*ray_hit.normal.x+y*ray_hit.normal.y+z*ray_hit.normal.z < 0) {
         x = c_randFloat() * 2 - 1;
         y = c_randFloat() * 2 - 1;
         z = c_randFloat() * 2 - 1;
         d = math::sqrt(x*x+y*y+z*z);
     }
-    struct v3f outgoing_ray_d = new v3f { x: x / d, y: y / d, z: z / d };
-    struct v3f refl = v3f::reflect(ray_hit.incoming_ray, ray_hit.normal);
+    v3f outgoing_ray_d = v3f { x: x / d, y: y / d, z: z / d };
+    v3f refl = v3f::reflect(ray_hit.incoming_ray, ray_hit.normal);
 
     outgoing_ray_d.x = math::lerp(outgoing_ray_d.x, refl.x, ray_hit.material.reflect);
     outgoing_ray_d.y = math::lerp(outgoing_ray_d.y, refl.y, ray_hit.material.reflect);
     outgoing_ray_d.z = math::lerp(outgoing_ray_d.z, refl.z, ray_hit.material.reflect);
 
-    struct ray outgoing_ray = new ray { x0: v3f::add(ray_hit.hit_pos, v3f::mul(1.0 / 1000, outgoing_ray_d)), d: outgoing_ray_d };
+    ray outgoing_ray = ray { x0: v3f::add(ray_hit.hit_pos, v3f::mul(1.0 / 1000, outgoing_ray_d)), d: outgoing_ray_d };
 //    if ray_hit.material.reflect == 1.0 {
 //        outgoing_ray.d = vreflect(ray_hit.incoming_ray, ray_hit.normal);
 //    }
-    struct ray_hit refl_hit = cast_ray(outgoing_ray);
+    ray_hit refl_hit = cast_ray(outgoing_ray);
 
-    struct v3f reflect_color = eval_ray_hit(refl_hit, depth - 1);
+    v3f reflect_color = eval_ray_hit(refl_hit, depth - 1);
     reflect_color = v3f::mul(v3f::dot(outgoing_ray_d, ray_hit.normal), reflect_color);
 
-    struct v3f color = new v3f {
+    v3f color = v3f {
         x: base_color.x * reflect_color.x,
         y: base_color.y * reflect_color.y,
         z: base_color.z * reflect_color.z
@@ -232,13 +232,13 @@ fn eval_ray_hit(ray_hit: struct ray_hit, depth: i32) -> struct v3f {
     return color;
 }
 
-fn get_color(x: f32, y: f32) -> struct v3f {
+fn get_color(x: f32, y: f32) -> v3f {
     f32 range = 1.5;
-    f32 fx = math::map(x, 0, img_width, -range, range);
-    f32 fy = math::map(y, 0, img_height, range, -range);
+    f32 fx = math::map(x, 0f, img_width as f32, -range, range);
+    f32 fy = math::map(y, 0f, img_height as f32, range, -range);
 
-    struct v3f x0 = camera_pos;
-    struct v3f d = new v3f { x: fx, y: fy, z: 1 }; // looking towards +z
+    v3f x0 = camera_pos;
+    v3f d = v3f { x: fx, y: fy, z: 1 }; // looking towards +z
     d = v3f::norm(d);
 
     d = v3f::add(
@@ -250,68 +250,72 @@ fn get_color(x: f32, y: f32) -> struct v3f {
     );
     d = v3f::norm(d);
 
-    struct ray ray = new ray { x0: x0, d: d };
+    ray ray = ray { x0: x0, d: d };
 
-    struct ray r = new ray { x0: x0, d: d };
-    struct ray_hit h = cast_ray(r);
-    struct v3f v = eval_ray_hit(h, img_depth);
+    ray r = ray { x0: x0, d: d };
+    ray_hit h = cast_ray(r);
+    v3f v = eval_ray_hit(h, img_depth);
     return v;
 }
-fn get_aa_color(x: f32, y: f32) -> struct v3f {
-    struct v3f sum = v3f::zero;
+fn get_aa_color(x: f32, y: f32) -> v3f {
+    v3f sum = v3f::zero;
     f32 count = 0.0;
     for(i32 i = 0; i < sample_grid_size; i = i + 1;) {
         for(i32 j = 0; j < sample_grid_size; j = j + 1;) {
-            f32 ox = math::map(i, 0, sample_grid_size, -0.5, 0.5);
-            f32 oy = math::map(j, 0, sample_grid_size, -0.5, 0.5);
+            f32 ox = math::map(i as f32, 0f, sample_grid_size as f32, -0.5, 0.5);
+            f32 oy = math::map(j as f32, 0f, sample_grid_size as f32, -0.5, 0.5);
             sum = v3f::add(sum, get_color(x + ox, y + oy));
             count = count + 1;
         }
     }
 
-    struct v3f v = v3f::mul(1f / count, sum);
+    v3f v = v3f::mul(1f / count, sum);
 
-    if v.x > 1 || v.y > 1 || v.z > 1 {
+    if (v.x > 1 || v.y > 1 || v.z > 1) {
         f32 largest = v.x;
-        if v.y > largest { largest = v.y; }
-        if v.z > largest { largest = v.z; }
+        if (v.y > largest) { largest = v.y; }
+        if (v.z > largest) { largest = v.z; }
         v = v3f::mul(1f / largest, v);
     }
     return v;
 }
 
-fn get_color_r(a: struct v3f) -> i32 { return (i32) (a.x * 256); }
-fn get_color_g(a: struct v3f) -> i32 { return (i32) (a.y * 256); }
-fn get_color_b(a: struct v3f) -> i32 { return (i32) (a.z * 256); }
+fn get_color_r(a: v3f) -> i32 { return (a.x * 256) as i32; }
+fn get_color_g(a: v3f) -> i32 { return (a.y * 256) as i32; }
+fn get_color_b(a: v3f) -> i32 { return (a.z * 256) as i32; }
 
 
 struct fo_file { i8* ptr; }
-fn fo_file_open(filename: i8*) -> struct fo_file { return new fo_file { ptr: fopen(filename, "w") }; }
-fn fo_file_close(file: struct fo_file) { fclose(file.ptr); }
-fn fo_file_append_str(file: struct fo_file, str: i8*) { c_fwrite_str(file.ptr, str); }
-fn fo_file_append_i32(file: struct fo_file, x: i32) { c_fwrite_i32(file.ptr, x); }
+fn fo_file_open(filename: i8*) -> fo_file { return fo_file { ptr: fopen(filename, "w") }; }
+fn fo_file_close(file: fo_file) { fclose(file.ptr); }
+fn fo_file_append_str(file: fo_file, str: i8*) { c_fwrite_str(file.ptr, str); }
+fn fo_file_append_i32(file: fo_file, x: i32) { c_fwrite_i32(file.ptr, x); }
 
 extern fn pp_v3f(x: f32, y: f32, z: f32);
 
 export("fo_run") fn run(argc: i32, argv: i8**) -> i32 {
-    i32* r_array = (i32*) malloc(sizeof(i32) * img_width * img_height);
-    i32* g_array = (i32*) malloc(sizeof(i32) * img_width * img_height);
-    i32* b_array = (i32*) malloc(sizeof(i32) * img_width * img_height);
+    i32* r_array = malloc(sizeof(i32) * img_width * img_height) as i32*;
+    i32* g_array = malloc(sizeof(i32) * img_width * img_height) as i32*;
+    i32* b_array = malloc(sizeof(i32) * img_width * img_height) as i32*;
+
+    printInt(5);
+    f32 asdl = 5.5;
+    printInt(asdl as i32);
 
     i32 i = 0;
     for(i32 y = 0; y < img_height; y = y + 1;) {
         for(i32 x = 0; x < img_width; x = x + 1;) {
-            struct v3f col = get_aa_color(x, y);
+            v3f col = get_aa_color(x as f32, y as f32);
             r_array[i] = get_color_r(col);
             g_array[i] = get_color_g(col);
             b_array[i] = get_color_b(col);
             i = i + 1;
         }
-        if y % 5 == 0 { printInt(y); }
+        if (y % 5 == 0) { printInt(y); }
     }
 
 
-    struct fo_file file = fo_file_open("output.ppm");
+    fo_file file = fo_file_open("output.ppm");
     fo_file_append_str(file, "P3\n");
     fo_file_append_i32(file, img_width);
     fo_file_append_str(file, " ");
@@ -330,13 +334,13 @@ export("fo_run") fn run(argc: i32, argv: i8**) -> i32 {
             fo_file_append_str(file, "\n");
             i = i + 1;
         }
-        if y % 200 == 0 { printInt(y); }
+        if (y % 200 == 0) { printInt(y); }
     }
     fo_file_close(file);
 
-    free((i8*) r_array);
-    free((i8*) g_array);
-    free((i8*) b_array);
+    free(r_array as i8*);
+    free(g_array as i8*);
+    free(b_array as i8*);
     return 0;
 }
 

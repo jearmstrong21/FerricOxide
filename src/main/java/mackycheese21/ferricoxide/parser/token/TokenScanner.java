@@ -54,4 +54,7 @@ public class TokenScanner {
         return s;
     }
 
+    public Span spanAtRel(int i) {
+        return data.get(index + i).span;
+    }
 }

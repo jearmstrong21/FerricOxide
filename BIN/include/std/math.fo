@@ -9,8 +9,8 @@ mod math {
 
     fn sqrt(x: f32) -> f32 { return c::sqrtf(x); }
     fn abs(x: f32) -> f32 { return c::fabsf(x); }
-    fn atan(x: f32) -> f32 { return (f32) c::atan((f64) x); }
-    fn atan2(y: f32, x: f32) -> f32 { return (f32) c::atan2((f64) y, (f64) x); }
+    fn atan(x: f32) -> f32 { return c::atan(x as f64) as f32; }
+    fn atan2(y: f32, x: f32) -> f32 { return c::atan2(y as f64, x as f64) as f32; }
 
     fn lerp(a: f32, b: f32, t: f32) -> f32 { return a + (b - a) * t; }
     fn norm(x: f32, a: f32, b: f32) -> f32 { return (x - a) / (b - a); }

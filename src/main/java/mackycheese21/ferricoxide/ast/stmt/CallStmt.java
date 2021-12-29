@@ -2,13 +2,14 @@ package mackycheese21.ferricoxide.ast.stmt;
 
 import mackycheese21.ferricoxide.ast.expr.CallExpr;
 import mackycheese21.ferricoxide.ast.visitor.StatementVisitor;
+import mackycheese21.ferricoxide.parser.token.Span;
 
 public class CallStmt extends Statement {
 
-    public final CallExpr callExpr;
+    public CallExpr callExpr;
 
-    public CallStmt(CallExpr callExpr) {
-        super(false);
+    public CallStmt(Span span, CallExpr callExpr) {
+        super(span, false);
         this.callExpr = callExpr;
     }
 

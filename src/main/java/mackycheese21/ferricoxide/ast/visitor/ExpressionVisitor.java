@@ -1,16 +1,27 @@
 package mackycheese21.ferricoxide.ast.visitor;
 
 import mackycheese21.ferricoxide.ast.expr.*;
+import mackycheese21.ferricoxide.ast.expr.unresolved.*;
 
 public interface ExpressionVisitor<T> {
 
+    T visitUnresolvedIntConstant(UnresolvedIntConstant unresolvedIntConstant);
+
+    T visitUnresolvedFloatConstant(UnresolvedFloatConstant unresolvedFloatConstant);
+
+    T visitUnresolvedAccessVar(UnresolvedAccessVar unresolvedAccessVar);
+
+    T visitUnresolvedAccessProperty(UnresolvedAccessProperty unresolvedAccessProperty);
+
     T visitAccessVar(AccessVar accessVar);
+
+    T visitAccessProperty(AccessProperty accessProperty);
 
     T visitIntConstant(IntConstant intConstant);
 
-    T visitUnaryExpr(UnaryExpr unaryExpr);
+    T visitUnary(Unary unary);
 
-    T visitBinaryExpr(BinaryExpr binaryExpr);
+    T visitBinary(Binary binary);
 
     T visitIfExpr(IfExpr ifExpr);
 
@@ -18,23 +29,13 @@ public interface ExpressionVisitor<T> {
 
     T visitCallExpr(CallExpr callExpr);
 
-    T visitAccessField(AccessField accessField);
-
-    T visitStructInit(StructInit structInit);
+    T visitUnresolvedStructInit(UnresolvedStructInit unresolvedStructInit);
 
     T visitPointerDeref(PointerDeref pointerDeref);
 
     T visitCastExpr(CastExpr castExpr);
 
-    T visitAccessIndex(AccessIndex accessIndex);
-
     T visitStringConstant(StringConstant stringConstant);
-
-    T visitRefAccessVar(RefAccessVar refAccessVar);
-
-    T visitRefAccessField(RefAccessField refAccessField);
-
-    T visitRefAccessIndex(RefAccessIndex refAccessIndex);
 
     T visitSizeOf(SizeOf sizeOf);
 
@@ -42,4 +43,7 @@ public interface ExpressionVisitor<T> {
 
     T visitFloatConstant(FloatConstant floatConstant);
 
+    T visitAggregateInit(AggregateInit aggregateInit);
+
+    T visitArrayIndex(ArrayIndex arrayIndex);
 }

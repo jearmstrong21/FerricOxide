@@ -1,13 +1,15 @@
 package mackycheese21.ferricoxide.ast.expr;
 
+import mackycheese21.ferricoxide.ast.visitor.ExpressionRequester;
 import mackycheese21.ferricoxide.ast.visitor.ExpressionVisitor;
+import mackycheese21.ferricoxide.parser.token.Span;
 
 public class StringConstant extends Expression {
 
     public final String value;
 
-    public StringConstant(String value) {
-        super(false);
+    public StringConstant(Span span, String value) {
+        super(span);
         this.value = value;
     }
 
@@ -35,4 +37,8 @@ public class StringConstant extends Expression {
                 .replace("\\t", "\t");
     }
 
+    @Override
+    public <T, U> T request(ExpressionRequester<T, U> requester, U request) {
+        return requester.visitStringConstant(request, this);
+    }
 }

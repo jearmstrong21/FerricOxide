@@ -2,13 +2,13 @@ package mackycheese21.ferricoxide.parser;
 
 import mackycheese21.ferricoxide.AnalysisException;
 import mackycheese21.ferricoxide.SourceCodeException;
+import mackycheese21.ferricoxide.ast.Identifier;
 import mackycheese21.ferricoxide.ast.expr.BinaryOperator;
 import mackycheese21.ferricoxide.ast.expr.CallExpr;
 import mackycheese21.ferricoxide.ast.expr.Expression;
 import mackycheese21.ferricoxide.ast.stmt.*;
-import mackycheese21.ferricoxide.ast.type.ConcreteType;
-import mackycheese21.ferricoxide.ast.type.FunctionType;
-import mackycheese21.ferricoxide.ast.type.PointerType;
+import mackycheese21.ferricoxide.ast.type.FOType;
+import mackycheese21.ferricoxide.parser.token.Span;
 import mackycheese21.ferricoxide.parser.token.Token;
 import mackycheese21.ferricoxide.parser.token.TokenScanner;
 import org.jetbrains.annotations.NotNull;
@@ -18,81 +18,9 @@ import java.util.List;
 
 public class StatementParser {
 
-    private static ConcreteType attemptTypeFirst(TokenScanner scanner) {
-        if (scanner.peek().is(Token.Keyword.FN)) {
-            TokenScanner s = scanner.copy();
-            s.next();
-            if (!s.hasNext(Token.Punctuation.L_PAREN)) return null;
-            scanner.index = s.index;
-            scanner.next();
-            List<ConcreteType> params = new ArrayList<>();
-            while (!scanner.peek().is(Token.Punctuation.R_PAREN)) {
-                if (params.size() > 0) scanner.next().mustBe(Token.Punctuation.COMMA);
-                params.add(forceType(scanner));
-            }
-            ConcreteType result;
-            scanner.next().mustBe(Token.Punctuation.R_PAREN);
-            if (scanner.peek().is(Token.Punctuation.ARROW)) {
-                scanner.next();
-                result = forceType(scanner);
-            } else {
-                result = ConcreteType.VOID;
-            }
-            return PointerType.of(FunctionType.of(result, params));
-        }
-        if (scanner.peek().is(Token.Keyword.I8)) {
-            scanner.next();
-            return ConcreteType.I8;
-        }
-        if (scanner.peek().is(Token.Keyword.I32)) {
-            scanner.next();
-            return ConcreteType.I32;
-        }
-        if (scanner.peek().is(Token.Keyword.I64)) {
-            scanner.next();
-            return ConcreteType.I64;
-        }
-        if (scanner.peek().is(Token.Keyword.F32)) {
-            scanner.next();
-            return ConcreteType.F32;
-        }
-        if (scanner.peek().is(Token.Keyword.F64)) {
-            scanner.next();
-            return ConcreteType.F64;
-        }
-        if (scanner.peek().is(Token.Keyword.BOOL)) {
-            scanner.next();
-            return ConcreteType.BOOL;
-        }
-        if (scanner.peek().is(Token.Keyword.VOID)) {
-            scanner.next();
-            return ConcreteType.VOID;
-        }
-        if (scanner.peek().is(Token.Keyword.STRUCT)) {
-            scanner.next();
-            return ModuleParser.forceTypeReference(scanner);
-        }
-        return null;
-    }
-
-    public static ConcreteType attemptType(TokenScanner scanner) {
-        ConcreteType type = attemptTypeFirst(scanner);
-        if (type == null) return null;
-        while (scanner.hasNext(Token.Punctuation.STAR)) {
-            scanner.next();
-            type = PointerType.of(type);
-        }
-        return type;
-    }
-
-    public static ConcreteType forceType(TokenScanner scanner) {
-        ConcreteType type = attemptType(scanner);
-        if (type == null) throw SourceCodeException.expectedType(scanner);
-        return type;
-    }
-
     private static Block attemptBlock(TokenScanner scanner) {
         if (!scanner.peek().is(Token.Punctuation.L_BRACKET)) return null;
+        Span start = scanner.spanAtRel(0);
         scanner.next();
         List<Statement> statements = new ArrayList<>();
         while (!scanner.peek().is(Token.Punctuation.R_BRACKET)) {
@@ -100,7 +28,8 @@ public class StatementParser {
         }
         scanner.next().mustBe(Token.Punctuation.R_BRACKET);
         if (scanner.hasNext() && scanner.peek().is(Token.Punctuation.SEMICOLON)) scanner.next();
-        return new Block(statements);
+        Span end = scanner.spanAtRel(-1);
+        return new Block(Span.concat(start, end), statements);
     }
 
     public static @NotNull Block forceBlock(TokenScanner scanner) {
@@ -111,63 +40,85 @@ public class StatementParser {
 
     private static Statement attemptIf(TokenScanner scanner) {
         if (!scanner.peek().is(Token.Keyword.IF)) return null;
+        Span start = scanner.spanAtRel(0);
         scanner.next();
-        Expression condition = ExpressionParser.parse(scanner, false);
+        scanner.next().mustBe(Token.Punctuation.L_PAREN);
+        Expression condition = ExpressionParser.EXPR.parse(scanner);
+        scanner.next().mustBe(Token.Punctuation.R_PAREN);
         Block then = forceBlock(scanner);
         if (scanner.hasNext() && scanner.peek().is(Token.Keyword.ELSE)) {
             scanner.next();
             Block otherwise = forceBlock(scanner);
             if (scanner.hasNext() && scanner.peek().is(Token.Punctuation.SEMICOLON)) scanner.next();
-            return new IfStmt(condition, then, otherwise);
+            Span end = scanner.spanAtRel(-1);
+            return new IfStmt(Span.concat(start, end), condition, then, otherwise);
         } else {
             if (scanner.hasNext() && scanner.peek().is(Token.Punctuation.SEMICOLON)) scanner.next();
-            return new IfStmt(condition, then, null);
+            Span end = scanner.spanAtRel(-1);
+            return new IfStmt(Span.concat(start, end), condition, then, null);
         }
     }
 
     private static Statement attemptReturn(TokenScanner scanner) {
         if (!scanner.peek().is(Token.Keyword.RETURN)) return null;
+        Span start = scanner.spanAtRel(0);
         scanner.next();
         if (scanner.peek().is(Token.Punctuation.SEMICOLON)) {
             scanner.next();
-            return new ReturnStmt(null);
+            Span end = scanner.spanAtRel(-1);
+            return new ReturnStmt(Span.concat(start, end), null);
         }
-        Expression expr = ExpressionParser.parse(scanner, false);
+        Expression expr = ExpressionParser.EXPR.parse(scanner);
         scanner.next().mustBe(Token.Punctuation.SEMICOLON);
-        return new ReturnStmt(expr);
+        Span end = scanner.spanAtRel(-1);
+        return new ReturnStmt(Span.concat(start, end), expr);
     }
 
     private static Statement attemptWhile(TokenScanner scanner) {
         if (!scanner.peek().is(Token.Keyword.WHILE)) return null;
+        Span start = scanner.spanAtRel(0);
         scanner.next();
-        Expression condition = ExpressionParser.parse(scanner, false);
+        scanner.next().mustBe(Token.Punctuation.L_PAREN);
+        Expression condition = ExpressionParser.EXPR.parse(scanner);
+        scanner.next().mustBe(Token.Punctuation.R_PAREN);
         Block body = forceBlock(scanner);
         if (scanner.hasNext() && scanner.peek().is(Token.Punctuation.SEMICOLON)) scanner.next();
-        return new WhileStmt(condition, body);
+        Span end = scanner.spanAtRel(-1);
+        return new WhileStmt(Span.concat(start, end), condition, body);
     }
 
     private static Statement attemptDeclareVar(TokenScanner scanner) {
-        ConcreteType type = attemptType(scanner);
+        TokenScanner s = scanner.copy();
+        Span start = s.spanAtRel(0);
+        FOType type = CommonParser.TYPE.parse(s);
         if (type == null) return null;
+        if(!s.hasNext(Token.Type.IDENTIFIER)) return null;
+        scanner.index = s.index;
         String name = scanner.next().identifier();
+        Span idSpan = scanner.spanAtRel(-1);
         scanner.next().mustBe(Token.Punctuation.EQ);
-        Expression value = ExpressionParser.parse(scanner, false);
+        Expression value = ExpressionParser.EXPR.parse(scanner);
         scanner.next().mustBe(Token.Punctuation.SEMICOLON);
-        return new DeclareVar(type, name, value);
+        Span end = scanner.spanAtRel(-1);
+        return new DeclareVar(Span.concat(start, end), type, new Identifier(idSpan, name), value);
     }
 
     private static Statement attemptCall(TokenScanner scanner) {
-        CallExpr callExpr = ExpressionParser.attemptCall(scanner);
-        if (callExpr == null) return null;
+        Expression expr = ExpressionParser.SIMPLE.parse(scanner);
+//        if (callExpr == null) return null;
         scanner.next().mustBe(Token.Punctuation.SEMICOLON);
-        return new CallStmt(callExpr);
+        Span end = scanner.spanAtRel(-1);
+        if (expr instanceof CallExpr callExpr) return new CallStmt(Span.concat(callExpr.span, end), callExpr);
+        // TODO: for loop doesnt require semicolon
+        throw new SourceCodeException("expected call", end);
     }
 
     private static Statement attemptAssign(TokenScanner scanner) {
         TokenScanner s = scanner.copy();
+        Span start = s.spanAtRel(0);
         Expression left;
         try {
-            left = ExpressionParser.parse(s, true);
+            left = ExpressionParser.EXPR.parse(s);
         } catch (AnalysisException e) {
             if (s.peek().is(Token.Punctuation.EQ)) throw e;
             return null;
@@ -175,22 +126,25 @@ public class StatementParser {
         if (!s.peek().is(Token.Punctuation.EQ)) return null;
         s.next();
         scanner.index = s.index;
-        Expression right = ExpressionParser.parse(scanner, false);
+        Expression right = ExpressionParser.EXPR.parse(scanner);
         scanner.next().mustBe(Token.Punctuation.SEMICOLON);
-        return new Assign(left, right, BinaryOperator.DISCARD_FIRST);
+        Span end = scanner.spanAtRel(-1);
+        return new Assign(Span.concat(start, end), left, right, BinaryOperator.DISCARD_FIRST);
     }
 
     private static Statement attemptFor(TokenScanner scanner) {
         if (!scanner.hasNext(Token.Keyword.FOR)) return null;
+        Span start = scanner.spanAtRel(0);
         scanner.next();
         scanner.next().mustBe(Token.Punctuation.L_PAREN);
         Statement init = parse(scanner);
-        Expression condition = ExpressionParser.parse(scanner, false);
+        Expression condition = ExpressionParser.EXPR.parse(scanner);
         scanner.next().mustBe(Token.Punctuation.SEMICOLON);
         Statement update = parse(scanner);
         scanner.next().mustBe(Token.Punctuation.R_PAREN);
         Block block = forceBlock(scanner);
-        return WhileStmt.forStmt(init, condition, update, block);
+        Span end = scanner.spanAtRel(-1);
+        return new ForStmt(Span.concat(start, end), init, condition, update, block);
     }
 
     private static Statement parse(TokenScanner scanner) {

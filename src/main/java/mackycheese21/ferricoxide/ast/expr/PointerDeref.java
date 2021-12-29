@@ -1,26 +1,25 @@
 package mackycheese21.ferricoxide.ast.expr;
 
+import mackycheese21.ferricoxide.ast.visitor.ExpressionRequester;
 import mackycheese21.ferricoxide.ast.visitor.ExpressionVisitor;
-import mackycheese21.ferricoxide.ast.visitor.StringifyVisitor;
+import mackycheese21.ferricoxide.parser.token.Span;
 
 public class PointerDeref extends Expression {
 
-    public final Expression deref;
+    public Expression deref;
 
-    public PointerDeref(Expression deref) {
-        super(false);
+    public PointerDeref(Span span, Expression deref) {
+        super(span);
         this.deref = deref;
-    }
-
-    @Override
-    public Expression makeLValue() {
-        System.out.println("makeLValue to " + deref.visit(new StringifyVisitor("")));
-        if (deref.lvalue) return deref;
-        else return deref.makeLValue();
     }
 
     @Override
     public <T> T visit(ExpressionVisitor<T> visitor) {
         return visitor.visitPointerDeref(this);
+    }
+
+    @Override
+    public <T, U> T request(ExpressionRequester<T, U> requester, U request) {
+        return requester.visitPointerDeref(request, this);
     }
 }

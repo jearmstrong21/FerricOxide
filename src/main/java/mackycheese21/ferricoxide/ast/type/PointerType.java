@@ -1,53 +1,20 @@
 package mackycheese21.ferricoxide.ast.type;
 
 import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.LinkedHashMap;
 
-import static org.bytedeco.llvm.global.LLVM.LLVMPointerType;
+public class PointerType extends FOType {
 
-public class PointerType extends ConcreteType {
+    public FOType to;
 
-    public final ConcreteType to;
-
-    private static final Map<ConcreteType, PointerType> registry = new HashMap<>();
-
-    public static PointerType of(ConcreteType to) {
-        if (registry.containsKey(to)) return registry.get(to);
-        registry.put(to, new PointerType(to));
-        return registry.get(to);
-    }
-
-    private static ConcreteType p(ConcreteType to) {
-        return to;
-    }
-
-    private PointerType(ConcreteType to) {
-        super(p(to).typeRef == null ? null : LLVMPointerType(to.typeRef, 0), false, true, to.name + "*");
+    public PointerType(FOType to) {
         this.to = to;
-    }
 
-    @Override
-    public String toString() {
-        return "Pointer[%s]".formatted(to);
+        this.longName = "ptr[%s]".formatted(to.longName);
+        this.explicitName = to.explicitName + "*";
+        this.identifier = null;
+        this.fields = new LinkedHashMap<>();
+        this.methods = new HashMap<>();
     }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        PointerType that = (PointerType) o;
-        return Objects.equals(to, that.to);
-    }
-
-//    @Override
-//    public int getFieldIndex(String fieldName) {
-//        return to.getFieldIndex(fieldName);
-//    }
-//
-//    @Override
-//    public ConcreteType getFieldType(String fieldName) {
-//        return to.getFieldType(fieldName);
-//    }
 
 }

@@ -16,11 +16,15 @@ void c_fwrite_i32(FILE* ptr, int x) {
     fprintf(ptr, "%d", x);
 }
 
-extern int fo_global_init();
+extern void fo_global_init();
 extern int fo_run(int argc, char** argv);
 
 void printInt(int x) {
     printf("FO says: %d\n", x);
+}
+
+void print_f32(float f) {
+    printf("FO says: %f\n", f);
 }
 
 void printPtr(void*x){
@@ -42,9 +46,6 @@ float c_randFloat() {
 
 int main(int argc, char** argv)
 {
-    if(fo_global_init() != 0) {
-        puts("FerricOxide runtime error: runtime global init failed");
-        return 1;
-    }
+    fo_global_init();
     return fo_run(argc, argv);
 }

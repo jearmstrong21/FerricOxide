@@ -1,25 +1,38 @@
 package mackycheese21.ferricoxide.ast;
 
+import mackycheese21.ferricoxide.parser.token.Span;
 import mackycheese21.ferricoxide.parser.token.Token;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class Identifier {
 
+    public final Span span;
     private final String[] strings;
-    public final boolean global;
+//    public final boolean global;
 
-    public Identifier(String[] strings, boolean global) {
+    public Identifier(Span span, String[] strings) {
+        this.span = span;
         this.strings = strings;
-        this.global = global;
+//        this.global = global;
         for (String str : strings) {
             validate(str);
         }
     }
 
-    public Identifier(String string, boolean global) {
-        this(new String[]{string}, global);
+    public Identifier(Span span, List<String> strings) {
+        this(span, strings.toArray(String[]::new));
+    }
+
+    public Identifier(Span span, String string) {
+        this(span, new String[]{string});
+    }
+
+    public Identifier removeLast() {
+        if(strings.length == 0) throw new UnsupportedOperationException();
+        return new Identifier(span, Arrays.copyOfRange(strings, 0, strings.length - 1));
     }
 
     private static void validate(String str) {
@@ -29,15 +42,17 @@ public class Identifier {
         }
     }
 
-    public static Identifier concat(boolean global, Identifier... identifiers) {
+    public static Identifier concat(Identifier... identifiers) {
         int len = 0;
         for (Identifier id : identifiers) len += id.strings.length;
         String[] strs = new String[len];
+        Span span = null;
         int i = 0;
         for (Identifier id : identifiers) {
             for (String s : id.strings) strs[i++] = s;
+            span = Span.concat(span, id.span);
         }
-        return new Identifier(strs, global);
+        return new Identifier(span, strs);
     }
 
     @Override

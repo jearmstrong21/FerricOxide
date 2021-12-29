@@ -7,35 +7,44 @@ import java.nio.file.Path;
 
 public class CodeScanner {
 
-    public static record Snapshot(int index, int lineNum, int posInLine, Path path, CodeScanner scanner) {
+    //    public static record Snapshot(int index, int lineNum, int posInLine, Path path, CodeScanner scanner) {
+//        public Span into() {
+//            return new Span(posInLine, lineNum, scanner.index - index, path);
+//        }
+//    }
+    public static record Snapshot(Span.Loc loc, Path file, CodeScanner scanner) {
         public Span into() {
-            return new Span(posInLine, lineNum, scanner.index - index, path);
+            return new Span(loc, scanner.loc(), file);
         }
     }
 
+    public Span.Loc loc() {
+        return new Span.Loc(posInLine, lineNum);
+    }
+
     public Snapshot snapshot() {
-        return new Snapshot(index, lineNum, posInLine, path, this);
+        return new Snapshot(loc(), file, this);
     }
 
     private int index;
     private int lineNum;
     private int posInLine;
-    private final Path path;
+    private final Path file;
     private final String data;
 
-    public CodeScanner(String data, Path path) {
+    public CodeScanner(String data, Path file) {
         index = 0;
         lineNum = 1;
         posInLine = 0;
         this.data = data;
-        this.path = path;
+        this.file = file;
     }
 
     public void copyFrom(CodeScanner other) {
         this.index = other.index;
         this.lineNum = other.lineNum;
         this.posInLine = other.posInLine;
-        if (!path.equals(other.path)) throw new RuntimeException("Cannot copy code scanner from different file");
+        if (!file.equals(other.file)) throw new RuntimeException("Cannot copy code scanner from different file");
     }
 
     public boolean hasNext() {
@@ -43,7 +52,8 @@ public class CodeScanner {
     }
 
     public Span latestChar() {
-        return new Span(posInLine, 1, lineNum, path);
+        return new Span(loc(), new Span.Loc(posInLine + 1, lineNum), file);
+//        return new Span(posInLine, 1, lineNum, file);
     }
 
     public AstOpt<Character> peek() {
@@ -83,7 +93,7 @@ public class CodeScanner {
     }
 
     public CodeScanner copy() {
-        CodeScanner codeScanner = new CodeScanner(data, path);
+        CodeScanner codeScanner = new CodeScanner(data, file);
         codeScanner.index = index;
         codeScanner.lineNum = lineNum;
         codeScanner.posInLine = posInLine;

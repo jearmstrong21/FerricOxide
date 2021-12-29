@@ -1,9 +1,12 @@
 package mackycheese21.ferricoxide.cli;
 
+import mackycheese21.ferricoxide.AnalysisException;
+import mackycheese21.ferricoxide.FOLLVM;
 import mackycheese21.ferricoxide.SourceCodeException;
 import mackycheese21.ferricoxide.ast.module.CompiledModule;
 import mackycheese21.ferricoxide.ast.module.FOModule;
-import mackycheese21.ferricoxide.ast.visitor.TypeValidatorVisitor;
+import mackycheese21.ferricoxide.ast.type.TypeRegistry;
+import mackycheese21.ferricoxide.compile.TypeValidatorVisitor;
 import mackycheese21.ferricoxide.compile.CompileModuleVisitor;
 import mackycheese21.ferricoxide.parser.ModuleParser;
 import mackycheese21.ferricoxide.parser.token.Token;
@@ -62,6 +65,9 @@ public class FerricOxide {
         String outFilename = cmd.getOptionValue(out);
         String mainFilename = cmd.getOptionValue(main);
 
+        FOLLVM.initialize();
+        TypeRegistry.init();
+
         System.out.println("0 Starting...");
         try {
             List<Token> tokens = Tokenizer.loadStr(mainFilename);
@@ -69,9 +75,6 @@ public class FerricOxide {
 
             FOModule module = ModuleParser.parse(new TokenScanner(tokens));
             System.out.println("2 FO parsed...");
-
-            module.resolve();
-            System.out.println("3 FO resolved...");
 
             new TypeValidatorVisitor().visit(module);
             System.out.println("4 Validated...");
@@ -83,8 +86,11 @@ public class FerricOxide {
             System.out.println("6 Dumped");
         } catch (SourceCodeException e) {
             System.out.println(e.span);
-            System.out.println(e.span.file);
-            System.out.printf("%d:%d [%d]\n", e.span.line, e.span.start, e.span.distance);
+            System.out.println(e.span.file());
+            e.printStackTrace();
+        } catch (AnalysisException e) {
+            System.out.println(e.span);
+            System.out.println(e.span.file());
             e.printStackTrace();
         }
     }

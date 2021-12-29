@@ -1,14 +1,11 @@
 package mackycheese21.ferricoxide.compile;
 
-import mackycheese21.ferricoxide.AnalysisException;
+import mackycheese21.ferricoxide.MapStack;
 import mackycheese21.ferricoxide.ast.Identifier;
-import mackycheese21.ferricoxide.ast.IdentifierMap;
 import mackycheese21.ferricoxide.ast.stmt.*;
-import mackycheese21.ferricoxide.ast.type.ConcreteType;
-import mackycheese21.ferricoxide.ast.type.PointerType;
+import mackycheese21.ferricoxide.ast.type.FOType;
 import mackycheese21.ferricoxide.ast.type.StructType;
 import mackycheese21.ferricoxide.ast.visitor.StatementVisitor;
-import mackycheese21.ferricoxide.ast.visitor.TypeValidatorVisitor;
 import org.bytedeco.llvm.LLVM.LLVMBasicBlockRef;
 import org.bytedeco.llvm.LLVM.LLVMBuilderRef;
 import org.bytedeco.llvm.LLVM.LLVMValueRef;
@@ -22,39 +19,38 @@ public class CompileStatementVisitor implements StatementVisitor<Void> {
     private final LLVMBuilderRef builder;
     private final LLVMValueRef currentFunction;
     public final Map<DeclareVar, LLVMValueRef> allVariableRefs;
-    private final IdentifierMap<ConcreteType> globalTypes;
-    private final IdentifierMap<LLVMValueRef> globalRefs;
-    public final IdentifierMap<ConcreteType> variableTypes;
-    public final IdentifierMap<LLVMValueRef> localVariableRefs;
+    public final MapStack<Identifier, FOType> variableTypes;
+    public final MapStack<Identifier, LLVMValueRef> localVariableRefs;
     private final CompileExpressionVisitor compileExpression;
-    private final TypeValidatorVisitor typeValidator;
 
     public CompileStatementVisitor(LLVMBuilderRef builder,
                                    LLVMValueRef currentFunction,
                                    Map<DeclareVar, LLVMValueRef> allVariableRefs,
-                                   IdentifierMap<ConcreteType> globalTypes,
-                                   IdentifierMap<LLVMValueRef> globalRefs,
-                                   Map<String, LLVMValueRef> strings,
-                                   IdentifierMap<StructType> structs) {
+                                   Map<Identifier, FOType> globalTypes,
+                                   Map<Identifier, LLVMValueRef> globalRefs,
+                                   Map<Identifier, LLVMValueRef> functionRefs) {
         this.builder = builder;
         this.currentFunction = currentFunction;
         this.allVariableRefs = allVariableRefs;
-        this.globalTypes = globalTypes;
-        this.globalRefs = globalRefs;
-        this.variableTypes = new IdentifierMap<>(null);
-        this.localVariableRefs = new IdentifierMap<>(null);
-        this.compileExpression = new CompileExpressionVisitor(builder, currentFunction, strings, globalTypes, globalRefs, structs, variableTypes, localVariableRefs);
-        this.typeValidator = new TypeValidatorVisitor(globalTypes, structs, variableTypes);
+        this.variableTypes = new MapStack<>();
+        this.localVariableRefs = new MapStack<>();
+        this.compileExpression = new CompileExpressionVisitor(
+                builder,
+                currentFunction,
+                globalTypes,
+                globalRefs,
+                functionRefs,
+                variableTypes,
+                localVariableRefs
+        );
+//        this.compileExpression = new CompileExpressionVisitor(builder, currentFunction, strings, globalTypes, globalRefs, structs, variableTypes, localVariableRefs);
+//        this.typeValidator = new TypeValidatorVisitor(globalTypes, structs, variableTypes);
     }
 
     @Override
     public Void visitAssign(Assign assign) {
-        if (assign.a.visit(typeValidator) instanceof PointerType pointer) {
-            LLVMBuildStore(builder, assign.b.visit(compileExpression), assign.a.visit(compileExpression));
-            return null;
-        } else {
-            throw new UnsupportedOperationException("wat");
-        }
+        LLVMBuildStore(builder, assign.b.visit(compileExpression), assign.a.visit(compileExpression));
+        return null;
     }
 
     @Override
@@ -112,18 +108,20 @@ public class CompileStatementVisitor implements StatementVisitor<Void> {
 
     @Override
     public Void visitDeclareVar(DeclareVar declareVar) {
-        if(!allVariableRefs.containsKey(declareVar)) throw AnalysisException.noSuchKey(new Identifier(declareVar.name, false));
-        LLVMBuildStore(builder, declareVar.value.visit(compileExpression), allVariableRefs.get(declareVar));
-        variableTypes.mapAdd(new Identifier(declareVar.name, false), declareVar.type);
-        localVariableRefs.mapAdd(new Identifier(declareVar.name, false), allVariableRefs.get(declareVar));
+        if (!allVariableRefs.containsKey(declareVar)) throw new UnsupportedOperationException();
+        LLVMValueRef valueRef = declareVar.value.visit(compileExpression);
+        LLVMValueRef ptr = allVariableRefs.get(declareVar);
+        LLVMBuildStore(builder, valueRef, ptr);
+        variableTypes.put(declareVar.name, declareVar.type);
+        localVariableRefs.put(declareVar.name, allVariableRefs.get(declareVar));
         return null;
     }
 
     @Override
     public Void visitWhileStmt(WhileStmt whileStmt) {
-        LLVMBasicBlockRef cond = LLVMAppendBasicBlock(currentFunction, "WhileStmt.cond");
-        LLVMBasicBlockRef start = LLVMAppendBasicBlock(currentFunction, "WhileStmt.start");
-        LLVMBasicBlockRef end = LLVMAppendBasicBlock(currentFunction, "WhileStmt.end");
+        LLVMBasicBlockRef cond = LLVMAppendBasicBlock(currentFunction, "cond");
+        LLVMBasicBlockRef start = LLVMAppendBasicBlock(currentFunction, "start");
+        LLVMBasicBlockRef end = LLVMAppendBasicBlock(currentFunction, "end");
 
         LLVMBuildBr(builder, cond);
 
@@ -132,7 +130,31 @@ public class CompileStatementVisitor implements StatementVisitor<Void> {
 
         LLVMPositionBuilderAtEnd(builder, start);
         visitBlock(whileStmt.body);
-        if(!whileStmt.body.terminal) LLVMBuildBr(builder, cond);
+        LLVMBuildBr(builder, cond);
+
+        // TODO loops and terminal bodies
+
+        LLVMPositionBuilderAtEnd(builder, end);
+        return null;
+    }
+
+    @Override
+    public Void visitForStmt(ForStmt forStmt) {
+        forStmt.init.visit(this);
+
+        LLVMBasicBlockRef cond = LLVMAppendBasicBlock(currentFunction, "cond");
+        LLVMBasicBlockRef start = LLVMAppendBasicBlock(currentFunction, "start");
+        LLVMBasicBlockRef end = LLVMAppendBasicBlock(currentFunction, "end");
+
+        LLVMBuildBr(builder, cond);
+
+        LLVMPositionBuilderAtEnd(builder, cond);
+        LLVMBuildCondBr(builder, forStmt.condition.visit(compileExpression), start, end);
+
+        LLVMPositionBuilderAtEnd(builder, start);
+        visitBlock(forStmt.body);
+        forStmt.update.visit(this);
+        LLVMBuildBr(builder, cond);
 
         LLVMPositionBuilderAtEnd(builder, end);
         return null;

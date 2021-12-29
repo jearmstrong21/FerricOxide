@@ -81,3 +81,12 @@ error handling so this is definitely not done at all, segfaults FTW
 parser and AST classes it took forever to add basic code span metadata
 and even then it doesn't work well or provide a "stack trace" for the
 syntax error
+
+
+**_E_**
+
+https://xkcd.com/2555/#
+
+https://www.smbc-comics.com/comic/econs
+
+https://questionablecontent.net/view.php?comic=4679#

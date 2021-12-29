@@ -1,16 +1,19 @@
 package mackycheese21.ferricoxide.ast.expr;
 
+import mackycheese21.ferricoxide.ast.visitor.ExpressionRequester;
 import mackycheese21.ferricoxide.ast.visitor.ExpressionVisitor;
+import mackycheese21.ferricoxide.parser.token.Span;
 
 import java.util.List;
 
 public class CallExpr extends Expression {
 
-    public final Expression function;
-    public final List<Expression> params;
+    public Expression function;
+    public List<Expression> params;
 
-    public CallExpr(Expression function, List<Expression> params) {
-        super(false);
+    public CallExpr(Span span, Expression function, List<Expression> params) {
+        super(span);
+
         this.function = function;
         this.params = params;
     }
@@ -18,5 +21,10 @@ public class CallExpr extends Expression {
     @Override
     public <T> T visit(ExpressionVisitor<T> visitor) {
         return visitor.visitCallExpr(this);
+    }
+
+    @Override
+    public <T, U> T request(ExpressionRequester<T, U> requester, U request) {
+        return requester.visitCallExpr(request, this);
     }
 }

@@ -4,6 +4,8 @@ import mackycheese21.ferricoxide.ast.stmt.*;
 
 public interface StatementVisitor<T> {
 
+    T visitForStmt(ForStmt forStmt);
+
     T visitAssign(Assign assign);
 
     T visitIfStmt(IfStmt ifStmt);

@@ -2,13 +2,14 @@ package mackycheese21.ferricoxide.ast.stmt;
 
 import mackycheese21.ferricoxide.ast.expr.Expression;
 import mackycheese21.ferricoxide.ast.visitor.StatementVisitor;
+import mackycheese21.ferricoxide.parser.token.Span;
 
 public class ReturnStmt extends Statement {
 
-    public final Expression value;
+    public Expression value;
 
-    public ReturnStmt(Expression value) {
-        super(true);
+    public ReturnStmt(Span span, Expression value) {
+        super(span, true);
         this.value = value;
     }
 

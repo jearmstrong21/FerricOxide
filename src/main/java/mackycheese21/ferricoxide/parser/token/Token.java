@@ -1,6 +1,7 @@
 package mackycheese21.ferricoxide.parser.token;
 
 import mackycheese21.ferricoxide.SourceCodeException;
+import mackycheese21.ferricoxide.parser.AlternativeSkipException;
 
 public class Token {
     private final String identifier;
@@ -38,6 +39,11 @@ public class Token {
 
     public static final String IDENTIFIER_START = ALPHABET + IDENTIFIER_PUNCTUATION;
     public static final String IDENTIFIER_REST = IDENTIFIER_START + DIGITS;
+
+    public String identifierOrSkip() {
+        if(type == Type.IDENTIFIER) return identifier;
+        throw new AlternativeSkipException();
+    }
 
     public enum Type {
         IDENTIFIER,
@@ -111,12 +117,14 @@ public class Token {
         PACKED("packed"),
         NEW("new"),
         MOD("mod"),
+        AS("as"),
 
         TRUE("true"),
         FALSE("false"),
 
         FN("fn"),
         I8("i8"),
+        I16("i16"),
         I32("i32"),
         I64("i64"),
         F32("f32"),
@@ -172,12 +180,12 @@ public class Token {
         return new Token(null, null, 0, 0, null, keyword, Type.KEYWORD, span);
     }
 
-    public String identifier() throws SourceCodeException {
+    public String identifier() {
         mustBe(Type.IDENTIFIER);
         return identifier;
     }
 
-    public String string() throws SourceCodeException {
+    public String string() {
         mustBe(Type.STRING);
         return string;
     }
@@ -200,6 +208,16 @@ public class Token {
     public Keyword keyword() {
         mustBe(Type.KEYWORD);
         return keyword;
+    }
+
+    public String stringOrSkip() {
+        if(type != Type.STRING) throw new AlternativeSkipException();
+        return string;
+    }
+
+    public Punctuation punctuationOrSkip() {
+        if (type != Type.PUNCTUATION) throw new AlternativeSkipException();
+        return punctuation;
     }
 
     public boolean is(Type... types) {
@@ -241,6 +259,19 @@ public class Token {
         if (!is(keywords)) {
             throw SourceCodeException.expectedToken(this, keywords);
         }
+    }
+
+    public void skipIfNot(Type... types) {
+        if (!is(types)) throw new AlternativeSkipException();
+    }
+
+    public Punctuation skipIfNot(Punctuation... punctuations) {
+        if (!is(punctuations)) throw new AlternativeSkipException();
+        return punctuation;
+    }
+
+    public void skipIfNot(Keyword... keywords) {
+        if (!is(keywords)) throw new AlternativeSkipException();
     }
 
     public String valueString() {

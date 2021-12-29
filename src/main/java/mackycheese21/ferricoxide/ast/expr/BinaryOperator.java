@@ -1,8 +1,10 @@
 package mackycheese21.ferricoxide.ast.expr;
 
 import mackycheese21.ferricoxide.AnalysisException;
-import mackycheese21.ferricoxide.ast.type.ConcreteType;
+import mackycheese21.ferricoxide.ast.type.FOType;
 import mackycheese21.ferricoxide.ast.type.PointerType;
+import mackycheese21.ferricoxide.ast.type.TypeRegistry;
+import mackycheese21.ferricoxide.parser.token.Span;
 import mackycheese21.ferricoxide.parser.token.Token;
 import org.bytedeco.llvm.LLVM.LLVMBuilderRef;
 import org.bytedeco.llvm.LLVM.LLVMValueRef;
@@ -44,173 +46,173 @@ public enum BinaryOperator {
         this.punctuation = punctuation;
     }
 
-    public ConcreteType getResult(ConcreteType operand) {
+    public FOType validate(Span span, FOType operand) {
         if (this == DISCARD_FIRST) return operand;
         switch (this) {
             case MUL -> {
-                if (operand == ConcreteType.I8) return ConcreteType.I8;
-                if (operand == ConcreteType.I32) return ConcreteType.I32;
-                if (operand == ConcreteType.F32) return ConcreteType.F32;
+                if (operand == FOType.I8) return FOType.I8;
+                if (operand == FOType.I32) return FOType.I32;
+                if (operand == FOType.F32) return FOType.F32;
             }
             case DIV -> {
-                if (operand == ConcreteType.I8) return ConcreteType.I8;
-                if (operand == ConcreteType.I32) return ConcreteType.I32;
-                if (operand == ConcreteType.F32) return ConcreteType.F32;
+                if (operand == FOType.I8) return FOType.I8;
+                if (operand == FOType.I32) return FOType.I32;
+                if (operand == FOType.F32) return FOType.F32;
             }
             case MOD -> {
-                if (operand == ConcreteType.I8) return ConcreteType.I8;
-                if (operand == ConcreteType.I32) return ConcreteType.I32;
+                if (operand == FOType.I8) return FOType.I8;
+                if (operand == FOType.I32) return FOType.I32;
             }
             case ADD -> {
-                if (operand == ConcreteType.I8) return ConcreteType.I8;
-                if (operand == ConcreteType.I32) return ConcreteType.I32;
-                if (operand == ConcreteType.F32) return ConcreteType.F32;
+                if (operand == FOType.I8) return FOType.I8;
+                if (operand == FOType.I32) return FOType.I32;
+                if (operand == FOType.F32) return FOType.F32;
             }
             case SUB -> {
-                if (operand == ConcreteType.I8) return ConcreteType.I8;
-                if (operand == ConcreteType.I32) return ConcreteType.I32;
-                if (operand == ConcreteType.F32) return ConcreteType.F32;
+                if (operand == FOType.I8) return FOType.I8;
+                if (operand == FOType.I32) return FOType.I32;
+                if (operand == FOType.F32) return FOType.F32;
             }
             case LE -> {
-                if (operand == ConcreteType.I8) return ConcreteType.BOOL;
-                if (operand == ConcreteType.I32) return ConcreteType.BOOL;
-                if (operand == ConcreteType.F32) return ConcreteType.BOOL;
+                if (operand == FOType.I8) return FOType.BOOL;
+                if (operand == FOType.I32) return FOType.BOOL;
+                if (operand == FOType.F32) return FOType.BOOL;
             }
             case LT -> {
-                if (operand == ConcreteType.I8) return ConcreteType.BOOL;
-                if (operand == ConcreteType.I32) return ConcreteType.BOOL;
-                if (operand == ConcreteType.F32) return ConcreteType.BOOL;
+                if (operand == FOType.I8) return FOType.BOOL;
+                if (operand == FOType.I32) return FOType.BOOL;
+                if (operand == FOType.F32) return FOType.BOOL;
             }
             case GE -> {
-                if (operand == ConcreteType.I8) return ConcreteType.BOOL;
-                if (operand == ConcreteType.I32) return ConcreteType.BOOL;
-                if (operand == ConcreteType.F32) return ConcreteType.BOOL;
+                if (operand == FOType.I8) return FOType.BOOL;
+                if (operand == FOType.I32) return FOType.BOOL;
+                if (operand == FOType.F32) return FOType.BOOL;
             }
             case GT -> {
-                if (operand == ConcreteType.I8) return ConcreteType.BOOL;
-                if (operand == ConcreteType.I32) return ConcreteType.BOOL;
-                if (operand == ConcreteType.F32) return ConcreteType.BOOL;
+                if (operand == FOType.I8) return FOType.BOOL;
+                if (operand == FOType.I32) return FOType.BOOL;
+                if (operand == FOType.F32) return FOType.BOOL;
             }
             case EQ -> {
-                if (operand == ConcreteType.I8) return ConcreteType.BOOL;
-                if (operand == ConcreteType.I32) return ConcreteType.BOOL;
-                if (operand instanceof PointerType) return ConcreteType.BOOL;
-                if (operand == ConcreteType.F32) return ConcreteType.BOOL;
+                if (operand == FOType.I8) return FOType.BOOL;
+                if (operand == FOType.I32) return FOType.BOOL;
+                if (operand instanceof PointerType) return FOType.BOOL;
+                if (operand == FOType.F32) return FOType.BOOL;
             }
             case NEQ -> {
-                if (operand == ConcreteType.I8) return ConcreteType.BOOL;
-                if (operand == ConcreteType.I32) return ConcreteType.BOOL;
-                if (operand instanceof PointerType) return ConcreteType.BOOL;
-                if (operand == ConcreteType.F32) return ConcreteType.BOOL;
+                if (operand == FOType.I8) return FOType.BOOL;
+                if (operand == FOType.I32) return FOType.BOOL;
+                if (operand instanceof PointerType) return FOType.BOOL;
+                if (operand == FOType.F32) return FOType.BOOL;
             }
             case BITWISE_AND -> {
-                if (operand == ConcreteType.I8) return ConcreteType.I8;
-                if (operand == ConcreteType.I32) return ConcreteType.I32;
+                if (operand == FOType.I8) return FOType.I8;
+                if (operand == FOType.I32) return FOType.I32;
             }
             case BITWISE_XOR -> {
-                if (operand == ConcreteType.I8) return ConcreteType.I8;
-                if (operand == ConcreteType.I32) return ConcreteType.I32;
+                if (operand == FOType.I8) return FOType.I8;
+                if (operand == FOType.I32) return FOType.I32;
             }
             case BITWISE_OR -> {
-                if (operand == ConcreteType.I8) return ConcreteType.I8;
-                if (operand == ConcreteType.I32) return ConcreteType.I32;
+                if (operand == FOType.I8) return FOType.I8;
+                if (operand == FOType.I32) return FOType.I32;
             }
             case LOGICAL_AND -> {
-                if(operand == ConcreteType.BOOL) return ConcreteType.BOOL;
+                if (operand == FOType.BOOL) return FOType.BOOL;
             }
             case LOGICAL_OR -> {
-                if(operand == ConcreteType.BOOL) return ConcreteType.BOOL;
+                if (operand == FOType.BOOL) return FOType.BOOL;
             }
         }
-        throw AnalysisException.cannotApplyBinaryOperator(this, operand);
+        throw new AnalysisException(span, "cannot apply binary operator %s to %s".formatted(this, operand));
     }
 
-    public LLVMValueRef compile(LLVMBuilderRef builder, LLVMValueRef a, LLVMValueRef b, ConcreteType operand) {
+    public LLVMValueRef compile(LLVMBuilderRef builder, LLVMValueRef a, LLVMValueRef b, FOType operand) {
         if (this == DISCARD_FIRST) return b;
         String name = toString().toLowerCase();
         switch (this) {
             case MUL -> {
-                if (operand == ConcreteType.I8) return LLVMBuildMul(builder, a, b, name);
-                if (operand == ConcreteType.I32) return LLVMBuildMul(builder, a, b, name);
-                if (operand == ConcreteType.F32) return LLVMBuildFMul(builder, a, b, name);
+                if (operand == FOType.I8) return LLVMBuildMul(builder, a, b, name);
+                if (operand == FOType.I32) return LLVMBuildMul(builder, a, b, name);
+                if (operand == FOType.F32) return LLVMBuildFMul(builder, a, b, name);
             }
             case DIV -> {
-                if (operand == ConcreteType.I8) return LLVMBuildSDiv(builder, a, b, name);
-                if (operand == ConcreteType.I32) return LLVMBuildSDiv(builder, a, b, name);
-                if (operand == ConcreteType.F32) return LLVMBuildFDiv(builder, a, b, name);
+                if (operand == FOType.I8) return LLVMBuildSDiv(builder, a, b, name);
+                if (operand == FOType.I32) return LLVMBuildSDiv(builder, a, b, name);
+                if (operand == FOType.F32) return LLVMBuildFDiv(builder, a, b, name);
             }
             case MOD -> {
-                if (operand == ConcreteType.I8) return LLVMBuildSRem(builder, a, b, name);
-                if (operand == ConcreteType.I32) return LLVMBuildSRem(builder, a, b, name);
+                if (operand == FOType.I8) return LLVMBuildSRem(builder, a, b, name);
+                if (operand == FOType.I32) return LLVMBuildSRem(builder, a, b, name);
             }
             case ADD -> {
-                if (operand == ConcreteType.I8) return LLVMBuildAdd(builder, a, b, name);
-                if (operand == ConcreteType.I32) return LLVMBuildAdd(builder, a, b, name);
-                if (operand == ConcreteType.F32) return LLVMBuildFAdd(builder, a, b, name);
+                if (operand == FOType.I8) return LLVMBuildAdd(builder, a, b, name);
+                if (operand == FOType.I32) return LLVMBuildAdd(builder, a, b, name);
+                if (operand == FOType.F32) return LLVMBuildFAdd(builder, a, b, name);
             }
             case SUB -> {
-                if (operand == ConcreteType.I8) return LLVMBuildSub(builder, a, b, name);
-                if (operand == ConcreteType.I32) return LLVMBuildSub(builder, a, b, name);
-                if (operand == ConcreteType.F32) return LLVMBuildFSub(builder, a, b, name);
+                if (operand == FOType.I8) return LLVMBuildSub(builder, a, b, name);
+                if (operand == FOType.I32) return LLVMBuildSub(builder, a, b, name);
+                if (operand == FOType.F32) return LLVMBuildFSub(builder, a, b, name);
             }
             case LE -> {
-                if (operand == ConcreteType.I8) return LLVMBuildICmp(builder, LLVMIntSLE, a, b, name);
-                if (operand == ConcreteType.I32) return LLVMBuildICmp(builder, LLVMIntSLE, a, b, name);
-                if (operand == ConcreteType.F32) return LLVMBuildFCmp(builder, LLVMRealOLE, a, b, name);
+                if (operand == FOType.I8) return LLVMBuildICmp(builder, LLVMIntSLE, a, b, name);
+                if (operand == FOType.I32) return LLVMBuildICmp(builder, LLVMIntSLE, a, b, name);
+                if (operand == FOType.F32) return LLVMBuildFCmp(builder, LLVMRealOLE, a, b, name);
             }
             case LT -> {
-                if (operand == ConcreteType.I8) return LLVMBuildICmp(builder, LLVMIntSLT, a, b, name);
-                if (operand == ConcreteType.I32) return LLVMBuildICmp(builder, LLVMIntSLT, a, b, name);
-                if (operand == ConcreteType.F32) return LLVMBuildFCmp(builder, LLVMRealOLT, a, b, name);
+                if (operand == FOType.I8) return LLVMBuildICmp(builder, LLVMIntSLT, a, b, name);
+                if (operand == FOType.I32) return LLVMBuildICmp(builder, LLVMIntSLT, a, b, name);
+                if (operand == FOType.F32) return LLVMBuildFCmp(builder, LLVMRealOLT, a, b, name);
             }
             case GE -> {
-                if (operand == ConcreteType.I8) return LLVMBuildICmp(builder, LLVMIntSGE, a, b, name);
-                if (operand == ConcreteType.I32) return LLVMBuildICmp(builder, LLVMIntSGE, a, b, name);
-                if (operand == ConcreteType.F32) return LLVMBuildFCmp(builder, LLVMRealOGE, a, b, name);
+                if (operand == FOType.I8) return LLVMBuildICmp(builder, LLVMIntSGE, a, b, name);
+                if (operand == FOType.I32) return LLVMBuildICmp(builder, LLVMIntSGE, a, b, name);
+                if (operand == FOType.F32) return LLVMBuildFCmp(builder, LLVMRealOGE, a, b, name);
             }
             case GT -> {
-                if (operand == ConcreteType.I8) return LLVMBuildICmp(builder, LLVMIntSGT, a, b, name);
-                if (operand == ConcreteType.I32) return LLVMBuildICmp(builder, LLVMIntSGT, a, b, name);
-                if (operand == ConcreteType.F32) return LLVMBuildFCmp(builder, LLVMRealOGT, a, b, name);
+                if (operand == FOType.I8) return LLVMBuildICmp(builder, LLVMIntSGT, a, b, name);
+                if (operand == FOType.I32) return LLVMBuildICmp(builder, LLVMIntSGT, a, b, name);
+                if (operand == FOType.F32) return LLVMBuildFCmp(builder, LLVMRealOGT, a, b, name);
             }
             case EQ -> {
-                if (operand == ConcreteType.I8) return LLVMBuildICmp(builder, LLVMIntEQ, a, b, name);
-                if (operand == ConcreteType.I32) return LLVMBuildICmp(builder, LLVMIntEQ, a, b, name);
+                if (operand == FOType.I8) return LLVMBuildICmp(builder, LLVMIntEQ, a, b, name);
+                if (operand == FOType.I32) return LLVMBuildICmp(builder, LLVMIntEQ, a, b, name);
                 if (operand instanceof PointerType) return LLVMBuildICmp(builder, LLVMIntEQ,
-                        LLVMBuildPtrToInt(builder, a, ConcreteType.I32.typeRef, name + ".CastA"),
-                        LLVMBuildPtrToInt(builder, b, ConcreteType.I32.typeRef, name + ".CastB"),
+                        LLVMBuildPtrToInt(builder, a, TypeRegistry.forceLookup(FOType.I32), name + ".CastA"),
+                        LLVMBuildPtrToInt(builder, b, TypeRegistry.forceLookup(FOType.I32), name + ".CastB"),
                         name);
-                if (operand == ConcreteType.F32) return LLVMBuildFCmp(builder, LLVMRealOEQ, a, b, name);
+                if (operand == FOType.F32) return LLVMBuildFCmp(builder, LLVMRealOEQ, a, b, name);
             }
             case NEQ -> {
-                if (operand == ConcreteType.I8) return LLVMBuildICmp(builder, LLVMIntNE, a, b, name);
-                if (operand == ConcreteType.I32) return LLVMBuildICmp(builder, LLVMIntNE, a, b, name);
+                if (operand == FOType.I8) return LLVMBuildICmp(builder, LLVMIntNE, a, b, name);
+                if (operand == FOType.I32) return LLVMBuildICmp(builder, LLVMIntNE, a, b, name);
                 if (operand instanceof PointerType) return LLVMBuildICmp(builder, LLVMIntNE,
-                        LLVMBuildPtrToInt(builder, a, ConcreteType.I32.typeRef, name + ".CastA"),
-                        LLVMBuildPtrToInt(builder, b, ConcreteType.I32.typeRef, name + ".CastB"),
+                        LLVMBuildPtrToInt(builder, a, TypeRegistry.forceLookup(FOType.I32), name + ".CastA"),
+                        LLVMBuildPtrToInt(builder, b, TypeRegistry.forceLookup(FOType.I32), name + ".CastB"),
                         name);
-                if (operand == ConcreteType.F32) return LLVMBuildFCmp(builder, LLVMRealONE, a, b, name);
+                if (operand == FOType.F32) return LLVMBuildFCmp(builder, LLVMRealONE, a, b, name);
             }
             case BITWISE_AND -> {
-                if (operand == ConcreteType.I8) return LLVMBuildAnd(builder, a, b, name);
-                if (operand == ConcreteType.I32) return LLVMBuildAnd(builder, a, b, name);
+                if (operand == FOType.I8) return LLVMBuildAnd(builder, a, b, name);
+                if (operand == FOType.I32) return LLVMBuildAnd(builder, a, b, name);
             }
             case BITWISE_XOR -> {
-                if (operand == ConcreteType.I8) return LLVMBuildXor(builder, a, b, name);
-                if (operand == ConcreteType.I32) return LLVMBuildXor(builder, a, b, name);
+                if (operand == FOType.I8) return LLVMBuildXor(builder, a, b, name);
+                if (operand == FOType.I32) return LLVMBuildXor(builder, a, b, name);
             }
             case BITWISE_OR -> {
-                if (operand == ConcreteType.I8) return LLVMBuildOr(builder, a, b, name);
-                if (operand == ConcreteType.I32) return LLVMBuildOr(builder, a, b, name);
+                if (operand == FOType.I8) return LLVMBuildOr(builder, a, b, name);
+                if (operand == FOType.I32) return LLVMBuildOr(builder, a, b, name);
             }
             case LOGICAL_AND -> {
-                if(operand == ConcreteType.BOOL) return LLVMBuildAnd(builder, a, b, name);
+                if (operand == FOType.BOOL) return LLVMBuildAnd(builder, a, b, name);
             }
             case LOGICAL_OR -> {
-                if(operand == ConcreteType.BOOL) return LLVMBuildOr(builder, a, b, name);
+                if (operand == FOType.BOOL) return LLVMBuildOr(builder, a, b, name);
             }
         }
-        throw AnalysisException.cannotApplyBinaryOperator(this, operand);
+        throw new AssertionError();
     }
 
 }

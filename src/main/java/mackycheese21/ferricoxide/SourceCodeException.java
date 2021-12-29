@@ -11,7 +11,7 @@ SourceCodeException extends RuntimeException {
 
     public final Span span;
 
-    private SourceCodeException(String message, Span span) {
+    public SourceCodeException(String message, Span span) {
         super(message);
         this.span = span;
     }

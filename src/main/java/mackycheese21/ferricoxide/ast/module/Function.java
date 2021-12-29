@@ -11,17 +11,19 @@ public class Function {
     public final Identifier name;
     public final boolean inline;
     public FunctionType type;
-    public final List<String> paramNames;
+    public final List<Identifier> paramNames;
     public final Block body;
     public final String llvmName;
+    public boolean implicitVoidReturn;
 
-    public Function(Identifier name, boolean inline, FunctionType type, List<String> paramNames, Block body, String llvmName) {
+    public Function(Identifier name, boolean inline, FunctionType type, List<Identifier> paramNames, Block body, String llvmName, boolean implicitVoidReturn) {
         this.name = name;
         this.inline = inline;
         this.type = type;
         this.paramNames = paramNames;
         this.body = body;
         this.llvmName = llvmName;
+        this.implicitVoidReturn = implicitVoidReturn;
     }
 
     public boolean isExtern() {

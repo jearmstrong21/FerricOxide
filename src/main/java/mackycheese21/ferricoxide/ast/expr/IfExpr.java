@@ -1,27 +1,30 @@
 package mackycheese21.ferricoxide.ast.expr;
 
+import mackycheese21.ferricoxide.ast.visitor.ExpressionRequester;
 import mackycheese21.ferricoxide.ast.visitor.ExpressionVisitor;
+import mackycheese21.ferricoxide.parser.token.Span;
 
 public class IfExpr extends Expression {
 
-    public final Expression condition;
-    public final Expression then;
-    public final Expression otherwise;
+    public Expression condition;
+    public Expression then;
+    public Expression otherwise;
 
-    public IfExpr(Expression condition, Expression then, Expression otherwise) {
-        super(then.lvalue && otherwise.lvalue);
+    public IfExpr(Span span, Expression condition, Expression then, Expression otherwise) {
+        super(span);
+
         this.condition = condition;
         this.then = then;
         this.otherwise = otherwise;
     }
 
     @Override
-    public Expression makeLValue() {
-        return new IfExpr(condition, then.makeLValue(), otherwise.makeLValue());
+    public <T> T visit(ExpressionVisitor<T> visitor) {
+        return visitor.visitIfExpr(this);
     }
 
     @Override
-    public <T> T visit(ExpressionVisitor<T> visitor) {
-        return visitor.visitIfExpr(this);
+    public <T, U> T request(ExpressionRequester<T, U> requester, U request) {
+        return requester.visitIfExpr(request, this);
     }
 }
