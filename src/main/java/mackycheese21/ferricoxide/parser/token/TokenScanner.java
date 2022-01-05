@@ -1,60 +1,58 @@
 package mackycheese21.ferricoxide.parser.token;
 
+import mackycheese21.ferricoxide.AnalysisException;
 import mackycheese21.ferricoxide.SourceCodeException;
 
 import java.util.List;
 
 public class TokenScanner {
 
-    private final List<Token> data;
-    public int index;
+    private final List<TokenTree> internal;
+    private int index;
 
-    public TokenScanner(List<Token> data) {
-        this.data = data;
+    public TokenScanner(List<TokenTree> internal) {
+        this.internal = internal;
+        index = 0;
     }
 
-    public boolean hasNext() {
-        return index < data.size();
+    public List<TokenTree> getInternal() {
+        return internal;
     }
 
-    public Token currentOrLast() {
-        if (hasNext()) return data.get(index);
-        else return data.get(data.size() - 1);
+    public void requireEmpty() {
+        if (remaining() > 0)
+            throw new SourceCodeException(internal.get(internal.size() - 1).span(), "expected end of group");
     }
 
-    public Token peek() {
-        if (index == data.size()) {
-            throw SourceCodeException.unexpectedEOF(data.get(data.size() - 1));
-        }
-        return data.get(index);
-    }
-
-    public boolean hasNext(Token.Type... types) {
-        return hasNext() && peek().is(types);
-    }
-
-    public boolean hasNext(Token.Punctuation... punctuations) {
-        return hasNext() && peek().is(punctuations);
-    }
-
-    public boolean hasNext(Token.Keyword... keywords) {
-        return hasNext() && peek().is(keywords);
-    }
-
-    public Token next() {
-        if (!hasNext()) {
-            throw SourceCodeException.unexpectedEOF(data.get(data.size() - 1));
-        }
-        return data.get(index++);
+    public Span lastConsumedSpan() {
+        return internal.get(index - 1).span();
     }
 
     public TokenScanner copy() {
-        TokenScanner s = new TokenScanner(data);
-        s.index = index;
-        return s;
+        TokenScanner tls = new TokenScanner(internal);
+        tls.index = index;
+        return tls;
     }
 
-    public Span spanAtRel(int i) {
-        return data.get(index + i).span;
+    public void from(TokenScanner tls) {
+        if (internal != tls.internal) throw new UnsupportedOperationException();
+        index = tls.index;
     }
+
+    public int remaining() {
+        return internal.size() - index;
+    }
+
+    public TokenTree peek() {
+        if (remaining() <= 0)
+            throw new AnalysisException(internal.get(internal.size() - 1).span(), "unexpected eof");
+        return internal.get(index);
+    }
+
+    public TokenTree next() {
+        TokenTree tt = peek();
+        index++;
+        return tt;
+    }
+
 }

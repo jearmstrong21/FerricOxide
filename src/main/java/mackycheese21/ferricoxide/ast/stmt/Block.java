@@ -3,7 +3,6 @@ package mackycheese21.ferricoxide.ast.stmt;
 import mackycheese21.ferricoxide.ast.visitor.StatementVisitor;
 import mackycheese21.ferricoxide.parser.token.Span;
 
-import java.util.Collections;
 import java.util.List;
 
 public class Block extends Statement {
@@ -16,8 +15,8 @@ public class Block extends Statement {
     }
 
     @Override
-    public <T> T visit(StatementVisitor<T> visitor) {
-        return visitor.visitBlock(this);
+    public <T> void visit(StatementVisitor<T> visitor) {
+        visitor.visitBlock(this);
     }
 
 }

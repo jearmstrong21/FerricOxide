@@ -4,7 +4,6 @@ import mackycheese21.ferricoxide.MapStack;
 import mackycheese21.ferricoxide.ast.Identifier;
 import mackycheese21.ferricoxide.ast.stmt.*;
 import mackycheese21.ferricoxide.ast.type.FOType;
-import mackycheese21.ferricoxide.ast.type.StructType;
 import mackycheese21.ferricoxide.ast.visitor.StatementVisitor;
 import org.bytedeco.llvm.LLVM.LLVMBasicBlockRef;
 import org.bytedeco.llvm.LLVM.LLVMBuilderRef;
@@ -43,8 +42,6 @@ public class CompileStatementVisitor implements StatementVisitor<Void> {
                 variableTypes,
                 localVariableRefs
         );
-//        this.compileExpression = new CompileExpressionVisitor(builder, currentFunction, strings, globalTypes, globalRefs, structs, variableTypes, localVariableRefs);
-//        this.typeValidator = new TypeValidatorVisitor(globalTypes, structs, variableTypes);
     }
 
     @Override

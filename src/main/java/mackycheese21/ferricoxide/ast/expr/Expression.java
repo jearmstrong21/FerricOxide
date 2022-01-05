@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 
 public abstract class Expression {
 
-    public final Span span;
+    public Span span;
     public FOType result;
 
     protected Expression(Span span) {
@@ -23,6 +23,7 @@ public abstract class Expression {
 
     public Expression result(FOType result) {
         this.result = result;
+        if(result == null) throw new UnsupportedOperationException();
         return this;
     }
 
@@ -40,12 +41,10 @@ public abstract class Expression {
     public final String toString() {
         List<Pair<String, String>> fields = new ArrayList<>();
         for (Field field : getClass().getDeclaredFields()) {
-            if (!field.getName().equals("result") && !field.getName().equals("span")) {
-                try {
-                    fields.add(new Pair<>(field.getName(), field.get(this).toString()));
-                } catch (IllegalAccessException e) {
-                    throw new RuntimeException(e);
-                }
+            try {
+                fields.add(new Pair<>(field.getName(), field.get(this).toString()));
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
             }
         }
         return "%s{%s}".formatted(
@@ -55,4 +54,12 @@ public abstract class Expression {
     }
 
 
+    public Expression implicitTo(FOType request) {
+        if (request == null) return this;
+        if (result == null) throw new UnsupportedOperationException();
+        if (CastOperator.validateImplicit(result, request)) {
+            return new CastExpr(span, request, this).result(request);
+        }
+        return this;
+    }
 }

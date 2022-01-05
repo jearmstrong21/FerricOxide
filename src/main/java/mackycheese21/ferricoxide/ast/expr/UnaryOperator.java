@@ -4,26 +4,24 @@ import mackycheese21.ferricoxide.AnalysisException;
 import mackycheese21.ferricoxide.ast.type.FOType;
 import mackycheese21.ferricoxide.ast.type.PointerType;
 import mackycheese21.ferricoxide.ast.type.TypeRegistry;
+import mackycheese21.ferricoxide.parser.token.PunctToken;
 import mackycheese21.ferricoxide.parser.token.Span;
-import mackycheese21.ferricoxide.parser.token.Token;
 import org.bytedeco.llvm.LLVM.LLVMBuilderRef;
 import org.bytedeco.llvm.LLVM.LLVMValueRef;
-
-import java.util.Locale;
 
 import static org.bytedeco.llvm.global.LLVM.*;
 
 public enum UnaryOperator {
 
-    NEGATE(true, Token.Punctuation.MINUS),
-    LOGICAL_NOT(false, Token.Punctuation.BANG),
-    BITWISE_NOT(false, Token.Punctuation.TILDE),
-    DEREF(false, Token.Punctuation.STAR);
+    NEGATE(true, PunctToken.Type.MINUS),
+    LOGICAL_NOT(false, PunctToken.Type.NOT),
+    BITWISE_NOT(false, PunctToken.Type.TILDE),
+    DEREF(false, PunctToken.Type.ASTERISK);
 
     public final boolean arith;
-    public final Token.Punctuation punctuation;
+    public final PunctToken.Type punctuation;
 
-    UnaryOperator(boolean arith, Token.Punctuation punctuation) {
+    UnaryOperator(boolean arith, PunctToken.Type punctuation) {
         this.arith = arith;
         this.punctuation = punctuation;
     }

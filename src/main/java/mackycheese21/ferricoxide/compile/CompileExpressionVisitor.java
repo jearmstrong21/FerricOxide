@@ -20,36 +20,13 @@ import java.util.stream.Collectors;
 
 import static org.bytedeco.llvm.global.LLVM.*;
 
-public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef> {
-
-    private final LLVMBuilderRef builder;
-    private final LLVMValueRef currentFunction;
-
-    private final Map<Identifier, FOType> globalTypes;
-    private final Map<Identifier, LLVMValueRef> globalRefs;
-
-    private final Map<Identifier, LLVMValueRef> functionRefs;
-
-    private final MapStack<Identifier, FOType> localTypes;
-    private final MapStack<Identifier, LLVMValueRef> localRefs;
-
-    public CompileExpressionVisitor(
-            LLVMBuilderRef builder,
-            LLVMValueRef currentFunction,
-            Map<Identifier, FOType> globalTypes,
-            Map<Identifier, LLVMValueRef> globalRefs,
-            Map<Identifier, LLVMValueRef> functionRefs,
-            MapStack<Identifier, FOType> localTypes,
-            MapStack<Identifier, LLVMValueRef> localRefs
-    ) {
-        this.builder = builder;
-        this.currentFunction = currentFunction;
-        this.globalTypes = globalTypes;
-        this.globalRefs = globalRefs;
-        this.functionRefs = functionRefs;
-        this.localTypes = localTypes;
-        this.localRefs = localRefs;
-    }
+public record CompileExpressionVisitor(LLVMBuilderRef builder,
+                                       LLVMValueRef currentFunction,
+                                       Map<Identifier, FOType> globalTypes,
+                                       Map<Identifier, LLVMValueRef> globalRefs,
+                                       Map<Identifier, LLVMValueRef> functionRefs,
+                                       MapStack<Identifier, FOType> localTypes,
+                                       MapStack<Identifier, LLVMValueRef> localRefs) implements ExpressionVisitor<LLVMValueRef> {
 
     @Override
     public LLVMValueRef visitUnresolvedIntConstant(UnresolvedIntConstant unresolvedIntConstant) {
@@ -101,9 +78,9 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
     public LLVMValueRef visitAccessProperty(AccessProperty accessProperty) {
         LLVMValueRef aggregate = accessProperty.aggregate.visit(this);
         FOType aggType = Utils.expectPointer(null, accessProperty.aggregate.result).to;
-        if (accessProperty.derefAggregate) {
-            throw new UnsupportedOperationException();
-        }
+//        if (accessProperty.derefAggregate) {
+//            throw new UnsupportedOperationException();
+//        }
 //            aggType = ((PointerType) aggType).to;
 //            aggregate = LLVMBuildLoad2(builder, TypeRegistry.forceLookup(aggType), aggregate, "load");
 //        }
@@ -197,7 +174,8 @@ public class CompileExpressionVisitor implements ExpressionVisitor<LLVMValueRef>
 
     @Override
     public LLVMValueRef visitStringConstant(StringConstant stringConstant) {
-        String s = StringConstant.unescape(stringConstant.value);
+        String s = stringConstant.value;
+//        System.out.println("unescaped str " + s);
         LLVMValueRef str = LLVMBuildGlobalString(builder, s, "str");
         return LLVMBuildInBoundsGEP2(builder, LLVMArrayType(LLVMInt8Type(), s.length()), str,
                 new PointerPointer<>(

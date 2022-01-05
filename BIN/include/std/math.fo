@@ -1,11 +1,16 @@
 mod math {
 
+    let PI: f32 = 3.14159265359
+
     mod c {
-        extern fn sqrtf(x: f32) -> f32;
-        extern fn fabsf(x: f32) -> f32;
-        extern fn atan(x: f64) -> f64;
-        extern fn atan2(y: f64, x: f64) -> f64;
+        extern fn sqrtf(x: f32) -> f32
+        extern fn fabsf(x: f32) -> f32
+        extern fn atan(x: f64) -> f64
+        extern fn atan2(y: f64, x: f64) -> f64
     }
+
+    extern fn cos(x: f32) -> f32
+    extern fn sin(x: f32) -> f32
 
     fn sqrt(x: f32) -> f32 { return c::sqrtf(x); }
     fn abs(x: f32) -> f32 { return c::fabsf(x); }

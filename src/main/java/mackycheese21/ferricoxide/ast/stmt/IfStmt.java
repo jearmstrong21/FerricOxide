@@ -18,7 +18,7 @@ public class IfStmt extends Statement {
     }
 
     @Override
-    public <T> T visit(StatementVisitor<T> visitor) {
-        return visitor.visitIfStmt(this);
+    public <T> void visit(StatementVisitor<T> visitor) {
+        visitor.visitIfStmt(this);
     }
 }

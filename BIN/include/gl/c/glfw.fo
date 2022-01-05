@@ -1,0 +1,22 @@
+// HANDWRITTEN
+mod gl {
+    mod c {
+        let GLFW_CONTEXT_VERSION_MAJOR: i32 = 0x00022002
+        let GLFW_CONTEXT_VERSION_MINOR: i32 = 0x00022003
+        let GLFW_OPENGL_FORWARD_COMPAT: i32 = 0x00022006
+        let GLFW_OPENGL_PROFILE: i32 = 0x00022008
+        let GLFW_OPENGL_CORE_PROFILE: i32 = 0x00032001
+
+        extern fn glfwGetProcAddress(name: void*) -> void*
+
+        extern fn glfwInit() -> i32
+        extern fn glfwTerminate()
+
+        extern fn glfwCreateWindow(width: i32, height: i32, title: i8*, monitor: void*, share: void*) -> void*
+        extern fn glfwWindowHint(hint: i32, value: i32)
+        extern fn glfwWindowShouldClose(window: void*) -> bool
+        extern fn glfwMakeContextCurrent(window: void*)
+        extern fn glfwSwapBuffers(window: void*)
+        extern fn glfwPollEvents()
+    }
+}

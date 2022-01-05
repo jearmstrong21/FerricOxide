@@ -1,6 +1,5 @@
 package mackycheese21.ferricoxide.parser;
 
-import mackycheese21.ferricoxide.AnalysisException;
 import mackycheese21.ferricoxide.SourceCodeException;
 import mackycheese21.ferricoxide.ast.Identifier;
 import mackycheese21.ferricoxide.ast.expr.Expression;
@@ -11,26 +10,14 @@ import mackycheese21.ferricoxide.ast.stmt.Block;
 import mackycheese21.ferricoxide.ast.type.FOType;
 import mackycheese21.ferricoxide.ast.type.FunctionType;
 import mackycheese21.ferricoxide.ast.type.StructType;
-import mackycheese21.ferricoxide.ast.type.UnresolvedType;
-import mackycheese21.ferricoxide.parser.token.Span;
-import mackycheese21.ferricoxide.parser.token.Token;
-import mackycheese21.ferricoxide.parser.token.TokenScanner;
+import mackycheese21.ferricoxide.parser.token.*;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class ModuleParser {
-    // TODO rewrite moduleparser and statementparser
-    private static Identifier currentModPath() {
-        return new Identifier(lastModTreeSpan(), modTree.toArray(new String[0]));
-    }
 
     private static final List<String> modTree = new ArrayList<>();
-    private static final List<Span> lastSpans = new ArrayList<>();
-
-    private static Span lastModTreeSpan() {
-        return lastSpans.get(lastSpans.size() - 1);
-    }
 
     // TODO: not public unless un-inline global = true
     private static Identifier makeId(Span span, List<String> name) {
@@ -45,56 +32,63 @@ public class ModuleParser {
     }
 
     private static Function forceFunction(TokenScanner scanner) {
-        boolean inline = scanner.peek().is(Token.Keyword.INLINE);
+        boolean inline = scanner.peek() instanceof IdentToken ident && ident.value.equals("inline");
         if (inline) scanner.next();
-        boolean extern = scanner.peek().is(Token.Keyword.EXTERN);
+//        boolean inline = false;
+
+
+        boolean extern = scanner.peek() instanceof IdentToken ident && ident.value.equals("extern");
         String llvmName = null;
         if (extern) {
             scanner.next();
-            if (scanner.peek().is(Token.Punctuation.L_PAREN)) {
+            if (scanner.peek() instanceof GroupToken group && group.type == GroupToken.Type.PAREN) {
                 scanner.next();
-                llvmName = scanner.next().string();
-                scanner.next().mustBe(Token.Punctuation.R_PAREN);
+                TokenScanner externScanner = new TokenScanner(group.value);
+                llvmName = externScanner.next().requireStringLiteral().value;
+                externScanner.requireEmpty();
             }
         }
-        boolean export = scanner.peek().is(Token.Keyword.EXPORT);
+
+//        boolean export = false;
+        boolean export = scanner.peek() instanceof IdentToken ident && ident.value.equals("export");
         if (extern && export) throw new RuntimeException();
         if (export) {
             scanner.next();
-            if (scanner.peek().is(Token.Punctuation.L_PAREN)) {
+            if (scanner.peek() instanceof GroupToken group && group.type == GroupToken.Type.PAREN) {
                 scanner.next();
-                llvmName = scanner.next().string();
-                scanner.next().mustBe(Token.Punctuation.R_PAREN);
+                TokenScanner exportScanner = new TokenScanner(group.value);
+                llvmName = exportScanner.next().requireStringLiteral().value;
+                exportScanner.requireEmpty();
             }
         }
-        scanner.next().mustBe(Token.Keyword.FN);
-//        ConcreteType result = StatementParser.forceType(scanner);
-        String name = scanner.next().identifier();
-        Span nameSpan = scanner.spanAtRel(-1);
+        if (!scanner.next().requireIdent().value.equals("fn"))
+            throw new SourceCodeException(scanner.lastConsumedSpan(), "expected fn");
+        String name = scanner.next().requireIdent().value;
+        Span nameSpan = scanner.lastConsumedSpan();
         if (llvmName == null && extern) { // if extern and unspecified name
             llvmName = name;
         }
-        scanner.next().mustBe(Token.Punctuation.L_PAREN);
+        TokenScanner paramScanner = new TokenScanner(scanner.next().requireGroup(GroupToken.Type.PAREN).value);
         List<Identifier> paramNames = new ArrayList<>();
         List<FOType> paramTypes = new ArrayList<>();
-        while (!scanner.peek().is(Token.Punctuation.R_PAREN)) {
-            if (paramTypes.size() > 0) scanner.next().mustBe(Token.Punctuation.COMMA);
-            String paramName = scanner.next().identifier();
-            Span paramNameSpan = scanner.spanAtRel(-1);
-            scanner.next().mustBe(Token.Punctuation.COLON);
-            FOType type = CommonParser.TYPE.parse(scanner);
+        while (paramScanner.remaining() > 0) {
+            if (paramTypes.size() > 0) paramScanner.next().requirePunct(PunctToken.Type.COMMA);
+            String paramName = paramScanner.next().requireIdent().value;
+            Span paramNameSpan = paramScanner.lastConsumedSpan();
+            paramScanner.next().requirePunct(PunctToken.Type.COLON);
+            FOType type = CommonParser.forceType(paramScanner);
             paramNames.add(new Identifier(paramNameSpan, paramName));
             paramTypes.add(type);
         }
-        scanner.next();
+        paramScanner.requireEmpty();
         FOType result;
-        if (scanner.peek().is(Token.Punctuation.ARROW)) {
+        if (scanner.remaining() > 0 && scanner.peek() instanceof PunctToken punct && punct.type == PunctToken.Type.R_ARROW) {
             scanner.next();
-            result = CommonParser.TYPE.parse(scanner);
+            result = CommonParser.forceType(scanner);
         } else {
             result = FOType.VOID;
         }
-        if(result == null) throw new SourceCodeException("expected return type", scanner.spanAtRel(-1));
+        if (result == null) throw new SourceCodeException(scanner.lastConsumedSpan(), "expected return type");
         FunctionType funcType = new FunctionType(result, paramTypes);
         Block body;
         if (extern) {
@@ -102,82 +96,74 @@ public class ModuleParser {
         } else {
             body = StatementParser.forceBlock(scanner);
         }
-        if (scanner.hasNext(Token.Punctuation.SEMICOLON)) scanner.next();
-        // this identifier is global because its the true canonical identifier, not local
-        // same for the attemptStruct makeId call
         return new Function(makeId(nameSpan, List.of(name)), inline, funcType, paramNames, body, llvmName, false);
     }
 
     public static StructType attemptStruct(TokenScanner scanner) {
-        TokenScanner s = scanner.copy();
-//        boolean packed = s.peek().is(Token.Keyword.PACKED);
-//        if (packed) s.next();
-        if (!s.peek().is(Token.Keyword.STRUCT)) return null;
-        s.next();
-        if (!s.peek().is(Token.Type.IDENTIFIER)) return null;
-        String name = s.next().identifier();
-        Span nameSpan = s.spanAtRel(-1);
-        List<String> fieldNames = new ArrayList<>();
-        List<FOType> fieldTypes = new ArrayList<>();
-
-        if (s.peek().is(Token.Punctuation.L_BRACKET)) {
-            scanner.index = s.index;
-            scanner.next().mustBe(Token.Punctuation.L_BRACKET);
-            while (!scanner.peek().is(Token.Punctuation.R_BRACKET)) {
-                fieldTypes.add(CommonParser.TYPE.parse(scanner));
-                fieldNames.add(scanner.next().identifier());
-                scanner.next().mustBe(Token.Punctuation.SEMICOLON);
-            }
+        if (scanner.peek() instanceof IdentToken ident && ident.value.equals("struct")) {
             scanner.next();
-            if (scanner.hasNext(Token.Punctuation.SEMICOLON)) scanner.next();
+            String name = scanner.next().requireIdent().value;
+            Span nameSpan = scanner.lastConsumedSpan();
+            List<String> fieldNames = new ArrayList<>();
+            List<FOType> fieldTypes = new ArrayList<>();
+
+            TokenScanner fieldScanner = new TokenScanner(scanner.next().requireGroup(GroupToken.Type.CURLY_BRACKET).value);
+            while (fieldScanner.remaining() > 0) {
+                if (fieldTypes.size() > 0) {
+                    fieldScanner.next().requirePunct(PunctToken.Type.COMMA);
+                }
+                fieldNames.add(fieldScanner.next().requireIdent().value);
+                fieldScanner.next().requirePunct(PunctToken.Type.COLON);
+                fieldTypes.add(CommonParser.forceType(fieldScanner));
+            }
+            fieldScanner.requireEmpty();
+
             return new StructType(makeId(nameSpan, List.of(name)), fieldNames, fieldTypes);
-        } else {
-            return null;
         }
+        return null;
     }
 
     private static GlobalVariable attemptGlobal(TokenScanner scanner) {
-        TokenScanner s = scanner.copy();
-        FOType type = CommonParser.TYPE.parse(s);
-        if (type == null) return null;
-        if (s.hasNext(Token.Type.IDENTIFIER)) {
-            String name = s.next().identifier();
-            Span nameSpan = s.spanAtRel(-1);
-            if (s.hasNext(Token.Punctuation.EQ)) {
-                s.next();
-                scanner.index = s.index;
-                Expression value = ExpressionParser.EXPR.parse(scanner);
-                scanner.next().mustBe(Token.Punctuation.SEMICOLON);
-                return new GlobalVariable(type, makeId(nameSpan, List.of(name)), value);
-            }
+        if (scanner.peek() instanceof IdentToken ident && ident.value.equals("let")) {
+            scanner.next();
+            String name = scanner.next().requireIdent().value;
+            Span nameSpan = scanner.lastConsumedSpan();
+            scanner.next().requirePunct(PunctToken.Type.COLON);
+            FOType type = CommonParser.forceType(scanner);
+            scanner.next().requirePunct(PunctToken.Type.EQ);
+            Expression value = ExpressionParser.forceExpr(scanner);
+//            scanner.next().requirePunct(PunctToken.Type.SEMICOLON);
+            return new GlobalVariable(type, makeId(nameSpan, List.of(name)), value);
         }
         return null;
     }
 
     private static void parseInto(TokenScanner scanner, FOModule module) {
-        while (scanner.hasNext() && !scanner.hasNext(Token.Punctuation.R_BRACKET)) {
-            if (scanner.hasNext(Token.Keyword.MOD)) {
+        while (scanner.remaining() > 0) {
+            if (scanner.peek() instanceof IdentToken ident && ident.value.equals("mod")) {
                 scanner.next();
-                String name = scanner.next().identifier();
-                scanner.next().mustBe(Token.Punctuation.L_BRACKET);
+                String name = scanner.next().requireIdent().value;
+
                 modTree.add(name);
-                parseInto(scanner, module);
+                TokenScanner innerScanner = new TokenScanner(scanner.next().requireGroup(GroupToken.Type.CURLY_BRACKET).value);
+                parseInto(innerScanner, module);
+                innerScanner.requireEmpty();
                 modTree.remove(modTree.size() - 1);
-                scanner.next().mustBe(Token.Punctuation.R_BRACKET);
+
             } else {
                 GlobalVariable global = attemptGlobal(scanner);
                 if (global != null) {
-                    module.globals.add(global);
+                    module.globals().add(global);
                     continue;
                 }
 
                 StructType struct = attemptStruct(scanner);
                 if (struct != null) {
-                    module.structs.add(struct);
+                    module.structs().add(struct);
                     continue;
                 }
 
-                module.functions.add(forceFunction(scanner));
+                module.functions().add(forceFunction(scanner));
             }
         }
     }
@@ -189,29 +175,6 @@ public class ModuleParser {
         FOModule module = new FOModule(globals, structs, functions);
         parseInto(scanner, module);
         return module;
-    }
-
-    public static UnresolvedType attemptTypeReference(TokenScanner scanner) {
-        if (!scanner.hasNext(Token.Type.IDENTIFIER) && !scanner.hasNext(Token.Punctuation.DOUBLE_COLON)) return null;
-        Span start = scanner.spanAtRel(0);
-        boolean global = false;
-        if (scanner.hasNext(Token.Punctuation.DOUBLE_COLON)) {
-            scanner.next();
-            global = true;
-        }
-        List<String> id = new ArrayList<>();
-        id.add(scanner.next().identifier());
-        while (scanner.hasNext(Token.Punctuation.DOUBLE_COLON)) {
-            scanner.next();
-            id.add(scanner.next().identifier());
-        }
-        Span end = scanner.spanAtRel(-1);
-        Span span = Span.concat(start, end);
-        if (global) {
-            return new UnresolvedType(new Identifier(span, id));
-        } else {
-            return new UnresolvedType(makeId(Span.concat(start, end), id));
-        }
     }
 
 }

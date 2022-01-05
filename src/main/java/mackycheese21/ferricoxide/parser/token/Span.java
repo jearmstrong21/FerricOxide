@@ -29,8 +29,8 @@ public record Span(Loc start, Loc end, Path file) {
     }
 
     public static Span concat(Span a, Span b) {
-        if(a == null) return b;
-        if(b == null) return a;
+        if (a == null) return b;
+        if (b == null) return a;
         if (!a.file.equals(b.file)) throw new UnsupportedOperationException();
         Loc ns = Loc.min(a.start, b.start);
         Loc ne = Loc.min(a.end, b.end);

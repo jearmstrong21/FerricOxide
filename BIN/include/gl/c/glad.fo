@@ -1,0 +1,5 @@
+mod gl {
+    mod c {
+        extern fn gladLoadGLLoader(proc: void*) -> i32
+    }
+}

@@ -13,6 +13,6 @@ public abstract class Statement {
         this.terminal = terminal;
     }
 
-    public abstract <T> T visit(StatementVisitor<T> visitor);
+    public abstract <T> void visit(StatementVisitor<T> visitor);
 
 }

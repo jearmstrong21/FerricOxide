@@ -13,13 +13,19 @@ public class AccessVar extends Expression {
     }
 
     public enum Type {
-        /** variable, global namespace */
+        /**
+         * variable, global namespace
+         */
         GLOBAL,
 
-        /** function, global namespace */
+        /**
+         * function, global namespace
+         */
         FUNCTION,
 
-        /** local, no namespace / parameter-level */
+        /**
+         * local, no namespace / parameter-level
+         */
         LOCAL
     }
 

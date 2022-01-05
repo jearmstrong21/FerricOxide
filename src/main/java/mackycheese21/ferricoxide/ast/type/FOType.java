@@ -10,27 +10,19 @@ import java.util.Objects;
 
 public class FOType {
 
-    public static class Access {
+    public record Access(int integer, String string, FOType.Access.Type type) {
         public enum Type {
             INTEGER,
             STRING
         }
 
-        private final int integer;
-        private final String string;
-        public final Type type;
-
-        private Access(int integer, String string, Type type) {
-            this.integer = integer;
-            this.string = string;
-            this.type = type;
-        }
-
+        @Override
         public int integer() {
             if (type != Type.INTEGER) throw new UnsupportedOperationException();
             return integer;
         }
 
+        @Override
         public String string() {
             if (type != Type.STRING) throw new UnsupportedOperationException();
             return string;
@@ -46,7 +38,7 @@ public class FOType {
 
         @Override
         public String toString() {
-            if(type == Type.INTEGER) return "" + integer;
+            if (type == Type.INTEGER) return "" + integer;
             else return string;
         }
 
@@ -73,11 +65,12 @@ public class FOType {
     public int integerWidth; // optin
     public boolean floatType; // optin
     public int floatWidth; // optin
+    public boolean pointerType; // optin
 
     public int indexOf(Access access) {
         int i = 0;
-        for(Access a : fields.keySet()) {
-            if(a.equals(access)) return i;
+        for (Access a : fields.keySet()) {
+            if (a.equals(access)) return i;
             i++;
         }
         return -1;

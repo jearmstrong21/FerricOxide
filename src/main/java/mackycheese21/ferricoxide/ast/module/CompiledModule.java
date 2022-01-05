@@ -7,13 +7,7 @@ import org.bytedeco.llvm.LLVM.LLVMTargetRef;
 
 import static org.bytedeco.llvm.global.LLVM.*;
 
-public class CompiledModule {
-
-    private final LLVMModuleRef module;
-
-    public CompiledModule(LLVMModuleRef module) {
-        this.module = module;
-    }
+public record CompiledModule(LLVMModuleRef module) {
 
     public void outputX86(String assembly, String bin) {
         BytePointer error = new BytePointer();

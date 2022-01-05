@@ -4,8 +4,6 @@ import mackycheese21.ferricoxide.ast.expr.Expression;
 import mackycheese21.ferricoxide.ast.visitor.StatementVisitor;
 import mackycheese21.ferricoxide.parser.token.Span;
 
-import java.util.List;
-
 public class WhileStmt extends Statement {
 
     public Expression condition;
@@ -18,7 +16,7 @@ public class WhileStmt extends Statement {
     }
 
     @Override
-    public <T> T visit(StatementVisitor<T> visitor) {
-        return visitor.visitWhileStmt(this);
+    public <T> void visit(StatementVisitor<T> visitor) {
+        visitor.visitWhileStmt(this);
     }
 }

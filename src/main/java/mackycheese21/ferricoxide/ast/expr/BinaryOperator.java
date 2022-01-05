@@ -4,46 +4,46 @@ import mackycheese21.ferricoxide.AnalysisException;
 import mackycheese21.ferricoxide.ast.type.FOType;
 import mackycheese21.ferricoxide.ast.type.PointerType;
 import mackycheese21.ferricoxide.ast.type.TypeRegistry;
+import mackycheese21.ferricoxide.parser.token.PunctToken;
 import mackycheese21.ferricoxide.parser.token.Span;
-import mackycheese21.ferricoxide.parser.token.Token;
 import org.bytedeco.llvm.LLVM.LLVMBuilderRef;
 import org.bytedeco.llvm.LLVM.LLVMValueRef;
 
 import static org.bytedeco.llvm.global.LLVM.*;
 
 public enum BinaryOperator {
-    MUL(140, true, Token.Punctuation.STAR),
-    DIV(130, true, Token.Punctuation.SLASH),
-    MOD(125, true, Token.Punctuation.PERCENT),
+    MUL(140, true, PunctToken.Type.ASTERISK),
+    DIV(130, true, PunctToken.Type.SLASH),
+    MOD(125, true, PunctToken.Type.PERCENT),
 
-    ADD(120, true, Token.Punctuation.PLUS),
-    SUB(110, true, Token.Punctuation.MINUS),
+    ADD(120, true, PunctToken.Type.PLUS),
+    SUB(110, true, PunctToken.Type.MINUS),
 
-    LE(100, false, Token.Punctuation.LE),
-    LT(90, false, Token.Punctuation.LT),
-    GE(80, false, Token.Punctuation.GE),
-    GT(70, false, Token.Punctuation.GT),
+    LE(100, false, PunctToken.Type.LT_EQ),
+    LT(90, false, PunctToken.Type.LT),
+    GE(80, false, PunctToken.Type.GT_EQ),
+    GT(70, false, PunctToken.Type.GT),
 
-    EQ(60, false, Token.Punctuation.EQEQ),
-    NEQ(50, false, Token.Punctuation.NEQ),
+    EQ(60, false, PunctToken.Type.EQEQ),
+    NEQ(50, false, PunctToken.Type.NOTEQ),
 
-    BITWISE_AND(40, true, Token.Punctuation.AND),
-    BITWISE_XOR(30, true, Token.Punctuation.XOR),
-    BITWISE_OR(20, true, Token.Punctuation.OR),
+    BITWISE_AND(40, true, PunctToken.Type.AND),
+    BITWISE_XOR(30, true, PunctToken.Type.XOR),
+    BITWISE_OR(20, true, PunctToken.Type.OR),
 
-    LOGICAL_AND(10, false, Token.Punctuation.ANDAND),
-    LOGICAL_OR(0, false, Token.Punctuation.OROR),
+    LOGICAL_AND(10, false, PunctToken.Type.ANDAND),
+    LOGICAL_OR(0, false, PunctToken.Type.OROR),
 
-    DISCARD_FIRST(-1, false, Token.Punctuation.EQ);
+    DISCARD_FIRST(-1, false, PunctToken.Type.EQ);
 
     public final int priority;
     public final boolean arith;
-    public final Token.Punctuation punctuation;
+    public final PunctToken.Type punctType;
 
-    BinaryOperator(int priority, boolean arith, Token.Punctuation punctuation) {
+    BinaryOperator(int priority, boolean arith, PunctToken.Type punctType) {
         this.priority = priority;
         this.arith = arith;
-        this.punctuation = punctuation;
+        this.punctType = punctType;
     }
 
     public FOType validate(Span span, FOType operand) {
@@ -73,54 +73,22 @@ public enum BinaryOperator {
                 if (operand == FOType.I32) return FOType.I32;
                 if (operand == FOType.F32) return FOType.F32;
             }
-            case LE -> {
+            case LE, GE, LT, GT -> {
                 if (operand == FOType.I8) return FOType.BOOL;
                 if (operand == FOType.I32) return FOType.BOOL;
                 if (operand == FOType.F32) return FOType.BOOL;
             }
-            case LT -> {
-                if (operand == FOType.I8) return FOType.BOOL;
-                if (operand == FOType.I32) return FOType.BOOL;
-                if (operand == FOType.F32) return FOType.BOOL;
-            }
-            case GE -> {
-                if (operand == FOType.I8) return FOType.BOOL;
-                if (operand == FOType.I32) return FOType.BOOL;
-                if (operand == FOType.F32) return FOType.BOOL;
-            }
-            case GT -> {
-                if (operand == FOType.I8) return FOType.BOOL;
-                if (operand == FOType.I32) return FOType.BOOL;
-                if (operand == FOType.F32) return FOType.BOOL;
-            }
-            case EQ -> {
+            case EQ, NEQ -> {
                 if (operand == FOType.I8) return FOType.BOOL;
                 if (operand == FOType.I32) return FOType.BOOL;
                 if (operand instanceof PointerType) return FOType.BOOL;
                 if (operand == FOType.F32) return FOType.BOOL;
             }
-            case NEQ -> {
-                if (operand == FOType.I8) return FOType.BOOL;
-                if (operand == FOType.I32) return FOType.BOOL;
-                if (operand instanceof PointerType) return FOType.BOOL;
-                if (operand == FOType.F32) return FOType.BOOL;
-            }
-            case BITWISE_AND -> {
+            case BITWISE_AND, BITWISE_XOR, BITWISE_OR -> {
                 if (operand == FOType.I8) return FOType.I8;
                 if (operand == FOType.I32) return FOType.I32;
             }
-            case BITWISE_XOR -> {
-                if (operand == FOType.I8) return FOType.I8;
-                if (operand == FOType.I32) return FOType.I32;
-            }
-            case BITWISE_OR -> {
-                if (operand == FOType.I8) return FOType.I8;
-                if (operand == FOType.I32) return FOType.I32;
-            }
-            case LOGICAL_AND -> {
-                if (operand == FOType.BOOL) return FOType.BOOL;
-            }
-            case LOGICAL_OR -> {
+            case LOGICAL_AND, LOGICAL_OR -> {
                 if (operand == FOType.BOOL) return FOType.BOOL;
             }
         }

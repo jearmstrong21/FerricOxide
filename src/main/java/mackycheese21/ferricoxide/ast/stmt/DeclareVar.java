@@ -20,7 +20,7 @@ public class DeclareVar extends Statement {
     }
 
     @Override
-    public <T> T visit(StatementVisitor<T> visitor) {
-        return visitor.visitDeclareVar(this);
+    public <T> void visit(StatementVisitor<T> visitor) {
+        visitor.visitDeclareVar(this);
     }
 }

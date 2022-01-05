@@ -12,7 +12,7 @@ public class IntConstant extends Expression {
 
     public IntConstant(Span span, FOType type, long value) {
         super(span);
-        
+
         this.type = type;
         this.value = value;
     }

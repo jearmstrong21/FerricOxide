@@ -14,7 +14,7 @@ public class CallStmt extends Statement {
     }
 
     @Override
-    public <T> T visit(StatementVisitor<T> visitor) {
-        return visitor.visitCallStmt(this);
+    public <T> void visit(StatementVisitor<T> visitor) {
+        visitor.visitCallStmt(this);
     }
 }

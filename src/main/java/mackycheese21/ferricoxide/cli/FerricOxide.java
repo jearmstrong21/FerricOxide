@@ -2,18 +2,19 @@ package mackycheese21.ferricoxide.cli;
 
 import mackycheese21.ferricoxide.AnalysisException;
 import mackycheese21.ferricoxide.FOLLVM;
+import mackycheese21.ferricoxide.pp.Preprocessor;
 import mackycheese21.ferricoxide.SourceCodeException;
 import mackycheese21.ferricoxide.ast.module.CompiledModule;
 import mackycheese21.ferricoxide.ast.module.FOModule;
 import mackycheese21.ferricoxide.ast.type.TypeRegistry;
-import mackycheese21.ferricoxide.compile.TypeValidatorVisitor;
 import mackycheese21.ferricoxide.compile.CompileModuleVisitor;
+import mackycheese21.ferricoxide.compile.TypeValidatorVisitor;
 import mackycheese21.ferricoxide.parser.ModuleParser;
-import mackycheese21.ferricoxide.parser.token.Token;
 import mackycheese21.ferricoxide.parser.token.TokenScanner;
-import mackycheese21.ferricoxide.parser.token.Tokenizer;
+import mackycheese21.ferricoxide.parser.token.TokenTree;
 import org.apache.commons.cli.*;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -60,7 +61,7 @@ public class FerricOxide {
             return;
         }
 
-        Tokenizer.INCLUDE_SEARCH_PATHS.addAll(Arrays.asList(cmd.getOptionValues(include)));
+//        Tokenizer.INCLUDE_SEARCH_PATHS.addAll(Arrays.asList(cmd.getOptionValues(include)));
 
         String outFilename = cmd.getOptionValue(out);
         String mainFilename = cmd.getOptionValue(main);
@@ -68,22 +69,27 @@ public class FerricOxide {
         FOLLVM.initialize();
         TypeRegistry.init();
 
+        List<String> includePaths = Arrays.asList(cmd.getOptionValues(include));
+
         System.out.println("0 Starting...");
         try {
-            List<Token> tokens = Tokenizer.loadStr(mainFilename);
-            System.out.println("1 Tokenized...");
+            Preprocessor preprocessor = new Preprocessor(includePaths);
+            List<TokenTree> tokens = preprocessor.include(mainFilename);
+            System.out.println("1 Tokenized / preprocessed...");
+
+//            System.out.println(tokens.stream().map(Object::toString).collect(Collectors.joining(" ")));
 
             FOModule module = ModuleParser.parse(new TokenScanner(tokens));
             System.out.println("2 FO parsed...");
 
             new TypeValidatorVisitor().visit(module);
-            System.out.println("4 Validated...");
+            System.out.println("3 Validated/resolved...");
 
             CompiledModule compiledModule = new CompileModuleVisitor().visit(module);
-            System.out.println("5 CompiledModule...");
+            System.out.println("4 LLVM compiled, verified...");
 
             compiledModule.outputX86(null, outFilename);
-            System.out.println("6 Dumped");
+            System.out.println("5 Dumped");
         } catch (SourceCodeException e) {
             System.out.println(e.span);
             System.out.println(e.span.file());
@@ -91,6 +97,8 @@ public class FerricOxide {
         } catch (AnalysisException e) {
             System.out.println(e.span);
             System.out.println(e.span.file());
+            e.printStackTrace();
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }

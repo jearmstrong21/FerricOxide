@@ -29,27 +29,25 @@ public class CompileModuleVisitor implements ModuleVisitor<CompiledModule> {
 
         Map<Identifier, FOType> globalTypes = new HashMap<>();
         Map<Identifier, LLVMValueRef> globalRefs = new HashMap<>();
-        Map<Identifier, FunctionType> functionTypes = new HashMap<>();
         Map<Identifier, LLVMValueRef> functionRefs = new HashMap<>();
         Map<Identifier, StructType> structs = new HashMap<>();
 
         // Structs
-        for (StructType struct : module.structs) {
+        for (StructType struct : module.structs()) {
             structs.put(struct.identifier, struct);
         }
 
         // Function prototypes
-        for (Function function : module.functions) {
+        for (Function function : module.functions()) {
             LLVMValueRef valueRef = LLVMAddFunction(moduleRef, function.llvmName == null ? function.name.toLLVMString() : function.llvmName, TypeRegistry.forceLookup(function.type));
             LLVMSetFunctionCallConv(valueRef, LLVMCCallConv);
             LLVMSetLinkage(valueRef, LLVMExternalLinkage); // (LLVM)Value(Ref) : (LLVM)Global(Ref)
 
-            functionTypes.put(function.name, function.type);
             functionRefs.put(function.name, valueRef);
         }
 
         // Globals
-        for (GlobalVariable global : module.globals) {
+        for (GlobalVariable global : module.globals()) {
             LLVMTypeRef typeRef = TypeRegistry.forceLookup(global.type);
             globalTypes.put(global.name, global.type);
             LLVMValueRef valueRef = LLVMAddGlobal(moduleRef, typeRef, global.name.toString());
@@ -66,7 +64,7 @@ public class CompileModuleVisitor implements ModuleVisitor<CompiledModule> {
             LLVMSetLinkage(currentFunction, LLVMExternalLinkage);
             LLVMBasicBlockRef entry = LLVMAppendBasicBlock(currentFunction, "fo_global_init");
             LLVMPositionBuilderAtEnd(builder, entry);
-            for (GlobalVariable global : module.globals) {
+            for (GlobalVariable global : module.globals()) {
                 LLVMBuildStore(builder, global.value.visit(new CompileExpressionVisitor(
                         builder,
                         currentFunction,
@@ -81,25 +79,16 @@ public class CompileModuleVisitor implements ModuleVisitor<CompiledModule> {
         }
 
         // Function bodies
-        for (Function function : module.functions) {
+        for (Function function : module.functions()) {
             if (function.isExtern()) continue;
             LLVMValueRef valueRef = functionRefs.get(function.name);
 
             LLVMBasicBlockRef entry = LLVMAppendBasicBlock(valueRef, function.name.toString());
             LLVMPositionBuilderAtEnd(builder, entry);
-//            LLVMBuildRet(builder, LLVMConstInt(LLVMInt32Type(), 5, 0));
-//            if(1>0)break;
 
             AllDeclaredVariablesVisitor allDeclaredVariablesVisitor = new AllDeclaredVariablesVisitor(builder);
             allDeclaredVariablesVisitor.visitBlock(function.body);
 
-//            CompileStatementVisitor compileStatement = new CompileStatementVisitor(builder,
-//                    valueRef,
-//                    allDeclaredVariablesVisitor.variableRefs,
-//                    globalTypes,
-//                    globalRefs,
-//                    strings,
-//                    structs);
             CompileStatementVisitor compileStatement = new CompileStatementVisitor(
                     builder,
                     valueRef,
@@ -120,7 +109,7 @@ public class CompileModuleVisitor implements ModuleVisitor<CompiledModule> {
 
             function.body.visit(compileStatement);
 
-            if(function.implicitVoidReturn) LLVMBuildRetVoid(builder);
+            if (function.implicitVoidReturn) LLVMBuildRetVoid(builder);
         }
 
         BytePointer error = new BytePointer();

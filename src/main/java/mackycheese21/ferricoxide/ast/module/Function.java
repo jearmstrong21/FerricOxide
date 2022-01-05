@@ -1,8 +1,8 @@
 package mackycheese21.ferricoxide.ast.module;
 
 import mackycheese21.ferricoxide.ast.Identifier;
-import mackycheese21.ferricoxide.ast.type.FunctionType;
 import mackycheese21.ferricoxide.ast.stmt.Block;
+import mackycheese21.ferricoxide.ast.type.FunctionType;
 
 import java.util.List;
 

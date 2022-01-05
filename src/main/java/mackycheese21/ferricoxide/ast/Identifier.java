@@ -1,7 +1,7 @@
 package mackycheese21.ferricoxide.ast;
 
 import mackycheese21.ferricoxide.parser.token.Span;
-import mackycheese21.ferricoxide.parser.token.Token;
+import mackycheese21.ferricoxide.parser.token.Tokenizer;
 
 import java.util.Arrays;
 import java.util.List;
@@ -31,14 +31,14 @@ public class Identifier {
     }
 
     public Identifier removeLast() {
-        if(strings.length == 0) throw new UnsupportedOperationException();
+        if (strings.length == 0) throw new UnsupportedOperationException();
         return new Identifier(span, Arrays.copyOfRange(strings, 0, strings.length - 1));
     }
 
     private static void validate(String str) {
-        if (!Token.IDENTIFIER_START.contains("" + str.charAt(0))) throw new RuntimeException();
+        if (!Tokenizer.IDENT_START.contains("" + str.charAt(0))) throw new RuntimeException();
         for (int i = 1; i < str.length(); i++) {
-            if (!Token.IDENTIFIER_REST.contains("" + str.charAt(i))) throw new RuntimeException();
+            if (!Tokenizer.IDENT_MID.contains("" + str.charAt(i))) throw new RuntimeException();
         }
     }
 

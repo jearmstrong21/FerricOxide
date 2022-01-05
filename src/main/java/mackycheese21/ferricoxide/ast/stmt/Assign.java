@@ -12,14 +12,14 @@ public class Assign extends Statement {
     public final BinaryOperator operator;
 
     public Assign(Span span, Expression a, Expression b, BinaryOperator operator) {
-        super(span,false);
+        super(span, false);
         this.a = a;
         this.b = b;
         this.operator = operator;
     }
 
     @Override
-    public <T> T visit(StatementVisitor<T> visitor) {
-        return visitor.visitAssign(this);
+    public <T> void visit(StatementVisitor<T> visitor) {
+        visitor.visitAssign(this);
     }
 }

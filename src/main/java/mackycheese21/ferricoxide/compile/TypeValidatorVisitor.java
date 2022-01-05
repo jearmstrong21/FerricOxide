@@ -64,7 +64,7 @@ public class TypeValidatorVisitor implements ModuleVisitor<Void>, StatementVisit
         checkGlobals();
 
         //// Functions
-        for (Function function : module.functions) {
+        for (Function function : module.functions()) {
             visitFunction(function);
         }
 
@@ -72,34 +72,38 @@ public class TypeValidatorVisitor implements ModuleVisitor<Void>, StatementVisit
     }
 
     private void resolveStructs() {
-        for (StructType struct : module.structs) {
+        for (StructType struct : module.structs()) {
             resolvedStructs.put(struct.identifier, struct);
         }
-        for (StructType struct : module.structs) {
+        for (StructType struct : module.structs()) {
             struct.fields.replaceAll((__, type) -> resolve(type));
         }
-        for (GlobalVariable global : module.globals) {
+        for (GlobalVariable global : module.globals()) {
             global.type = resolve(global.type);
         }
-        for (Function function : module.functions) {
+        for (Function function : module.functions()) {
             function.type = resolveFunction(function.type);
+        }
+    }
+
+    private void initializeFreshContext(Map<Identifier, FunctionType> validatorFunctions, Map<Identifier, FOType> validatorGlobals, Map<Identifier, StructType> validatorStructs) {
+        for (Function f : module.functions()) {
+            validatorFunctions.put(f.name, f.type);
+        }
+        for (GlobalVariable g : module.globals()) {
+            validatorGlobals.put(g.name, g.type);
+        }
+        for (StructType s : module.structs()) {
+            validatorStructs.put(s.identifier, s);
         }
     }
 
     private void checkGlobals() {
         Map<Identifier, FunctionType> validatorFunctions = new HashMap<>();
-        for (Function f : module.functions) {
-            validatorFunctions.put(f.name, f.type);
-        }
         Map<Identifier, FOType> validatorGlobals = new HashMap<>();
-        for (GlobalVariable g : module.globals) {
-            validatorGlobals.put(g.name, g.type);
-        }
         Map<Identifier, StructType> validatorStructs = new HashMap<>();
-        for (StructType s : module.structs) {
-            validatorStructs.put(s.identifier, s);
-        }
-        for (GlobalVariable global : module.globals) {
+        initializeFreshContext(validatorFunctions, validatorGlobals, validatorStructs);
+        for (GlobalVariable global : module.globals()) {
             localVariables = new MapStack<>();
             expressionValidator = new ExpressionValidator(localVariables, validatorFunctions, validatorGlobals, global.name.removeLast(), validatorStructs, this::resolve);
             global.type = resolve(global.type);
@@ -114,17 +118,9 @@ public class TypeValidatorVisitor implements ModuleVisitor<Void>, StatementVisit
 
     private void visitFunction(Function function) {
         Map<Identifier, FunctionType> validatorFunctions = new HashMap<>();
-        for (Function f : module.functions) {
-            validatorFunctions.put(f.name, f.type);
-        }
         Map<Identifier, FOType> validatorGlobals = new HashMap<>();
-        for (GlobalVariable g : module.globals) {
-            validatorGlobals.put(g.name, g.type);
-        }
         Map<Identifier, StructType> validatorStructs = new HashMap<>();
-        for (StructType s : module.structs) {
-            validatorStructs.put(s.identifier, s);
-        }
+        initializeFreshContext(validatorFunctions, validatorGlobals, validatorStructs);
         function.type = resolveFunction(function.type);
         if (!function.isExtern()) {
             localVariables = new MapStack<>();
@@ -134,7 +130,7 @@ public class TypeValidatorVisitor implements ModuleVisitor<Void>, StatementVisit
                 localVariables.put(function.paramNames.get(i), function.type.params.get(i));
             }
             if (!function.body.terminal) {
-                if(function.type.result != FOType.VOID) {
+                if (function.type.result != FOType.VOID) {
                     throw new AnalysisException(function.name.span, "function body must be terminal");
                 } else {
                     function.implicitVoidReturn = true;
@@ -149,7 +145,7 @@ public class TypeValidatorVisitor implements ModuleVisitor<Void>, StatementVisit
     @Override
     public Void visitForStmt(ForStmt forStmt) {
         forStmt.init.visit(this);
-        forStmt.condition = forStmt.condition.request(expressionValidator, FOType.BOOL);
+        forStmt.condition = forStmt.condition.request(expressionValidator, FOType.BOOL).implicitTo(FOType.BOOL);
         Utils.requireType(FOType.BOOL, forStmt.condition);
         visitBlock(forStmt.body);
         forStmt.update.visit(this);
@@ -161,14 +157,14 @@ public class TypeValidatorVisitor implements ModuleVisitor<Void>, StatementVisit
         if (assign.operator != BinaryOperator.DISCARD_FIRST)
             throw new AnalysisException(assign.span, "Only DISCARD_FIRST is supported in assignmments currently");
         assign.b = assign.b.request(expressionValidator, null);
-        assign.a = assign.a.request(expressionValidator, new PointerType(assign.b.result)); // TODO request reference?
+        assign.a = assign.a.request(expressionValidator, new PointerType(assign.b.result)).implicitTo(new PointerType(assign.b.result)); // TODO request reference?
         Utils.requireType(new PointerType(assign.b.result), assign.a);
         return null;
     }
 
     @Override
     public Void visitIfStmt(IfStmt ifStmt) {
-        ifStmt.condition = ifStmt.condition.request(expressionValidator, FOType.BOOL);
+        ifStmt.condition = ifStmt.condition.request(expressionValidator, FOType.BOOL).implicitTo(FOType.BOOL);
         Utils.requireType(FOType.BOOL, ifStmt.condition);
         visitBlock(ifStmt.then);
         if (ifStmt.otherwise != null) {
@@ -189,7 +185,7 @@ public class TypeValidatorVisitor implements ModuleVisitor<Void>, StatementVisit
     public Void visitReturnStmt(ReturnStmt returnStmt) {
         if (returnStmt.value == null) Utils.requireType(returnStmt.span, expectedReturnType, FOType.VOID);
         else {
-            returnStmt.value = returnStmt.value.request(expressionValidator, expectedReturnType);
+            returnStmt.value = returnStmt.value.request(expressionValidator, expectedReturnType).implicitTo(expectedReturnType);
             Utils.requireType(expectedReturnType, returnStmt.value);
         }
         return null;
@@ -199,14 +195,14 @@ public class TypeValidatorVisitor implements ModuleVisitor<Void>, StatementVisit
     public Void visitDeclareVar(DeclareVar declareVar) {
         declareVar.type = resolve(declareVar.type);
         localVariables.put(declareVar.name, declareVar.type);
-        declareVar.value = declareVar.value.request(expressionValidator, declareVar.type);
+        declareVar.value = declareVar.value.request(expressionValidator, declareVar.type).implicitTo(declareVar.type);
         Utils.requireType(declareVar.type, declareVar.value);
         return null;
     }
 
     @Override
     public Void visitWhileStmt(WhileStmt whileStmt) {
-        whileStmt.condition = whileStmt.condition.request(expressionValidator, FOType.BOOL);
+        whileStmt.condition = whileStmt.condition.request(expressionValidator, FOType.BOOL).implicitTo(FOType.BOOL);
         Utils.requireType(FOType.BOOL, whileStmt.condition);
         visitBlock(whileStmt.body);
         return null;

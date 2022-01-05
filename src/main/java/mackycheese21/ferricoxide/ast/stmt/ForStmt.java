@@ -20,7 +20,7 @@ public class ForStmt extends Statement {
     }
 
     @Override
-    public <T> T visit(StatementVisitor<T> visitor) {
-        return visitor.visitForStmt(this);
+    public <T> void visit(StatementVisitor<T> visitor) {
+        visitor.visitForStmt(this);
     }
 }

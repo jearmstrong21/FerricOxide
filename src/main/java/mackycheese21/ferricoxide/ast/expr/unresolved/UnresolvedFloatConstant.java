@@ -1,11 +1,9 @@
 package mackycheese21.ferricoxide.ast.expr.unresolved;
 
 import mackycheese21.ferricoxide.ast.expr.Expression;
-import mackycheese21.ferricoxide.ast.type.FOType;
 import mackycheese21.ferricoxide.ast.visitor.ExpressionRequester;
 import mackycheese21.ferricoxide.ast.visitor.ExpressionVisitor;
 import mackycheese21.ferricoxide.parser.token.Span;
-import org.jetbrains.annotations.Nullable;
 
 public class UnresolvedFloatConstant extends Expression {
 

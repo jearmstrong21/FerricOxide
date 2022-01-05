@@ -1,7 +1,6 @@
 package mackycheese21.ferricoxide.ast.expr;
 
 import mackycheese21.ferricoxide.ast.type.FOType;
-import mackycheese21.ferricoxide.ast.type.PointerType;
 import mackycheese21.ferricoxide.ast.type.TypeRegistry;
 import org.bytedeco.llvm.LLVM.LLVMBuilderRef;
 import org.bytedeco.llvm.LLVM.LLVMTypeRef;
@@ -12,12 +11,19 @@ import static org.bytedeco.llvm.global.LLVM.*;
 //@FunctionalInterface
 public class CastOperator {
 
+    public static boolean validateImplicit(FOType from, FOType to) {
+        if (from.equals(to)) return true;
+        if ((from.integerType && to.integerType) && from.integerWidth < to.integerWidth) return true;
+        if ((from.floatType && to.floatType) && from.floatWidth < to.floatWidth) return true;
+        if (from.equals(FOType.I32) && to.pointerType) return true;
+        if (from.pointerType && to.equals(FOType.I32)) return true;
+        if (from.pointerType && to.pointerType) return true;
+        return false;
+    }
+
     public static boolean validate(FOType from, FOType to) {
-        if (from == to) return true;
+        if (validateImplicit(from, to)) return true;
         if ((from.integerType || from.floatType) && (to.integerType || to.floatType)) return true;
-        if (from == FOType.I32 && to instanceof PointerType) return true;
-        if (from instanceof PointerType && to == FOType.I32) return true;
-        if (from instanceof PointerType && to instanceof PointerType) return true;
         return false;
     }
 
@@ -39,19 +45,19 @@ public class CastOperator {
             else return LLVMBuildFPTrunc(builder, valueRef, toRef, "cast");
         }
 
-        if (from == FOType.I32 && to instanceof PointerType) {
+        if (from == FOType.I32 && to.pointerType) {
             return LLVMBuildIntToPtr(builder, valueRef, toRef, "cast");
         }
 
-        if (from instanceof PointerType && to == FOType.I32) {
+        if (from.pointerType && to == FOType.I32) {
             return LLVMBuildPtrToInt(builder, valueRef, toRef, "cast");
         }
 
-        if (from instanceof PointerType && to instanceof PointerType) {
+        if (from.pointerType && to.pointerType) {
             return LLVMBuildBitCast(builder, valueRef, toRef, "cast");
         }
 
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("%s -> %s".formatted(from, to));
     }
 
 }

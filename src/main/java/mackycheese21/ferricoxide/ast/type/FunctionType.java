@@ -19,6 +19,7 @@ public class FunctionType extends FOType {
         this.identifier = null;
         this.fields = new LinkedHashMap<>();
         this.methods = new HashMap<>();
+        this.pointerType = true;
     }
 
 }

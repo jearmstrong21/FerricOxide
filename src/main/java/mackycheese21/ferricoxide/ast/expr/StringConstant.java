@@ -20,21 +20,22 @@ public class StringConstant extends Expression {
 
     public static String escape(String value) {
         return value
-                .replace("\\", "\\\\")
                 .replace("\"", "\\\"")
-                .replace("\'", "\\\'")
+                .replace("'", "\\'")
                 .replace("\0", "\\0")
                 .replace("\n", "\\n")
-                .replace("\t", "\\t");
+                .replace("\t", "\\t")
+                .replace("\\", "\\\\");
     }
 
     public static String unescape(String value) {
-        return value.replace("\\\\", "\\")
+        return value
                 .replace("\\\"", "\"")
-                .replace("\\\'", "\'")
+                .replace("\\'", "'")
                 .replace("\\0", "\0")
                 .replace("\\n", "\n")
-                .replace("\\t", "\t");
+                .replace("\\t", "\t")
+                .replace("\\\\", "\\");
     }
 
     @Override

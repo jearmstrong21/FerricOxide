@@ -67,7 +67,7 @@ public class StringifyExpressionVisitor implements ExpressionVisitor<String> {
             sa = "(%s)".formatted(sa);
         if (binary.b instanceof Binary bb && bb.operator.priority < binary.operator.priority)
             sb = "(%s)".formatted(sb);
-        return "%s %s %s".formatted(sa, binary.operator.punctuation.str, sb);
+        return "%s %s %s".formatted(sa, binary.operator.punctType.str, sb);
     }
 
     @Override
