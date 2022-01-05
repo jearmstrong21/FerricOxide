@@ -196,6 +196,8 @@ public record ExpressionValidator(
         return boolConstant.result(FOType.BOOL).implicitTo(request);
     }
 
+    // TODO: make `let` in both global and local be inferred
+
     @Override
     public Expression visitCallExpr(FOType request, CallExpr callExpr) {
         callExpr.function = callExpr.function.request(this, null);
