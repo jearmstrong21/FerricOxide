@@ -30,7 +30,11 @@ public class StringifyExpressionVisitor implements ExpressionVisitor<String> {
 
     @Override
     public String visitUnresolvedAccessProperty(UnresolvedAccessProperty unresolvedAccessProperty) {
-        return "%s[%s]".formatted(unresolvedAccessProperty.aggregate.visit(this), unresolvedAccessProperty.access.toString());
+        if(unresolvedAccessProperty.access.type() == FOType.Access.Type.STRING) {
+            return "%s.%s".formatted(unresolvedAccessProperty.aggregate.visit(this), unresolvedAccessProperty.access.string());
+        } else {
+            return "%s[%s]".formatted(unresolvedAccessProperty.aggregate.visit(this), unresolvedAccessProperty.access.integer());
+        }
     }
 
     @Override

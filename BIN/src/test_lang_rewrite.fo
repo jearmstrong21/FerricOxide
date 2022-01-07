@@ -14,75 +14,44 @@ struct coords {
     y: f32
 }
 
-let global_test: i32 = 5
-
-fn polar_coords(theta: f32, r: f32) -> coords {
-    return coords {
-//        x: r * theta,
-//        y: 4
-        x: r * math::cos(theta),
-        y: r * math::sin(theta)
-    };
-}
-
-fn solve_quadratic(a: f32, b: f32, c: f32, t0: f32*, t1: f32*) -> bool {
-    let discr: f32 = b * b - 4f * a * c;
-    if (discr < 0) {
-        return false;
+mod coords {
+    fn from_polar(theta: f32, r: f32) -> coords {
+        return coords {
+            x: math::cos(theta) * r,
+            y: math::sin(theta) * r
+        };
     }
-    let d: f32 = math::sqrt(discr);
-    t0 = (-b + d) / (2f * a);
-    t1 = (-b - d) / (2f * a);
-    return true;
-}
-
-fn test_arrays() {
-    let arr: i32* = malloc(sizeof(i32) * 8) as i32*;
-    for(let i: i32 = 0; i < 8; i = i + 1) {
-        arr[i] = i * i;
+    fn compute_mag(x: f32, y: f32) -> f32 {
+        return math::sqrt(x * x + y * y);
     }
-    printInt(arr[5]);
-    free(arr as i8*);
 }
 
-fn test_structs() {
-    let c: coords = polar_coords(45.0, 10f);
-    print_f32(c.x);
-    print_f32(c.y);
-    c.x = c.y + c.x;
-    c.y = c.y - c.x;
-    print_f32(c.y);
-
-    let p: coords* = c;
-    print_f32(p->x);
-    print_f32(p->y);
-}
-
-fn test_cast() {
-    puts("test_cast");
-    print_f32(5.5);
-    printInt(5.5 as i32);
+impl coords {
+// test static methods (all of this is equivalent of mod coords)
+// x.y(z...)
+// <=>
+// (typeof x)::y(x, z...)
+// or
+// So
+// c.mag() <=> coords::mag(c)
+// test static method resolution from inside class
+// self arg is a coord or coord* and doesn't need type specifier
+    fn mag(&self) -> f32 {
+        return coords::compute_mag(self->x, self->y);
+    }
+    fn copy(self) -> coords {
+        return self;
+    }
+    // doesn't compile :D
+//    fn bad_copy(&self) -> coords {
+//        return self; // shouldn't compile? idk, copy is sketch here
+//    }
 }
 
 export("fo_run") fn run() -> i32 {
-    let a: f32 = 1;
-    let b: f32 = -5f;
-    let c: f32 = 6;
-    let t0: f32 = 0;
-    let t1: f32 = 0;
-    if (solve_quadratic(a, b, c, &t0, &t1)) {
-        print_f32(t0);
-        print_f32(t1);
-    }
-    if (t0 < t1) {
-        let temp: f32 = t0;
-        t0 = t1;
-        t1 = temp;
-    }
-    test_arrays();
-    test_structs();
-    test_cast();
-    puts(stringify!("hello world"(3, 4)));
-    print_f32(math::PI);
-    return 5;
+    let c: coords = coords::from_polar(5, 3);
+    print_f32(c.x);
+    print_f32(c.y);
+    print_f32(c.mag());
+    return 0;
 }

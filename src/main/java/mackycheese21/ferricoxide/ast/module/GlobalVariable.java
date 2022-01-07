@@ -4,6 +4,7 @@ import mackycheese21.ferricoxide.ast.Identifier;
 import mackycheese21.ferricoxide.ast.expr.Expression;
 import mackycheese21.ferricoxide.ast.type.FOType;
 
+// TODO stack allocation with arrays? see what llvm supports
 public class GlobalVariable {
 
     public FOType type;

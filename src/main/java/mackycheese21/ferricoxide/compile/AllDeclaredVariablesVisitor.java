@@ -11,7 +11,7 @@ import java.util.Map;
 
 import static org.bytedeco.llvm.global.LLVM.LLVMBuildAlloca;
 
-public class AllDeclaredVariablesVisitor implements StatementVisitor<Void> {
+public class AllDeclaredVariablesVisitor implements StatementVisitor {
 
     public final Map<DeclareVar, LLVMValueRef> variableRefs = new HashMap<>();
     private final LLVMBuilderRef builder;
@@ -21,50 +21,42 @@ public class AllDeclaredVariablesVisitor implements StatementVisitor<Void> {
     }
 
     @Override
-    public Void visitForStmt(ForStmt forStmt) {
+    public void visitForStmt(ForStmt forStmt) {
         forStmt.init.visit(this);
         forStmt.update.visit(this);
         forStmt.body.visit(this);
-        return null;
     }
 
     @Override
-    public Void visitAssign(Assign assign) {
-        return null;
+    public void visitAssign(Assign assign) {
     }
 
     @Override
-    public Void visitIfStmt(IfStmt ifStmt) {
+    public void visitIfStmt(IfStmt ifStmt) {
         ifStmt.then.visit(this);
         if (ifStmt.otherwise != null) ifStmt.otherwise.visit(this);
-        return null;
     }
 
     @Override
-    public Void visitBlock(Block blockStmt) {
+    public void visitBlock(Block blockStmt) {
         blockStmt.statements.forEach(s -> s.visit(this));
-        return null;
     }
 
     @Override
-    public Void visitReturnStmt(ReturnStmt returnStmt) {
-        return null;
+    public void visitReturnStmt(ReturnStmt returnStmt) {
     }
 
     @Override
-    public Void visitDeclareVar(DeclareVar declareVar) {
+    public void visitDeclareVar(DeclareVar declareVar) {
         variableRefs.put(declareVar, LLVMBuildAlloca(builder, TypeRegistry.forceLookup(declareVar.type), declareVar.name.toString()));
-        return null;
     }
 
     @Override
-    public Void visitWhileStmt(WhileStmt whileStmt) {
+    public void visitWhileStmt(WhileStmt whileStmt) {
         whileStmt.body.visit(this);
-        return null;
     }
 
     @Override
-    public Void visitCallStmt(CallStmt callStmt) {
-        return null;
+    public void visitCallStmt(CallStmt callStmt) {
     }
 }

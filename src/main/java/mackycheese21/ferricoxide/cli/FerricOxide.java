@@ -15,6 +15,8 @@ import mackycheese21.ferricoxide.parser.token.TokenTree;
 import org.apache.commons.cli.*;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 
@@ -84,6 +86,8 @@ public class FerricOxide {
 
             new TypeValidatorVisitor().visit(module);
             System.out.println("3 Validated/resolved...");
+
+            Files.writeString(Path.of("BIN/build/post_macro_format"), module.formatted);
 
             CompiledModule compiledModule = new CompileModuleVisitor().visit(module);
             System.out.println("4 LLVM compiled, verified...");

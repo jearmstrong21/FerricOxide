@@ -2,22 +2,22 @@ package mackycheese21.ferricoxide.compile;
 
 import mackycheese21.ferricoxide.AnalysisException;
 import mackycheese21.ferricoxide.MapStack;
+import mackycheese21.ferricoxide.SourceCodeException;
 import mackycheese21.ferricoxide.Utils;
 import mackycheese21.ferricoxide.ast.Identifier;
 import mackycheese21.ferricoxide.ast.expr.*;
 import mackycheese21.ferricoxide.ast.expr.unresolved.*;
+import mackycheese21.ferricoxide.ast.module.Function;
 import mackycheese21.ferricoxide.ast.type.FOType;
 import mackycheese21.ferricoxide.ast.type.FunctionType;
 import mackycheese21.ferricoxide.ast.type.PointerType;
 import mackycheese21.ferricoxide.ast.type.StructType;
 import mackycheese21.ferricoxide.ast.visitor.ExpressionRequester;
-import mackycheese21.ferricoxide.parser.token.Span;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
 
 // THIS CLASS MUST SET result FIELD ON RETURNED EXPRESSIONS
 public record ExpressionValidator(
@@ -26,7 +26,7 @@ public record ExpressionValidator(
         Map<Identifier, FOType> globalVariables,
         Identifier namespacePath,
         Map<Identifier, StructType> structs,
-        Function<FOType, FOType> typeResolver) implements ExpressionRequester<Expression, FOType> {
+        java.util.function.Function<FOType, FOType> typeResolver) implements ExpressionRequester<Expression, FOType> {
 
     @Override
     public Expression visitUnresolvedIntConstant(FOType request, UnresolvedIntConstant unresolvedIntConstant) {
@@ -112,11 +112,11 @@ public record ExpressionValidator(
         throw new AnalysisException(unresolvedAccessVar.span, "cannot resolve identifier %s (localNamespace=%s, globalNamespace=%s)".formatted(unresolvedAccessVar.identifier, localNamespaceIdentifier, globalNamespaceIdentifier));
     }
 
-    private int accessToIndex(Span span, FOType aggregate, FOType.Access access) {
-        int index = aggregate.indexOf(access);
-        if (index == -1) throw new AnalysisException(span, "no such access %s on type %s".formatted(access, aggregate));
-        return index;
-    }
+//    private int accessToIndex(Span span, FOType aggregate, FOType.Access access) {
+//        int index = aggregate.indexOf(access);
+//        if (index == -1) throw new AnalysisException(span, "no such access %s on type %s".formatted(access, aggregate));
+//        return index;
+//    }
 
     @Override
     public Expression visitUnresolvedAccessProperty(FOType request, UnresolvedAccessProperty unresolvedAccessProperty) {
@@ -135,9 +135,13 @@ public record ExpressionValidator(
             resultType = new PointerType(resultType);
             ref = true;
         }
+        int index = aggregate.indexOf(unresolvedAccessProperty.access);
+        if (index == -1) {
+            throw new SourceCodeException(unresolvedAccessProperty.span, "unknown access");
+        }
         return new AccessProperty(unresolvedAccessProperty.span,
                 unresolvedAccessProperty.aggregate,
-                accessToIndex(unresolvedAccessProperty.span, aggregate, unresolvedAccessProperty.access),
+                index,
                 unresolvedAccessProperty.arrowAccess,
                 ref
         ).result(resultType).implicitTo(request);
@@ -200,8 +204,25 @@ public record ExpressionValidator(
 
     @Override
     public Expression visitCallExpr(FOType request, CallExpr callExpr) {
+        if(callExpr.function instanceof UnresolvedAccessProperty uap) {
+            Expression object = uap.aggregate.request(this, null);
+            if(uap.access.type() == FOType.Access.Type.STRING) {
+                String methodName = uap.access.string();
+                if(object.result.methods.containsKey(methodName)) {
+                    Function method = object.result.methods.get(methodName);
+                    Expression newFunction = new AccessVar(callExpr.function.span, false, AccessVar.Type.FUNCTION, method.name);
+                    newFunction.result(method.type);
+                    List<Expression> newParams = new ArrayList<>();
+                    newParams.add(object);
+                    newParams.addAll(callExpr.params);
+                    return new CallExpr(callExpr.span, newFunction, newParams).request(this, request);
+                }
+            }
+        }
+
         callExpr.function = callExpr.function.request(this, null);
         FunctionType functionType = Utils.expectFunction(callExpr.function.span, callExpr.function.result);
+
         if (callExpr.params.size() != functionType.params.size())
             throw new AnalysisException(callExpr.span, "wrong # of args");
         for (int i = 0; i < callExpr.params.size(); i++) {

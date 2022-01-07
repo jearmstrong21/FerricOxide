@@ -16,7 +16,7 @@ public class WhileStmt extends Statement {
     }
 
     @Override
-    public <T> void visit(StatementVisitor<T> visitor) {
+    public void visit(StatementVisitor visitor) {
         visitor.visitWhileStmt(this);
     }
 }

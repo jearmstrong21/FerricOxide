@@ -1,6 +1,7 @@
 package mackycheese21.ferricoxide.ast.type;
 
 import mackycheese21.ferricoxide.ast.Identifier;
+import mackycheese21.ferricoxide.ast.module.Function;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
@@ -60,7 +61,7 @@ public class FOType {
     public String explicitName; // explicit ferric oxide name, comparing on this should be enough to compare types, full namespaced here
     public @Nullable Identifier identifier; // nullable for tuples, pointers, functions
     public LinkedHashMap<Access, FOType> fields;
-    public Map<String, FunctionType> methods;
+    public Map<String, Function> methods;
     public boolean integerType; // optin
     public int integerWidth; // optin
     public boolean floatType; // optin

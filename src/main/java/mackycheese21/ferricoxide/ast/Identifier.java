@@ -76,4 +76,8 @@ public class Identifier {
     public String toString() {
         return String.join("::", strings);
     }
+
+    public String getLast() {
+        return strings[strings.length - 1];
+    }
 }

@@ -7,17 +7,38 @@ import mackycheese21.ferricoxide.ast.module.FOModule;
 import mackycheese21.ferricoxide.ast.module.Function;
 import mackycheese21.ferricoxide.ast.module.GlobalVariable;
 import mackycheese21.ferricoxide.ast.stmt.Block;
+import mackycheese21.ferricoxide.ast.stmt.Statement;
 import mackycheese21.ferricoxide.ast.type.FOType;
 import mackycheese21.ferricoxide.ast.type.FunctionType;
+import mackycheese21.ferricoxide.ast.type.PointerType;
 import mackycheese21.ferricoxide.ast.type.StructType;
+import mackycheese21.ferricoxide.ast.visitor.StringifyStatementVisitor;
 import mackycheese21.ferricoxide.parser.token.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class ModuleParser {
 
     private static final List<String> modTree = new ArrayList<>();
+
+    private static String output = "";
+    public static String currentIndent = "";
+    private static final String indent = "\t";
+
+    private static void push() {
+        currentIndent += indent;
+    }
+
+    private static void pop() {
+        currentIndent = currentIndent.substring(0, currentIndent.length() - indent.length());
+    }
+
+    private static StringifyStatementVisitor ssv() {
+        return new StringifyStatementVisitor(indent);
+    }
 
     // TODO: not public unless un-inline global = true
     private static Identifier makeId(Span span, List<String> name) {
@@ -31,7 +52,7 @@ public class ModuleParser {
         return new Identifier(span, strs);
     }
 
-    private static Function forceFunction(TokenScanner scanner) {
+    private static Function forceFunction(TokenScanner scanner, boolean inImpl) {
         boolean inline = scanner.peek() instanceof IdentToken ident && ident.value.equals("inline");
         if (inline) scanner.next();
 //        boolean inline = false;
@@ -71,6 +92,17 @@ public class ModuleParser {
         TokenScanner paramScanner = new TokenScanner(scanner.next().requireGroup(GroupToken.Type.PAREN).value);
         List<Identifier> paramNames = new ArrayList<>();
         List<FOType> paramTypes = new ArrayList<>();
+        if (inImpl) { // inImpl always has a modTree entry
+            FOType selfType = enclosingType;
+            if (paramScanner.peek() instanceof PunctToken punct && punct.type == PunctToken.Type.AND) {
+                paramScanner.next();
+                selfType = new PointerType(selfType);
+            }
+            IdentToken self = paramScanner.next().requireIdent();
+            self.requireValue("self");
+            paramNames.add(new Identifier(self.span(), self.value));
+            paramTypes.add(selfType);
+        }
         while (paramScanner.remaining() > 0) {
             if (paramTypes.size() > 0) paramScanner.next().requirePunct(PunctToken.Type.COMMA);
             String paramName = paramScanner.next().requireIdent().value;
@@ -96,7 +128,32 @@ public class ModuleParser {
         } else {
             body = StatementParser.forceBlock(scanner);
         }
-        return new Function(makeId(nameSpan, List.of(name)), inline, funcType, paramNames, body, llvmName, false);
+        output += currentIndent;
+        if(inline) output += "inline ";
+        if(extern) {
+            if(llvmName.equals(name)) {
+                output += "extern ";
+            } else {
+                output += "extern(\"%s\") ".formatted(llvmName);
+            }
+        }
+        if(export) output += "export(\"%s\") ".formatted(llvmName);
+        output += "fn %s(%s)%s".formatted(name, IntStream.range(0, paramNames.size()).mapToObj(i -> "%s: %s".formatted(paramNames.get(i), paramTypes.get(i))).collect(Collectors.joining(", ")), result == FOType.VOID ? "" : " -> %s".formatted(result.toString()));
+        if (extern) {
+            output += "\n";
+        } else {
+            output += " {\n";
+            push();
+            for (Statement stmt : body.statements) {
+                StringifyStatementVisitor ssv = new StringifyStatementVisitor(currentIndent);
+                ssv.currentIndent = currentIndent;
+                stmt.visit(ssv);
+                output += ssv.getOutput();
+            }
+            pop();
+            output += "%s}\n".formatted(currentIndent);
+        }
+        return new Function(makeId(nameSpan, List.of(name)), inline, funcType, paramNames, body, llvmName, false, enclosingType);
     }
 
     public static StructType attemptStruct(TokenScanner scanner) {
@@ -118,6 +175,19 @@ public class ModuleParser {
             }
             fieldScanner.requireEmpty();
 
+            output += "%sstruct %s {\n".formatted(currentIndent, name);
+            push();
+            for (int i = 0; i < fieldNames.size(); i++) {
+                output += "%s%s: %s".formatted(currentIndent, fieldNames.get(i), fieldTypes.get(i).longName);
+                if (i == fieldNames.size() - 1) {
+                    output += "\n";
+                } else {
+                    output += ",\n";
+                }
+            }
+            pop();
+            output += "%s}\n".formatted(currentIndent);
+
             return new StructType(makeId(nameSpan, List.of(name)), fieldNames, fieldTypes);
         }
         return null;
@@ -133,37 +203,69 @@ public class ModuleParser {
             scanner.next().requirePunct(PunctToken.Type.EQ);
             Expression value = ExpressionParser.forceExpr(scanner);
 //            scanner.next().requirePunct(PunctToken.Type.SEMICOLON);
+            output += "%slet %s: %s = %s\n".formatted(currentIndent, name, type.longName, value.stringify());
             return new GlobalVariable(type, makeId(nameSpan, List.of(name)), value);
         }
         return null;
     }
 
-    private static void parseInto(TokenScanner scanner, FOModule module) {
+    private static FOType enclosingType = null;
+
+    private static void parseInto(TokenScanner scanner, FOModule module, boolean inImpl) {
+        // (implStructName == null) the lack of a struct to implement
+        // if the state of being in an impl is equivalent to the lack of a struct to implement
+        // :b:ad
+        if (inImpl == (enclosingType == null)) throw new UnsupportedOperationException();
         while (scanner.remaining() > 0) {
             if (scanner.peek() instanceof IdentToken ident && ident.value.equals("mod")) {
+                if (inImpl) throw new SourceCodeException(ident.span(), "no mod inside impl");
                 scanner.next();
                 String name = scanner.next().requireIdent().value;
 
                 modTree.add(name);
+                output += "%smod %s {\n".formatted(currentIndent, name);
+
+                push();
                 TokenScanner innerScanner = new TokenScanner(scanner.next().requireGroup(GroupToken.Type.CURLY_BRACKET).value);
-                parseInto(innerScanner, module);
+                parseInto(innerScanner, module, inImpl);
+                pop();
+                output += "%s}\n".formatted(currentIndent);
                 innerScanner.requireEmpty();
                 modTree.remove(modTree.size() - 1);
+
+            } else if (scanner.peek() instanceof IdentToken ident && ident.value.equals("impl")) {
+                if (inImpl) throw new SourceCodeException(ident.span(), "no impl inside impl");
+                scanner.next();
+                enclosingType = CommonParser.forceType(scanner); // TODO generics
+
+                output += "%simpl %s {\n".formatted(currentIndent, enclosingType.longName);
+                push();
+
+//                modTree.add(name);
+                TokenScanner innerScanner = new TokenScanner(scanner.next().requireGroup(GroupToken.Type.CURLY_BRACKET).value);
+                parseInto(innerScanner, module, true);
+                innerScanner.requireEmpty();
+//                modTree.remove(modTree.size() - 1);
+
+                pop();
+                output += "%s}\n".formatted(currentIndent);
+
+                enclosingType = null;
 
             } else {
                 GlobalVariable global = attemptGlobal(scanner);
                 if (global != null) {
-                    module.globals().add(global);
+                    module.globals.add(global);
                     continue;
                 }
 
                 StructType struct = attemptStruct(scanner);
                 if (struct != null) {
-                    module.structs().add(struct);
+                    module.structs.add(struct);
                     continue;
                 }
 
-                module.functions().add(forceFunction(scanner));
+                module.functions.add(forceFunction(scanner, inImpl));
             }
         }
     }
@@ -172,8 +274,10 @@ public class ModuleParser {
         List<GlobalVariable> globals = new ArrayList<>();
         List<StructType> structs = new ArrayList<>();
         List<Function> functions = new ArrayList<>();
-        FOModule module = new FOModule(globals, structs, functions);
-        parseInto(scanner, module);
+        FOModule module = new FOModule(globals, structs, functions, "");
+        output = "";
+        parseInto(scanner, module, false);
+        module.formatted = output;
         return module;
     }
 

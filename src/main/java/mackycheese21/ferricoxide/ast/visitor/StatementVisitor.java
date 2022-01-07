@@ -2,22 +2,22 @@ package mackycheese21.ferricoxide.ast.visitor;
 
 import mackycheese21.ferricoxide.ast.stmt.*;
 
-public interface StatementVisitor<T> {
+public interface StatementVisitor {
 
-    T visitForStmt(ForStmt forStmt);
+    void visitForStmt(ForStmt forStmt);
 
-    T visitAssign(Assign assign);
+    void visitAssign(Assign assign);
 
-    T visitIfStmt(IfStmt ifStmt);
+    void visitIfStmt(IfStmt ifStmt);
 
-    T visitBlock(Block blockStmt);
+    void visitBlock(Block blockStmt);
 
-    T visitReturnStmt(ReturnStmt returnStmt);
+    void visitReturnStmt(ReturnStmt returnStmt);
 
-    T visitDeclareVar(DeclareVar declareVar);
+    void visitDeclareVar(DeclareVar declareVar);
 
-    T visitWhileStmt(WhileStmt whileStmt);
+    void visitWhileStmt(WhileStmt whileStmt);
 
-    T visitCallStmt(CallStmt callStmt);
+    void visitCallStmt(CallStmt callStmt);
 
 }

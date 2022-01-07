@@ -18,7 +18,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class TypeValidatorVisitor implements ModuleVisitor<Void>, StatementVisitor<Void> {
+public class TypeValidatorVisitor implements ModuleVisitor<Void>, StatementVisitor {
 
     private FOModule module = null;
 
@@ -64,7 +64,7 @@ public class TypeValidatorVisitor implements ModuleVisitor<Void>, StatementVisit
         checkGlobals();
 
         //// Functions
-        for (Function function : module.functions()) {
+        for (Function function : module.functions) {
             visitFunction(function);
         }
 
@@ -72,28 +72,32 @@ public class TypeValidatorVisitor implements ModuleVisitor<Void>, StatementVisit
     }
 
     private void resolveStructs() {
-        for (StructType struct : module.structs()) {
+        for (StructType struct : module.structs) {
             resolvedStructs.put(struct.identifier, struct);
         }
-        for (StructType struct : module.structs()) {
+        for (StructType struct : module.structs) {
             struct.fields.replaceAll((__, type) -> resolve(type));
         }
-        for (GlobalVariable global : module.globals()) {
+        for (GlobalVariable global : module.globals) {
             global.type = resolve(global.type);
         }
-        for (Function function : module.functions()) {
+        for (Function function : module.functions) {
             function.type = resolveFunction(function.type);
+            if(function.enclosingType != null) {
+                function.enclosingType = resolve(function.enclosingType);
+                function.enclosingType.methods.put(function.name.getLast(), function);
+            }
         }
     }
 
     private void initializeFreshContext(Map<Identifier, FunctionType> validatorFunctions, Map<Identifier, FOType> validatorGlobals, Map<Identifier, StructType> validatorStructs) {
-        for (Function f : module.functions()) {
+        for (Function f : module.functions) {
             validatorFunctions.put(f.name, f.type);
         }
-        for (GlobalVariable g : module.globals()) {
+        for (GlobalVariable g : module.globals) {
             validatorGlobals.put(g.name, g.type);
         }
-        for (StructType s : module.structs()) {
+        for (StructType s : module.structs) {
             validatorStructs.put(s.identifier, s);
         }
     }
@@ -103,7 +107,7 @@ public class TypeValidatorVisitor implements ModuleVisitor<Void>, StatementVisit
         Map<Identifier, FOType> validatorGlobals = new HashMap<>();
         Map<Identifier, StructType> validatorStructs = new HashMap<>();
         initializeFreshContext(validatorFunctions, validatorGlobals, validatorStructs);
-        for (GlobalVariable global : module.globals()) {
+        for (GlobalVariable global : module.globals) {
             localVariables = new MapStack<>();
             expressionValidator = new ExpressionValidator(localVariables, validatorFunctions, validatorGlobals, global.name.removeLast(), validatorStructs, this::resolve);
             global.type = resolve(global.type);
@@ -143,75 +147,67 @@ public class TypeValidatorVisitor implements ModuleVisitor<Void>, StatementVisit
     }
 
     @Override
-    public Void visitForStmt(ForStmt forStmt) {
+    public void visitForStmt(ForStmt forStmt) {
         forStmt.init.visit(this);
         forStmt.condition = forStmt.condition.request(expressionValidator, FOType.BOOL).implicitTo(FOType.BOOL);
         Utils.requireType(FOType.BOOL, forStmt.condition);
         visitBlock(forStmt.body);
         forStmt.update.visit(this);
-        return null;
     }
 
     @Override
-    public Void visitAssign(Assign assign) {
+    public void visitAssign(Assign assign) {
         if (assign.operator != BinaryOperator.DISCARD_FIRST)
             throw new AnalysisException(assign.span, "Only DISCARD_FIRST is supported in assignmments currently");
         assign.b = assign.b.request(expressionValidator, null);
         assign.a = assign.a.request(expressionValidator, new PointerType(assign.b.result)).implicitTo(new PointerType(assign.b.result)); // TODO request reference?
         Utils.requireType(new PointerType(assign.b.result), assign.a);
-        return null;
     }
 
     @Override
-    public Void visitIfStmt(IfStmt ifStmt) {
+    public void visitIfStmt(IfStmt ifStmt) {
         ifStmt.condition = ifStmt.condition.request(expressionValidator, FOType.BOOL).implicitTo(FOType.BOOL);
         Utils.requireType(FOType.BOOL, ifStmt.condition);
         visitBlock(ifStmt.then);
         if (ifStmt.otherwise != null) {
             visitBlock(ifStmt.otherwise);
         }
-        return null;
     }
 
     @Override
-    public Void visitBlock(Block blockStmt) {
+    public void visitBlock(Block blockStmt) {
         localVariables.push();
         blockStmt.statements.forEach(stmt -> stmt.visit(this));
         localVariables.pop();
-        return null;
     }
 
     @Override
-    public Void visitReturnStmt(ReturnStmt returnStmt) {
+    public void visitReturnStmt(ReturnStmt returnStmt) {
         if (returnStmt.value == null) Utils.requireType(returnStmt.span, expectedReturnType, FOType.VOID);
         else {
             returnStmt.value = returnStmt.value.request(expressionValidator, expectedReturnType).implicitTo(expectedReturnType);
             Utils.requireType(expectedReturnType, returnStmt.value);
         }
-        return null;
     }
 
     @Override
-    public Void visitDeclareVar(DeclareVar declareVar) {
+    public void visitDeclareVar(DeclareVar declareVar) {
         declareVar.type = resolve(declareVar.type);
         localVariables.put(declareVar.name, declareVar.type);
         declareVar.value = declareVar.value.request(expressionValidator, declareVar.type).implicitTo(declareVar.type);
         Utils.requireType(declareVar.type, declareVar.value);
-        return null;
     }
 
     @Override
-    public Void visitWhileStmt(WhileStmt whileStmt) {
+    public void visitWhileStmt(WhileStmt whileStmt) {
         whileStmt.condition = whileStmt.condition.request(expressionValidator, FOType.BOOL).implicitTo(FOType.BOOL);
         Utils.requireType(FOType.BOOL, whileStmt.condition);
         visitBlock(whileStmt.body);
-        return null;
     }
 
     @Override
-    public Void visitCallStmt(CallStmt callStmt) {
+    public void visitCallStmt(CallStmt callStmt) {
         // this is okay because CallExpr is either validated or failed, never modified at the root
         callStmt.callExpr = (CallExpr) callStmt.callExpr.request(expressionValidator, null);
-        return null;
     }
 }

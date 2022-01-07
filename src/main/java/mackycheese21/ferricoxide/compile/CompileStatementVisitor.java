@@ -13,7 +13,7 @@ import java.util.Map;
 
 import static org.bytedeco.llvm.global.LLVM.*;
 
-public class CompileStatementVisitor implements StatementVisitor<Void> {
+public class CompileStatementVisitor implements StatementVisitor {
 
     private final LLVMBuilderRef builder;
     private final LLVMValueRef currentFunction;
@@ -45,13 +45,12 @@ public class CompileStatementVisitor implements StatementVisitor<Void> {
     }
 
     @Override
-    public Void visitAssign(Assign assign) {
+    public void visitAssign(Assign assign) {
         LLVMBuildStore(builder, assign.b.visit(compileExpression), assign.a.visit(compileExpression));
-        return null;
     }
 
     @Override
-    public Void visitIfStmt(IfStmt ifStmt) {
+    public void visitIfStmt(IfStmt ifStmt) {
         LLVMValueRef condition = ifStmt.condition.visit(compileExpression);
         if (ifStmt.otherwise == null) {
             LLVMBasicBlockRef then = LLVMAppendBasicBlock(currentFunction, "IfStmt.then");
@@ -83,39 +82,35 @@ public class CompileStatementVisitor implements StatementVisitor<Void> {
                 LLVMPositionBuilderAtEnd(builder, end);
             }
         }
-        return null;
     }
 
     @Override
-    public Void visitBlock(Block blockStmt) {
+    public void visitBlock(Block blockStmt) {
         variableTypes.push();
         localVariableRefs.push();
         blockStmt.statements.forEach(stmt -> stmt.visit(this));
         variableTypes.pop();
         localVariableRefs.pop();
-        return null;
     }
 
     @Override
-    public Void visitReturnStmt(ReturnStmt returnStmt) {
+    public void visitReturnStmt(ReturnStmt returnStmt) {
         if (returnStmt.value == null) LLVMBuildRetVoid(builder);
         else LLVMBuildRet(builder, returnStmt.value.visit(compileExpression));
-        return null;
     }
 
     @Override
-    public Void visitDeclareVar(DeclareVar declareVar) {
+    public void visitDeclareVar(DeclareVar declareVar) {
         if (!allVariableRefs.containsKey(declareVar)) throw new UnsupportedOperationException();
         LLVMValueRef valueRef = declareVar.value.visit(compileExpression);
         LLVMValueRef ptr = allVariableRefs.get(declareVar);
         LLVMBuildStore(builder, valueRef, ptr);
         variableTypes.put(declareVar.name, declareVar.type);
         localVariableRefs.put(declareVar.name, allVariableRefs.get(declareVar));
-        return null;
     }
 
     @Override
-    public Void visitWhileStmt(WhileStmt whileStmt) {
+    public void visitWhileStmt(WhileStmt whileStmt) {
         LLVMBasicBlockRef cond = LLVMAppendBasicBlock(currentFunction, "cond");
         LLVMBasicBlockRef start = LLVMAppendBasicBlock(currentFunction, "start");
         LLVMBasicBlockRef end = LLVMAppendBasicBlock(currentFunction, "end");
@@ -132,11 +127,10 @@ public class CompileStatementVisitor implements StatementVisitor<Void> {
         // TODO loops and terminal bodies
 
         LLVMPositionBuilderAtEnd(builder, end);
-        return null;
     }
 
     @Override
-    public Void visitForStmt(ForStmt forStmt) {
+    public void visitForStmt(ForStmt forStmt) {
         forStmt.init.visit(this);
 
         LLVMBasicBlockRef cond = LLVMAppendBasicBlock(currentFunction, "cond");
@@ -154,12 +148,10 @@ public class CompileStatementVisitor implements StatementVisitor<Void> {
         LLVMBuildBr(builder, cond);
 
         LLVMPositionBuilderAtEnd(builder, end);
-        return null;
     }
 
     @Override
-    public Void visitCallStmt(CallStmt callStmt) {
+    public void visitCallStmt(CallStmt callStmt) {
         callStmt.callExpr.visit(compileExpression);
-        return null;
     }
 }
