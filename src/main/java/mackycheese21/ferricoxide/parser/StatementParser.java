@@ -96,8 +96,11 @@ public class StatementParser {
             Span start = scanner.next().span();
             String name = scanner.next().requireIdent().value;
             Span nameSpan = scanner.lastConsumedSpan();
-            scanner.next().requirePunct(PunctToken.Type.COLON);
-            FOType type = CommonParser.forceType(scanner);
+            FOType type = null;
+            if(scanner.peek() instanceof PunctToken punct && punct.type == PunctToken.Type.COLON) {
+                scanner.next();
+                type = CommonParser.forceType(scanner);
+            }
             scanner.next().requirePunct(PunctToken.Type.EQ);
             Expression value = ExpressionParser.forceExpr(scanner);
             Span end = Span.concat(scanner.lastConsumedSpan(), maybeOptionalSemicolon(scanner, requireSemicolon));

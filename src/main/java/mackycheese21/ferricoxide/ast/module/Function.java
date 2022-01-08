@@ -18,8 +18,9 @@ public class Function {
     public final String llvmName;
     public boolean implicitVoidReturn;
     public @Nullable FOType enclosingType;
+    public boolean modRefUpOne; // module references should local reference up one
 
-    public Function(Identifier name, boolean inline, FunctionType type, List<Identifier> paramNames, Block body, String llvmName, boolean implicitVoidReturn, FOType enclosingType) {
+    public Function(Identifier name, boolean inline, FunctionType type, List<Identifier> paramNames, Block body, String llvmName, boolean implicitVoidReturn, FOType enclosingType, boolean modRefUpOne) {
         this.name = name;
         this.inline = inline;
         this.type = type;
@@ -28,6 +29,12 @@ public class Function {
         this.llvmName = llvmName;
         this.implicitVoidReturn = implicitVoidReturn;
         this.enclosingType = enclosingType;
+        this.modRefUpOne = modRefUpOne;
+    }
+
+    public Identifier getModPath() {
+        if(modRefUpOne) return name.removeLast().removeLast();
+        return name.removeLast();
     }
 
     public boolean isExtern() {

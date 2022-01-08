@@ -76,9 +76,21 @@ public final class Preprocessor {
     }
 
     public List<TokenTree> include(Span span, String mainFilename) throws IOException {
-        Path path = resolveInclude(span, mainFilename);
-        if (includedPaths.contains(path)) return new ArrayList<>();
-        includedPaths.add(path);
-        return apply(new TokenScanner(Tokenizer.tokenize(path, Files.readString(path))));
+        List<Path> paths = new ArrayList<>();
+        paths.add(resolveInclude(span, mainFilename));
+        List<TokenTree> result = new ArrayList<>();
+        while (paths.size() > 0) {
+            Path path = paths.remove(0);
+            if (includedPaths.contains(path)) continue;
+            includedPaths.add(path);
+            if (path.toFile().isDirectory()) {
+                for (String s : path.toFile().list()) {
+                    paths.add(path.resolve(s));
+                }
+            } else {
+                result.addAll(apply(new TokenScanner(Tokenizer.tokenize(path, Files.readString(path)))));
+            }
+        }
+        return result;
     }
 }

@@ -1,0 +1,34 @@
+include!("gl/c/gl")
+include!("std/mem")
+
+mod gl {
+    struct vao {
+        id: i32,
+        vertex_count: i32
+    }
+
+    impl vao {
+        fn new() -> vao {
+            let id = 0;
+            c::glGenVertexArrays(1, &id);
+            return vao { id: id, vertex_count: 0 };
+        }
+        fn attrib(&self, layout: i32, dimension: i32, vertex_count: i32, data: f32*) {
+            c::glBindVertexArray(self->id);
+            let vbo = 0;
+            c::glGenBuffers(1, &vbo);
+            c::glBindBuffer(c::GL_ARRAY_BUFFER, vbo);
+            c::glBufferData(c::GL_ARRAY_BUFFER, 4 * dimension * vertex_count, data, c::GL_STATIC_DRAW);
+            c::glVertexAttribPointer(layout, dimension, c::GL_FLOAT, false, dimension * 4, 0);
+            c::glEnableVertexAttribArray(layout);
+            c::glBindBuffer(c::GL_ARRAY_BUFFER, 0);
+            c::glBindVertexArray(0);
+            self->vertex_count = vertex_count;
+        }
+        fn triangles(&self) {
+            c::glBindVertexArray(self->id);
+            c::glDrawArrays(c::GL_TRIANGLES, 0, self->vertex_count);
+            c::glBindVertexArray(0);
+        }
+    }
+}

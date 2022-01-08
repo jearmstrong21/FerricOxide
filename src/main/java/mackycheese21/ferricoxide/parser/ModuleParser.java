@@ -92,16 +92,20 @@ public class ModuleParser {
         TokenScanner paramScanner = new TokenScanner(scanner.next().requireGroup(GroupToken.Type.PAREN).value);
         List<Identifier> paramNames = new ArrayList<>();
         List<FOType> paramTypes = new ArrayList<>();
+        boolean staticMethod = false;
         if (inImpl) { // inImpl always has a modTree entry
             FOType selfType = enclosingType;
-            if (paramScanner.peek() instanceof PunctToken punct && punct.type == PunctToken.Type.AND) {
+            if (paramScanner.remaining() > 0 && paramScanner.peek() instanceof PunctToken punct && punct.type == PunctToken.Type.AND) {
                 paramScanner.next();
                 selfType = new PointerType(selfType);
             }
-            IdentToken self = paramScanner.next().requireIdent();
-            self.requireValue("self");
-            paramNames.add(new Identifier(self.span(), self.value));
-            paramTypes.add(selfType);
+            if(paramScanner.remaining() > 0 && paramScanner.peek() instanceof IdentToken ident && ident.value.equals("self")) {
+                paramScanner.next();
+                paramNames.add(new Identifier(ident.span(), "self"));
+                paramTypes.add(selfType);
+            } else {
+                staticMethod = true;
+            }
         }
         while (paramScanner.remaining() > 0) {
             if (paramTypes.size() > 0) paramScanner.next().requirePunct(PunctToken.Type.COMMA);
@@ -153,7 +157,18 @@ public class ModuleParser {
             pop();
             output += "%s}\n".formatted(currentIndent);
         }
-        return new Function(makeId(nameSpan, List.of(name)), inline, funcType, paramNames, body, llvmName, false, enclosingType);
+        Identifier finalFuncId;
+        if(enclosingType != null) {
+            finalFuncId = makeId(nameSpan, List.of(enclosingType.toString(), name));
+        } else {
+            finalFuncId = makeId(nameSpan, List.of(name));
+        }
+        boolean modRefUpOne = enclosingType != null;
+        if(staticMethod) {
+            // TODO enclosingType.toString is super hacky, make it so you cant impl tuples, only things with identifier names
+            return new Function(finalFuncId, inline, funcType, paramNames, body, llvmName, false, null, modRefUpOne);
+        }
+        return new Function(finalFuncId, inline, funcType, paramNames, body, llvmName, false, enclosingType, modRefUpOne);
     }
 
     public static StructType attemptStruct(TokenScanner scanner) {

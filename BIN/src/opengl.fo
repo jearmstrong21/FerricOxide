@@ -1,136 +1,61 @@
-extern fn puts(str: i8*) -> i32
 
-let nullptr: void* = 0
+include!("std/mem")
+include!("std/io")
 
-extern fn malloc(size: i32) -> void*
-extern fn free(ptr: void*)
 
-include!("gl/c/gl")
-include!("gl/c/glad")
-include!("gl/c/glfw")
-
-fn gl_shader_new(type: i32, source: i8*) -> i32 {
-    let shader: i32 = gl::c::glCreateShader(type);
-    gl::c::glShaderSource(shader, 1, &source, nullptr);
-    gl::c::glCompileShader(shader);
-    let success: i32 = 0;
-    gl::c::glGetShaderiv(shader, gl::c::GL_COMPILE_STATUS, &success);
-    if (success == 0) {
-        let msg: i8* = malloc(512);
-        gl::c::glGetShaderInfoLog(shader, 512, nullptr, msg);
-        puts(if (type == gl::c::GL_VERTEX_SHADER) { "FO: vertex shader compilation error" } else { "FO: fragment shader compilation error" });
-        puts(msg);
-        free(msg);
-        return -1;
-    } else {
-        puts(if (type == gl::c::GL_VERTEX_SHADER) { "FO: vertex shader compilation success" } else { "FO: fragment shader compilation success" });
-    }
-    return shader;
-}
-
-fn gl_shader_program_new(vertex: i32, fragment: i32) -> i32 {
-    let id: i32 = gl::c::glCreateProgram();
-    gl::c::glAttachShader(id, vertex);
-    gl::c::glAttachShader(id, fragment);
-    gl::c::glLinkProgram(id);
-    let success: i32 = 0;
-    gl::c::glGetProgramiv(id, gl::c::GL_LINK_STATUS, &success);
-    if (success == 0) {
-        let msg: i8* = malloc(512);
-        gl::c::glGetProgramInfoLog(id, 512, nullptr, msg);
-        puts("FO: Shader program linking error");
-        puts(msg);
-        free(msg);
-        return -1;
-    } else {
-        puts("FO: Shader program success");
-    }
-    return id;
-}
-
-struct gl_vao {
-    id: i32,
-    vertex_count: i32
-}
-
-fn gl_vao_new() -> gl_vao {
-    let vao: i32 = 0;
-    gl::c::glGenVertexArrays(1, &vao);
-    return gl_vao { id: vao, vertex_count: 0 };
-}
-
-fn gl_vao_add_attrib(vao: gl_vao*, layout: i32, dimension: i32, vertex_count: i32, data: f32*) {
-    gl::c::glBindVertexArray(vao->id);
-    let vbo: i32 = 0;
-    gl::c::glGenBuffers(1, &vbo);
-    gl::c::glBindBuffer(gl::c::GL_ARRAY_BUFFER, vbo);
-    gl::c::glBufferData(gl::c::GL_ARRAY_BUFFER, 4 * dimension * vertex_count, data, gl::c::GL_STATIC_DRAW);
-    gl::c::glVertexAttribPointer(layout, dimension, gl::c::GL_FLOAT, false, dimension * 4, nullptr);
-    gl::c::glEnableVertexAttribArray(layout);
-    gl::c::glBindBuffer(gl::c::GL_ARRAY_BUFFER, 0);
-    vao->vertex_count = vertex_count;
-}
-
-fn gl_vao_render(vao: gl_vao*) {
-    gl::c::glBindVertexArray(vao->id);
-    gl::c::glDrawArrays(gl::c::GL_TRIANGLES, 0, vao->vertex_count);
-}
+include!("gl/c")
+include!("gl/shader")
+include!("gl/vao")
+include!("gl/util")
 
 export("fo_run") fn run(argc: i32, argv: i8**) -> i32 {
-    puts("FO: Hi!");
+    c::puts("FO: Hi!");
     if (gl::c::glfwInit() == 0) {
-        puts("FO: glfwInit failed\n");
+        c::puts("FO: glfwInit failed\n");
         return 1;
     }
-    puts("FO: glfwInit");
+    c::puts("FO: glfwInit");
 
     gl::c::glfwWindowHint(gl::c::GLFW_CONTEXT_VERSION_MAJOR, 3);
     gl::c::glfwWindowHint(gl::c::GLFW_CONTEXT_VERSION_MINOR, 3);
     gl::c::glfwWindowHint(gl::c::GLFW_OPENGL_FORWARD_COMPAT, 1);
     gl::c::glfwWindowHint(gl::c::GLFW_OPENGL_PROFILE, gl::c::GLFW_OPENGL_CORE_PROFILE);
 
-    puts("FO: glfwHints");
+    c::puts("FO: glfwHints");
 
-    let window: void* = gl::c::glfwCreateWindow(720, 720, "FO: Hello World\0", nullptr, nullptr);
+    let window: void* = gl::c::glfwCreateWindow(720, 720, "FO: Hello World\0", 0, 0);
 
-    puts("FO: window");
+    c::puts("FO: window");
 
-    if (window == nullptr) {
-        puts("FO: glfwCreateWindow failed\n");
+    if (window == 0) {
+        c::puts("FO: glfwCreateWindow failed\n");
         gl::c::glfwTerminate();
         return 1;
     }
 
-    puts("FO: window success");
+    c::puts("FO: window success");
 
     gl::c::glfwMakeContextCurrent(window);
 
-    puts("FO: context");
+    c::puts("FO: context");
 
     if (gl::c::gladLoadGLLoader(gl::c::glfwGetProcAddress) == 0) {
-        puts("FO: Failed to initialize glad\n");
+        c::puts("FO: Failed to initialize glad\n");
         return 1;
     }
 
     let vertexShaderSource: i8* = "#version 330 core\nlayout(location=0) in vec2 pos;layout(location=1) in vec3 col;out vec3 fcol;\nvoid main() {\n\tgl_Position = vec4(pos.x, pos.y, 0.0, 1.0);fcol=col;\n}";
     let fragmentShaderSource: i8* = "#version 330 core\nout vec4 fc;in vec3 fcol;\nvoid main() {\n\tfc = vec4(fcol, 1.0);\n}";
 
-    puts(vertexShaderSource);
-    puts(fragmentShaderSource);
+    c::puts(vertexShaderSource);
+    c::puts(fragmentShaderSource);
 
 
-    let vertex: i32 = gl_shader_new(gl::c::GL_VERTEX_SHADER, vertexShaderSource);
-    let fragment: i32 = gl_shader_new(gl::c::GL_FRAGMENT_SHADER, fragmentShaderSource);
-    let shader_program: i32 = gl_shader_program_new(vertex, fragment);
+    let shader = gl::shader::new(vertexShaderSource, fragmentShaderSource);
 
-    gl::c::glDeleteShader(vertex);
-    gl::c::glDeleteShader(fragment);
+    let vertices: f32* = c::malloc(6 * sizeof(f32));
 
-    puts("FO: cleaned shaders");
-
-    let vertices: f32* = malloc(6 * sizeof(f32));
-
-    puts("FO: \tvertices alloc");
+    c::puts("FO: \tvertices alloc");
 
     vertices[0] = 0.0;
     vertices[1] = 0.5;
@@ -141,9 +66,9 @@ export("fo_run") fn run(argc: i32, argv: i8**) -> i32 {
     vertices[4] = 0.5;
     vertices[5] = -0.25;
 
-    puts("FO: vertices");
+    c::puts("FO: vertices");
 
-    let colors: f32* = malloc(9 * sizeof(f32));
+    let colors: f32* = c::malloc(9 * sizeof(f32));
 
     colors[0] = 1f;
     colors[1] = 0f;
@@ -157,22 +82,21 @@ export("fo_run") fn run(argc: i32, argv: i8**) -> i32 {
     colors[7] = 0f;
     colors[8] = 1f;
 
-    puts("FO: colors");
+    c::puts("FO: colors");
 
-    let vao: gl_vao = gl_vao_new();
+    let vao = gl::vao::new();
 
-    gl_vao_add_attrib(&vao, 0, 2, 3, vertices);
-    gl_vao_add_attrib(&vao, 1, 3, 3, colors);
+    vao.attrib(0, 2, 3, vertices);
+    vao.attrib(1, 3, 3, colors);
 
-    free(vertices);
-    free(colors);
+    c::free(vertices);
+    c::free(colors);
 
     while (!gl::c::glfwWindowShouldClose(window)) {
-        gl::c::glClearColor(0, 0, 0, 1);
-        gl::c::glClear(gl::c::GL_COLOR_BUFFER_BIT | gl::c::GL_DEPTH_BUFFER_BIT);
+        gl::clear(0, 0, 0);
 
-        gl::c::glUseProgram(shader_program);
-        gl_vao_render(&vao);
+        shader.bind();
+        vao.triangles();
 
         gl::c::glfwSwapBuffers(window);
         gl::c::glfwPollEvents();

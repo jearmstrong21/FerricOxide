@@ -12,38 +12,46 @@ import mackycheese21.ferricoxide.ast.module.GlobalVariable;
 import mackycheese21.ferricoxide.ast.stmt.*;
 import mackycheese21.ferricoxide.ast.type.*;
 import mackycheese21.ferricoxide.ast.visitor.ModuleVisitor;
+import mackycheese21.ferricoxide.ast.visitor.ResolutionContext;
 import mackycheese21.ferricoxide.ast.visitor.StatementVisitor;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class TypeValidatorVisitor implements ModuleVisitor<Void>, StatementVisitor {
+public class TypeValidatorVisitor implements ModuleVisitor<Void>, StatementVisitor, ResolutionContext {
 
     private FOModule module = null;
 
     private final Map<Identifier, StructType> resolvedStructs = new HashMap<>();
 
-    private FunctionType resolveFunction(FunctionType function) {
+    public FunctionType resolveFunction(FunctionType function) {
         return new FunctionType(
-                resolve(function.result),
-                function.params.stream().map(this::resolve).collect(Collectors.toList())
+                resolveType(function.result),
+                function.params.stream().map(this::resolveType).collect(Collectors.toList())
         );
     }
 
-    private FOType resolve(FOType type) {
-        if (type instanceof FunctionType function) return resolveFunction(function);
-        if (type instanceof PointerType pointer) return new PointerType(resolve(pointer.to));
+    @Override
+    public void setCurrentModPath(Identifier identifier) {
+        this.currentModPath = identifier;
+    }
+
+    @Override
+    public FOType resolveType(FOType type) {
+        if (type instanceof FunctionType function) resolveFunction(function);
+        if (type instanceof PointerType pointer) return new PointerType(resolveType(pointer.to));
         if (type instanceof PrimitiveType) return type;
         // a struct is never returned by parser
         // and a struct returned by resolve is already fully resolved
         // :eggplant:
         if (type instanceof StructType struct) return struct;
         if (type instanceof TupleType tuple)
-            return new TupleType(tuple.types.stream().map(this::resolve).collect(Collectors.toList()));
+            return new TupleType(tuple.types.stream().map(this::resolveType).collect(Collectors.toList()));
         if (type instanceof UnresolvedType unresolved) {
+            if (resolvedStructs.containsKey(Identifier.concat(currentModPath, unresolved.identifier)))
+                return resolvedStructs.get(Identifier.concat(currentModPath, unresolved.identifier));
             if (resolvedStructs.containsKey(unresolved.identifier)) return resolvedStructs.get(unresolved.identifier);
-
             throw new AnalysisException(unresolved.identifier.span, "struct %s not found".formatted(unresolved.identifier));
         }
         throw new UnsupportedOperationException();
@@ -61,7 +69,9 @@ public class TypeValidatorVisitor implements ModuleVisitor<Void>, StatementVisit
 
         resolveStructs();
 
-        checkGlobals();
+        resolveFunctions();
+
+        resolveGlobals();
 
         //// Functions
         for (Function function : module.functions) {
@@ -69,25 +79,6 @@ public class TypeValidatorVisitor implements ModuleVisitor<Void>, StatementVisit
         }
 
         return null;
-    }
-
-    private void resolveStructs() {
-        for (StructType struct : module.structs) {
-            resolvedStructs.put(struct.identifier, struct);
-        }
-        for (StructType struct : module.structs) {
-            struct.fields.replaceAll((__, type) -> resolve(type));
-        }
-        for (GlobalVariable global : module.globals) {
-            global.type = resolve(global.type);
-        }
-        for (Function function : module.functions) {
-            function.type = resolveFunction(function.type);
-            if(function.enclosingType != null) {
-                function.enclosingType = resolve(function.enclosingType);
-                function.enclosingType.methods.put(function.name.getLast(), function);
-            }
-        }
     }
 
     private void initializeFreshContext(Map<Identifier, FunctionType> validatorFunctions, Map<Identifier, FOType> validatorGlobals, Map<Identifier, StructType> validatorStructs) {
@@ -102,25 +93,49 @@ public class TypeValidatorVisitor implements ModuleVisitor<Void>, StatementVisit
         }
     }
 
-    private void checkGlobals() {
+    private void resolveStructs() {
+        for (StructType struct : module.structs) {
+            resolvedStructs.put(struct.identifier, struct);
+        }
+        for (StructType struct : module.structs) {
+            struct.fields.replaceAll((__, type) -> resolveType(type));
+        }
+    }
+
+    private void resolveFunctions() {
+        for (Function function : module.functions) {
+            currentModPath = function.getModPath();
+            function.type = resolveFunction(function.type);
+            if (function.enclosingType != null) {
+                function.enclosingType = resolveType(function.enclosingType);
+                function.enclosingType.methods.put(function.name.getLast(), function);
+            }
+        }
+    }
+
+    private void resolveGlobals() {
         Map<Identifier, FunctionType> validatorFunctions = new HashMap<>();
         Map<Identifier, FOType> validatorGlobals = new HashMap<>();
         Map<Identifier, StructType> validatorStructs = new HashMap<>();
         initializeFreshContext(validatorFunctions, validatorGlobals, validatorStructs);
         for (GlobalVariable global : module.globals) {
             localVariables = new MapStack<>();
-            expressionValidator = new ExpressionValidator(localVariables, validatorFunctions, validatorGlobals, global.name.removeLast(), validatorStructs, this::resolve);
-            global.type = resolve(global.type);
+            expressionValidator = new ExpressionValidator(localVariables, validatorFunctions, validatorGlobals, global.name.removeLast(), validatorStructs, this);
+            currentModPath = global.name.removeLast();
+            global.type = resolveType(global.type);
             global.value = global.value.request(expressionValidator, global.type);
             Utils.requireType(global.type, global.value);
         }
     }
 
     private FOType expectedReturnType;
+    private Identifier currentModPath;
     private MapStack<Identifier, FOType> localVariables;
     private ExpressionValidator expressionValidator;
 
     private void visitFunction(Function function) {
+        currentModPath = function.getModPath();
+
         Map<Identifier, FunctionType> validatorFunctions = new HashMap<>();
         Map<Identifier, FOType> validatorGlobals = new HashMap<>();
         Map<Identifier, StructType> validatorStructs = new HashMap<>();
@@ -128,7 +143,7 @@ public class TypeValidatorVisitor implements ModuleVisitor<Void>, StatementVisit
         function.type = resolveFunction(function.type);
         if (!function.isExtern()) {
             localVariables = new MapStack<>();
-            expressionValidator = new ExpressionValidator(localVariables, validatorFunctions, validatorGlobals, function.name.removeLast(), validatorStructs, this::resolve);
+            expressionValidator = new ExpressionValidator(localVariables, validatorFunctions, validatorGlobals, currentModPath, validatorStructs, this);
             localVariables.push();
             for (int i = 0; i < function.paramNames.size(); i++) {
                 localVariables.put(function.paramNames.get(i), function.type.params.get(i));
@@ -192,10 +207,16 @@ public class TypeValidatorVisitor implements ModuleVisitor<Void>, StatementVisit
 
     @Override
     public void visitDeclareVar(DeclareVar declareVar) {
-        declareVar.type = resolve(declareVar.type);
-        localVariables.put(declareVar.name, declareVar.type);
-        declareVar.value = declareVar.value.request(expressionValidator, declareVar.type).implicitTo(declareVar.type);
-        Utils.requireType(declareVar.type, declareVar.value);
+        if (declareVar.type == null) {
+            declareVar.value = declareVar.value.request(expressionValidator, null);
+            declareVar.type = declareVar.value.result;
+            localVariables.put(declareVar.name, declareVar.type);
+        } else {
+            declareVar.type = resolveType(declareVar.type);
+            localVariables.put(declareVar.name, declareVar.type);
+            declareVar.value = declareVar.value.request(expressionValidator, declareVar.type).implicitTo(declareVar.type);
+            Utils.requireType(declareVar.type, declareVar.value);
+        }
     }
 
     @Override
@@ -210,4 +231,10 @@ public class TypeValidatorVisitor implements ModuleVisitor<Void>, StatementVisit
         // this is okay because CallExpr is either validated or failed, never modified at the root
         callStmt.callExpr = (CallExpr) callStmt.callExpr.request(expressionValidator, null);
     }
+
+    @Override
+    public Identifier getCurrentModPath() {
+        return currentModPath;
+    }
+
 }

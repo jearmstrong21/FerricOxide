@@ -13,6 +13,7 @@ import mackycheese21.ferricoxide.ast.type.FunctionType;
 import mackycheese21.ferricoxide.ast.type.PointerType;
 import mackycheese21.ferricoxide.ast.type.StructType;
 import mackycheese21.ferricoxide.ast.visitor.ExpressionRequester;
+import mackycheese21.ferricoxide.ast.visitor.ResolutionContext;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,7 +27,7 @@ public record ExpressionValidator(
         Map<Identifier, FOType> globalVariables,
         Identifier namespacePath,
         Map<Identifier, StructType> structs,
-        java.util.function.Function<FOType, FOType> typeResolver) implements ExpressionRequester<Expression, FOType> {
+        ResolutionContext resolutionContext) implements ExpressionRequester<Expression, FOType> {
 
     @Override
     public Expression visitUnresolvedIntConstant(FOType request, UnresolvedIntConstant unresolvedIntConstant) {
@@ -279,7 +280,7 @@ public record ExpressionValidator(
 
     @Override
     public Expression visitCastExpr(FOType request, CastExpr castExpr) {
-        castExpr.target = typeResolver.apply(castExpr.target);
+        castExpr.target = resolutionContext.resolveType(castExpr.target);
         castExpr.value = castExpr.value.request(this, castExpr.target);
         if (CastOperator.validate(castExpr.value.result, castExpr.target)) {
             return castExpr.result(castExpr.target);
@@ -295,13 +296,13 @@ public record ExpressionValidator(
 
     @Override
     public Expression visitSizeOf(FOType request, SizeOf sizeOf) {
-        sizeOf.type = typeResolver.apply(sizeOf.type);
+        sizeOf.type = resolutionContext.resolveType(sizeOf.type);
         return sizeOf.result(FOType.I32).implicitTo(request);
     }
 
     @Override
     public Expression visitZeroInit(FOType request, ZeroInit zeroInit) {
-        zeroInit.type = typeResolver.apply(zeroInit.type);
+        zeroInit.type = resolutionContext.resolveType(zeroInit.type);
         return zeroInit.result(zeroInit.type).implicitTo(request);
     }
 

@@ -1,0 +1,61 @@
+include!("gl/c/gl")
+include!("std/io")
+include!("std/mem")
+
+mod gl {
+    struct shader {
+        id: i32
+    }
+
+    impl shader {
+        fn new(vertex: i8*, fragment: i8*) -> shader {
+            let success = 0;
+
+            let v = c::glCreateShader(c::GL_VERTEX_SHADER);
+            c::glShaderSource(v, 1, &vertex, 0);
+            c::glCompileShader(v);
+            c::glGetShaderiv(v, c::GL_COMPILE_STATUS, &success);
+            if (success == 0) {
+                let msg: i8* = c::malloc(512);
+                c::glGetShaderInfoLog(v, 512, 0, msg);
+                c::puts("Vertex shader error");
+                c::puts(msg);
+                c::free(msg);
+            }
+
+            let f = c::glCreateShader(c::GL_FRAGMENT_SHADER);
+            c::glShaderSource(f, 1, &fragment, 0);
+            c::glCompileShader(f);
+            c::glGetShaderiv(f, c::GL_COMPILE_STATUS, &success);
+            if (success == 0) {
+                let msg: i8* = c::malloc(512);
+                c::glGetShaderInfoLog(f, 512, 0, msg);
+                c::puts("Fragment shader error");
+                c::puts(msg);
+                c::free(msg);
+            }
+
+            let id = c::glCreateProgram();
+            c::glAttachShader(id, v);
+            c::glAttachShader(id, f);
+            c::glLinkProgram(id);
+            c::glGetProgramiv(id, c::GL_LINK_STATUS, &success);
+            if (success == 0) {
+                let msg: i8* = c::malloc(512);
+                c::glGetProgramInfoLog(id, 512, 0, msg);
+                c::puts("Program linking error");
+                c::puts(msg);
+                c::free(msg);
+            }
+
+            c::glDeleteShader(v);
+            c::glDeleteShader(f);
+
+            return shader { id: id };
+        }
+
+        fn bind(&self) {
+            c::glUseProgram(self->id);
+        }
+    }
+}

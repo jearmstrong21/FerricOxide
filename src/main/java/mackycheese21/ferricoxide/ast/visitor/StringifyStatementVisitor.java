@@ -83,7 +83,11 @@ public class StringifyStatementVisitor implements StatementVisitor {
 
     @Override
     public void visitDeclareVar(DeclareVar declareVar) {
-        write("let %s: %s = %s;".formatted(declareVar.name.toString(), declareVar.type.identifier.toString(), declareVar.value.stringify()));
+        if(declareVar.type == null) {
+            write("let %s = %s;".formatted(declareVar.name.toString(), declareVar.value.stringify()));
+        } else {
+            write("let %s: %s = %s;".formatted(declareVar.name.toString(), declareVar.type.explicitName, declareVar.value.stringify()));
+        }
     }
 
     @Override

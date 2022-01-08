@@ -44,8 +44,11 @@ public class TokenScanner {
     }
 
     public TokenTree peek() {
-        if (remaining() <= 0)
+        if (remaining() <= 0) {
+            if (internal.size() == 0)
+                throw new AnalysisException(new Span(new Span.Loc(0, 0), new Span.Loc(0, 0), null), "unexpected eof");
             throw new AnalysisException(internal.get(internal.size() - 1).span(), "unexpected eof");
+        }
         return internal.get(index);
     }
 
