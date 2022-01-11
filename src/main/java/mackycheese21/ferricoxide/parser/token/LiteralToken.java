@@ -1,6 +1,6 @@
 package mackycheese21.ferricoxide.parser.token;
 
-import mackycheese21.ferricoxide.ast.expr.StringConstant;
+import mackycheese21.ferricoxide.ast.hl.expr.HLStringConstant;
 
 public sealed abstract class LiteralToken extends TokenTree {
 
@@ -47,7 +47,7 @@ public sealed abstract class LiteralToken extends TokenTree {
 
         @Override
         public java.lang.String toString() {
-            return "\"%s\"".formatted(StringConstant.escape(value));
+            return "\"%s\"".formatted(HLStringConstant.escape(value));
         }
 
         @Override

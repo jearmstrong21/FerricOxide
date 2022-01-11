@@ -9,49 +9,61 @@ extern fn free(ptr: i8*)
 
 extern fn puts(str: i8*) -> i32
 
-struct coords {
-    x: f32,
-    y: f32
+trait T {
+    fn foo() -> i32
 }
 
-mod coords {
-    fn from_polar(theta: f32, r: f32) -> coords {
-        return coords {
-            x: math::cos(theta) * r,
-            y: math::sin(theta) * r
-        };
-    }
-    fn compute_mag(x: f32, y: f32) -> f32 {
-        return math::sqrt(x * x + y * y);
+struct A {}
+struct B {}
+
+impl T for A {
+    fn foo() -> i32 {
+        return 1;
     }
 }
 
-impl coords {
-// test static methods (all of this is equivalent of mod coords)
-// x.y(z...)
-// <=>
-// (typeof x)::y(x, z...)
-// or
-// So
-// c.mag() <=> coords::mag(c)
-// test static method resolution from inside class
-// self arg is a coord or coord* and doesn't need type specifier
-    fn mag(&self) -> f32 {
-        return coords::compute_mag(self->x, self->y);
+impl T for B {
+    fn foo() -> i32 {
+        return 5;
     }
-    fn copy(self) -> coords {
-        return self;
-    }
-    // doesn't compile :D
-//    fn bad_copy(&self) -> coords {
-//        return self; // shouldn't compile? idk, copy is sketch here
-//    }
+}
+
+fn consume_t(t: impl T) {
+    puts("consume_t");
+    printInt(t.foo());
+}
+
+fn consume_a(a: A) {
+    puts("consume_a");
+    printInt(a.foo());
+}
+
+fn consume_b(b: B) {
+    puts("consume_b");
+    printInt(b.foo());
 }
 
 export("fo_run") fn run() -> i32 {
-    let c: coords = coords::from_polar(5, 3);
-    print_f32(c.x);
-    print_f32(c.y);
-    print_f32(c.mag());
+    let a = A {};
+    let b = B {};
+    consume_t(a);
+    consume_t(b);
+    consume_a(a);
+    consume_b(b);
+    printInt(a.foo());
+    printInt(b.foo());
+    // expected:
+    /*
+    consume_t
+    1
+    consume_t
+    5
+    consume_a
+    1
+    consume_b
+    5
+    1
+    5
+    */
     return 0;
 }
