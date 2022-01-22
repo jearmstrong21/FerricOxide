@@ -46,7 +46,8 @@ class LLExpression
 
 // LLExpression variants
     class LLIf(LLExpression condition, LLExpression then, LLExpression otherwise)
-    class LLBlock(List<LLExpression> exprs)
+    class LLLoop(LLExpression body)
+    class LLBlock(List<LLExpression> exprs) // return last
     class LLStore(LLExpression left, LLExpression right)
     class LLGlobal(String name)
     class LLLocal(int index)
