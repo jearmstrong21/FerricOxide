@@ -12,6 +12,7 @@ public class LLFunctionType extends LLType {
     public LLFunctionType(List<LLType> params, LLType result) {
         this.params = params;
         this.result = result;
+        Objects.requireNonNull(result);
     }
 
     @Override

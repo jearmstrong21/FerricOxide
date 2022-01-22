@@ -1,0 +1,109 @@
+
+// TODO instead of null spans, Span.DEBUG special
+//      value with private constructor
+//      if a debug span is concat, its returned
+//      require nonnull in Span
+
+class HLTypeId
+    toString() // DEBUG ONLY
+    private class Primitive extends HLTypeId
+        String name
+    static HLTypeId i32(Span span)
+    static HLTypeId f32(Span span)
+
+// structs, enums
+class HLStructId extends HLTypeId
+    Identifier identifier
+
+class HLTraitId extends HLTypeId
+    Identifier identifier
+
+class HLTupleId extends HLTypeId
+    List<HLTypeId> values
+
+    // static HLTupleId empty(Span span)
+
+
+
+class HLImplFunctionPrototype
+    enum Self: NONE, VALUE, REF
+    Self self
+    List<Pair<String, HLTypeId>> params
+
+class HLImplFunctionDef
+    String name
+    HLImplFunctionPrototype proto
+    HLExpression body
+
+class HLImplDef
+    HLStructId struct
+    @Nullable HLTraitId trait
+    List<HLImplFunctionDef> functions
+
+class HLStructDef
+    Span span
+    Identifier name // full path with namespaces
+    List<Pair<String, HLTypeId>> fields
+
+class HLTraitDef
+    Span span
+    Identifier name // full path with namespace
+    List<HLImplFunctionPrototype> functions
+
+class HLGlobalDef
+    Span span
+    Identifier name // full path with namespace
+    HLTypeId type
+    HLExpression value
+
+class HLFunctionDef
+    Span span
+    Identifier name // full path with namespace
+    String llvmName // null = private function, functions must be declared explicitly as export
+    List<Pair<String, HLTypeId>> params
+    HLExpression body // null = extern function
+
+class HLTypedefDef
+    Span span
+    Identifier name // full path with namespace
+    HLTypeId typeId // the type that `name` resolves to
+
+class HLModule
+    List<HLImplDef> impls
+    List<HLStructDef> structs
+    List<HLTraitDef> traits
+    List<HLGlobalDef> globals
+    List<HLFunctionDef> functions
+    List<HLTypedefDef> typedefs
+
+class HLContext
+
+class HLExpression
+    Span span
+    HLTypeId resultType
+    LLExpression resultLL
+
+    abstract void compile(HLContext ctx)
+    abstract boolean isTerminal() // TODO is this needed? not sure
+
+    // X iff p(X)
+    // X -> *X iff p(*X)
+    // X -> Y iff (X impl Y) & p(Y)
+    // *X -> *Y is not valid, instead do *X -> X -> Y
+    void requestPredicate(Predicate<HLTypeId> predicate) // use to request addition, etc.
+
+// Expression variants
+    class HLReturn(HLExpression value) `return;` <=> `return ();` so nonnull
+    class HLUnary(UnaryOperator op, HLExpression value)
+    class HLBinary(BinaryOperator op, HLExpression value)
+    class HLBlock(List<HLExpression> values)
+    class HLDiscard(HLExpression value)
+    class HLBreak(HLExpression value) `break;` <=> `break ();` so nonnull
+    class HLLoop(HLExpression value) // expression result = break type
+    class HLFor(HLExpression init, HLExpression condition, HLExpression update, HLExpression body) // expression result = () always because not possible to statically guarantee break
+    class HLWhile(HLExpression condition, HLExpression body) // result = ()
+    class HLIf(HLExpression condition, HLExpression then, HLExpression otherwise)
+    class HLTupleInit(List<HLExpression> values)
+    class HLStructInit(HLStructId struct, List<Pair<String, HLExpression>> fields)
+    class HLCast(HLExpression value, HLTypeId target)
+    etc

@@ -1,9 +1,7 @@
 package mackycheese21.ferricoxide.ast.ll.compile;
 
 import mackycheese21.ferricoxide.ast.ll.expr.*;
-import mackycheese21.ferricoxide.ast.ll.type.LLPointerType;
-import mackycheese21.ferricoxide.ast.ll.type.LLPrimitiveType;
-import mackycheese21.ferricoxide.ast.ll.type.LLType;
+import mackycheese21.ferricoxide.ast.ll.type.*;
 import org.bytedeco.javacpp.PointerPointer;
 import org.bytedeco.llvm.LLVM.LLVMBasicBlockRef;
 import org.bytedeco.llvm.LLVM.LLVMBuilderRef;
@@ -22,16 +20,22 @@ public class LLExpressionCompiler implements LLExpressionVisitor<LLVMValueRef> {
     private final LLVMBuilderRef builder;
     private final LLVMValueRef currentFunction;
     private final LLTypeCompiler typeCompiler;
+    private final Map<String, LLType> globalTypes;
     private final Map<String, LLVMValueRef> globalRefs;
+    private final List<LLType> localTypes;
     private final List<LLVMValueRef> localRefs;
+    private final Map<String, LLFunctionType> functionTypes;
     private final Map<String, LLVMValueRef> functionRefs;
 
-    public LLExpressionCompiler(LLVMBuilderRef builder, LLVMValueRef currentFunction, LLTypeCompiler typeCompiler, Map<String, LLVMValueRef> globalRefs, List<LLVMValueRef> localRefs, Map<String, LLVMValueRef> functionRefs) {
+    public LLExpressionCompiler(LLVMBuilderRef builder, LLVMValueRef currentFunction, LLTypeCompiler typeCompiler, Map<String, LLType> globalTypes, Map<String, LLVMValueRef> globalRefs, List<LLType> localTypes, List<LLVMValueRef> localRefs, Map<String, LLFunctionType> functionTypes, Map<String, LLVMValueRef> functionRefs) {
         this.builder = builder;
         this.currentFunction = currentFunction;
         this.typeCompiler = typeCompiler;
+        this.globalTypes = globalTypes;
         this.globalRefs = globalRefs;
+        this.localTypes = localTypes;
         this.localRefs = localRefs;
+        this.functionTypes = functionTypes;
         this.functionRefs = functionRefs;
     }
 
@@ -40,18 +44,32 @@ public class LLExpressionCompiler implements LLExpressionVisitor<LLVMValueRef> {
         throw new UnsupportedOperationException("" + type);
     }
 
+    private LLStructType requireStruct(LLType type) {
+        if(type instanceof LLStructType struct) return struct;
+        throw new UnsupportedOperationException("" + type);
+    }
+
+    private LLFunctionType requireFunction(LLType type) {
+        if(type instanceof LLFunctionType function) return function;
+        throw new UnsupportedOperationException("" + type);
+    }
+
     @Override
     public LLVMValueRef visitAccessLocal(LLAccess.Local expr) {
+        expr.result = localTypes.get(expr.index);
         return Objects.requireNonNull(localRefs.get(expr.index));
     }
 
     @Override
     public LLVMValueRef visitAccessGlobal(LLAccess.Global expr) {
+        expr.result = globalTypes.get(expr.name);
         return Objects.requireNonNull(globalRefs.get(expr.name));
     }
 
     @Override
     public LLVMValueRef visitAccessFunction(LLAccess.Function expr) {
+        expr.result = functionTypes.get(expr.name);
+        // TODO functionTypes
         return Objects.requireNonNull(functionRefs.get(expr.name));
     }
 
@@ -60,6 +78,7 @@ public class LLExpressionCompiler implements LLExpressionVisitor<LLVMValueRef> {
         LLVMTypeRef elementType = requirePointer(expr.result).to.visit(typeCompiler);
         LLVMValueRef array = expr.array.visit(this);
         LLVMValueRef index = expr.index.visit(this);
+        expr.result = requirePointer(expr.array.result).to;
         return LLVMBuildInBoundsGEP2(builder,
                 elementType,
                 array,
@@ -69,10 +88,11 @@ public class LLExpressionCompiler implements LLExpressionVisitor<LLVMValueRef> {
 
     @Override
     public LLVMValueRef visitAccessProperty(LLAccess.Property expr) {
-        LLVMTypeRef objectType = requirePointer(expr.object.result).to.visit(typeCompiler);
         LLVMValueRef object = expr.object.visit(this);
+        LLVMTypeRef objectType = requirePointer(expr.object.result).to.visit(typeCompiler);
         LLVMValueRef zero = LLVMConstInt(LLVMInt32Type(), 0, 0);
         LLVMValueRef index = LLVMConstInt(LLVMInt32Type(), expr.index, 0);
+        expr.result = new LLPointerType(requireStruct(requirePointer(expr.object.result).to).fields.get(expr.index));
         return LLVMBuildInBoundsGEP2(builder,
                 objectType,
                 object,
@@ -87,6 +107,7 @@ public class LLExpressionCompiler implements LLExpressionVisitor<LLVMValueRef> {
     private LLVMValueRef arithmeticOperator(LLBinary expr, BinaryArithmeticOperator f, BinaryArithmeticOperator i) {
         LLVMValueRef l = expr.left.visit(this);
         LLVMValueRef r = expr.right.visit(this);
+        expr.result = expr.left.result;
         if (expr.result.isFloatingPoint()) return f.apply(builder, l, r, "binary");
         return i.apply(builder, l, r, "binary");
     }
@@ -121,8 +142,10 @@ public class LLExpressionCompiler implements LLExpressionVisitor<LLVMValueRef> {
 
     @Override
     public LLVMValueRef visitCallExpr(LLCallExpr expr) {
+        LLVMValueRef function = expr.function.visit(this);
+        expr.result = requireFunction(expr.function.result).result;
         String name = expr.result == LLPrimitiveType.VOID ? "" : "call";
-        return LLVMBuildCall2(builder, expr.function.result.visit(typeCompiler), expr.function.visit(this),
+        return LLVMBuildCall2(builder, expr.function.result.visit(typeCompiler), function,
                 new PointerPointer<>(expr.params.size())
                         .put(expr.params.stream().map(e -> e.visit(this)).toArray(LLVMValueRef[]::new)),
                 expr.params.size(), name);
@@ -135,7 +158,9 @@ public class LLExpressionCompiler implements LLExpressionVisitor<LLVMValueRef> {
 
     @Override
     public LLVMValueRef visitDeref(LLDeref expr) {
-        return LLVMBuildLoad2(builder, expr.result.visit(typeCompiler), expr.value.visit(this), "load");
+        LLVMValueRef value = expr.value.visit(this);
+        expr.result = requirePointer(expr.value.result).to;
+        return LLVMBuildLoad2(builder, expr.result.visit(typeCompiler), value, "load");
     }
 
     @Override
@@ -172,6 +197,7 @@ public class LLExpressionCompiler implements LLExpressionVisitor<LLVMValueRef> {
 
     @Override
     public LLVMValueRef visitIntConstant(LLIntConstant expr) {
+        expr.result = LLPrimitiveType.I32;
         return LLVMConstInt(expr.target.visit(typeCompiler), expr.value, 0);
     }
 

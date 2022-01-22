@@ -14,7 +14,7 @@ public class LLStructType extends LLType {
     public LLStructType(String name, List<LLType> fields) {
         this.name = name;
         this.fields = fields;
-        Utils.assertTrue(fields.size() > 0);
+//        Utils.assertTrue(fields.size() > 0);
     }
 
     @Override

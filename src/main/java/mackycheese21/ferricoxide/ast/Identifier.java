@@ -11,15 +11,10 @@ public class Identifier {
 
     public final Span span;
     private final String[] strings;
-//    public final boolean global;
 
     public Identifier(Span span, String[] strings) {
         this.span = span;
         this.strings = strings;
-//        this.global = global;
-        for (String str : strings) {
-            validate(str);
-        }
     }
 
     public Identifier(Span span, List<String> strings) {
@@ -35,24 +30,19 @@ public class Identifier {
         return new Identifier(span, Arrays.copyOfRange(strings, 0, strings.length - 1));
     }
 
-    private static void validate(String str) {
-        if (!Tokenizer.IDENT_START.contains("" + str.charAt(0))) throw new RuntimeException();
-        for (int i = 1; i < str.length(); i++) {
-            if (!Tokenizer.IDENT_MID.contains("" + str.charAt(i))) throw new RuntimeException();
-        }
+    public int length() {
+        return strings.length;
     }
 
     public static Identifier concat(Identifier... identifiers) {
         int len = 0;
         for (Identifier id : identifiers) len += id.strings.length;
         String[] strs = new String[len];
-        Span span = null;
         int i = 0;
         for (Identifier id : identifiers) {
             for (String s : id.strings) strs[i++] = s;
-            span = Span.concat(span, id.span);
         }
-        return new Identifier(span, strs);
+        return new Identifier(identifiers[identifiers.length - 1].span, strs);
     }
 
     @Override
@@ -69,7 +59,7 @@ public class Identifier {
     }
 
     public String toLLVMString() {
-        return "FO_" + Arrays.stream(strings).map(string -> string.length() + string).collect(Collectors.joining("__"));
+        return Arrays.stream(strings).map(string -> string + string.length()).collect(Collectors.joining("_"));
     }
 
     @Override

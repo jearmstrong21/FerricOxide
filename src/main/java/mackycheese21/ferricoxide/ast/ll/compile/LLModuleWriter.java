@@ -28,7 +28,7 @@ public class LLModuleWriter {
         }
     }
 
-    public static void write(LLModule module, LLVMModuleRef moduleRef) throws IOException {
+    public static void write(LLModule module, LLVMModuleRef moduleRef, String outputBin) throws IOException {
         Files.writeString(Path.of("BIN/build/ll_format.txt"), LLFormatter.formatModule("\t", module));
 
 
@@ -60,7 +60,7 @@ public class LLModuleWriter {
         dump(moduleRef, "BIN/build/llvm_3_nonames_opt.txt");
         verify(moduleRef);
 
-        if(LLVMTargetMachineEmitToFile(targetMachine, moduleRef, new BytePointer("BIN/build/main.x86"), LLVMObjectFile, error) != 0) {
+        if(LLVMTargetMachineEmitToFile(targetMachine, moduleRef, new BytePointer(outputBin), LLVMObjectFile, error) != 0) {
             throw new RuntimeException(error.getString());
         }
     }

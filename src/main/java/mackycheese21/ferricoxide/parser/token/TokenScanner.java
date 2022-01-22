@@ -58,4 +58,12 @@ public class TokenScanner {
         return tt;
     }
 
+    public boolean hasComma() {
+        return remaining() > 0 && peek() instanceof PunctToken punct && punct.type == PunctToken.Type.COMMA;
+    }
+
+    public void consumeCommaIfPresent() {
+        if(hasComma()) next();
+    }
+
 }

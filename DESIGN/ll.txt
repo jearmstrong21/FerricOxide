@@ -1,0 +1,97 @@
+// Since LLType <-> since LLVMTypeRef isn't one-to-one, typeRef forces LLType <-> used LLVMTypeRef is one-to-one
+// Remember: LL should be one-to-one with allowed LLVM
+// LLExpression#compile returns void intentionally, so that you can't as easily reference values that don't stick around / revisit values
+
+// Rule of thumb: LL is never validated, but only exists so that HL code doesn't have to fuck around with LLVM APIs
+
+enum UnaryOperator
+    DEREF, NEGATE, NOT
+    LLVMValueRef run(LLVMValueRef a, LLType type)
+    LLType run(LLType type)
+    HLType run(Span span, HLType type)
+
+enum BinaryOperator
+    ADD, MUL....
+    int priority;
+    LLVMValueRef run(LLVMValueRef a, LLVMValueRef b, LLType type)
+    LLType run(LLType a, LLType b)
+    HLType run(Span span, HLType a, HLType b)
+
+// LLType = LLVMTypeRef + metadata
+record LLType (all annotated notnull)
+    LLVMTypeRef ref     // temporarily empty named struct for structs/tuples/impl traits
+    List<LLType> fields
+    void setFields(List<LLType> fields) // also adds into struct ref
+    LLType deref        // @Nullable
+    toString()          // DEBUG ONLY
+
+// LLValue = type + ref
+record LLValue
+    LLType type
+    LLVMValueRef ref
+
+// LLContext
+record LLContext
+    LLVMBuilderRef builder
+    List<LLType> locals
+    Map<String, LLValue> globals   // map of globals
+    Map<String, LLValue> functions // map of functions
+    Map<String, LLType> structs    // map of all singleton structs
+
+// LLExpression
+class LLExpression
+    LLValue value // null until compiled
+    abstract void compile(LLContext ctx)
+    toString()    // DEBUG ONLY
+
+// LLExpression variants
+    class LLIf(LLExpression condition, LLExpression then, LLExpression otherwise)
+    class LLBlock(List<LLExpression> exprs)
+    class LLStore(LLExpression left, LLExpression right)
+    class LLGlobal(String name)
+    class LLLocal(int index)
+    class LLStructInit(LLType type, List<LLExpression> values)
+    class LLUnary(UnaryOperator op, LLExpression value)
+    class LLBinary(BinaryOperator op, LLExpression a, LLExpression b)
+    etc
+
+
+// LLGlobal
+class LLGlobal
+    LLType type
+    LLExpression value // not yet compiled
+
+// LLFunction
+class LLFunction
+    int paramCount
+    // boolean inline
+    List<LLType> locals           // assert(locals.size() >= paramCount)
+    @Nullable LLExpression value  // not yet compiled, null <=> extern
+
+
+// Struct generation: addStruct(name) then
+//  structs.values.forEach(struct.addFields(fields))
+class LLModule
+    Map<String, LLType> structs
+    Map<String, LLGlobal> globals
+    Map<String, LLFunction> functions
+
+    void addStruct(String name)
+
+
+
+
+
+
+
+/*
+class HLTypeCtx
+    LLType compile(HLType hl)
+
+    LLType pointer(LLType to)
+    LLType struct(String name) // returns reference to LLType
+    LLType signed_int(int bits)
+    LLType unsigned_int(int bits)
+    LLType f32()
+    LLType f64()
+*/

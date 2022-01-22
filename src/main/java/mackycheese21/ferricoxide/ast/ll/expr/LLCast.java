@@ -5,13 +5,11 @@ import mackycheese21.ferricoxide.ast.ll.type.LLType;
 public class LLCast extends LLExpression {
 
     public final LLExpression value;
-    public final LLType from;
     public final LLType target;
 
-    public LLCast(LLType target, LLExpression value, LLType from) {
+    public LLCast(LLType target, LLExpression value) {
         this.value = value;
         this.target = target;
-        this.from = from;
     }
 
     @Override

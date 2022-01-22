@@ -62,6 +62,15 @@ public class ExpressionParser {
         return null;
     }
 
+    private static HLExpression attemptDeref(TokenScanner scanner) {
+        if(scanner.peek() instanceof PunctToken punct && punct.type == PunctToken.Type.ASTERISK) {
+            Span start = scanner.next().span();
+            HLExpression expr = forceExpr(scanner);
+            return new HLDeref(Span.concat(start, expr.span), expr);
+        }
+        return null;
+    }
+
     private static HLExpression attemptUnary(TokenScanner scanner) {
         if (scanner.peek() instanceof PunctToken punct) {
             for (UnaryOperator operator : UnaryOperator.values()) {
@@ -87,7 +96,6 @@ public class ExpressionParser {
             else throw new SourceCodeException(scanner.lastConsumedSpan(), "expected identifier after ref");
         }
         HLExpression expr = new HLAccess.Var(Span.concat(start, identifier.span), identifier, ref);
-        if (!ref) expr = new HLDeref(expr.span, expr);
         return expr;
     }
 
@@ -148,6 +156,7 @@ public class ExpressionParser {
         if ((expr = attemptZeroinit(scanner)) != null) return expr;
         if ((expr = attemptSizeof(scanner)) != null) return expr;
         if ((expr = attemptIf(scanner)) != null) return expr;
+        if ((expr = attemptDeref(scanner)) != null) return expr;
         if ((expr = attemptUnary(scanner)) != null) return expr;
         if ((expr = attemptStructInit(scanner)) != null) return expr;
         if ((expr = attemptAccessVar(scanner)) != null) return expr;

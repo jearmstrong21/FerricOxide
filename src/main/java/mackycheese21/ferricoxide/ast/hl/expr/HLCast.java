@@ -6,7 +6,7 @@ import mackycheese21.ferricoxide.parser.token.Span;
 public class HLCast extends HLExpression {
 
     public final HLExpression value;
-    public final HLType target;
+    public HLType target;
 
     public HLCast(Span span, HLExpression value, HLType target) {
         super(span);

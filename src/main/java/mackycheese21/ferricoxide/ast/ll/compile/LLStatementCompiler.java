@@ -36,6 +36,7 @@ public class LLStatementCompiler implements LLStatementVisitor {
 
     @Override
     public void visitBreak(LLBreak stmt) {
+        if(loopBreakTarget == null) throw new UnsupportedOperationException();
         LLVMBuildBr(builder, loopBreakTarget);
     }
 

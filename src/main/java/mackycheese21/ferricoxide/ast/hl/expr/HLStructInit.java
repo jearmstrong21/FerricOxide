@@ -8,7 +8,7 @@ import java.util.List;
 
 public class HLStructInit extends HLExpression {
 
-    public final Identifier struct;
+    public Identifier struct;
     public final List<Pair<String, HLExpression>> fields;
 
     public HLStructInit(Span span, Identifier struct, List<Pair<String, HLExpression>> fields) {
