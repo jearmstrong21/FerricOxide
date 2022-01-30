@@ -3,20 +3,13 @@ package mackycheese21.ferricoxide.cli;
 import mackycheese21.ferricoxide.AnalysisException;
 import mackycheese21.ferricoxide.FOLLVM;
 import mackycheese21.ferricoxide.SourceCodeException;
-import mackycheese21.ferricoxide.ast.hl.compile.HLModule;
-import mackycheese21.ferricoxide.ast.hl.compile.HLModuleCompiler;
-import mackycheese21.ferricoxide.ast.hl.mod.ModItem;
-import mackycheese21.ferricoxide.ast.ll.compile.LLModuleCompiler;
-import mackycheese21.ferricoxide.ast.ll.compile.LLModuleWriter;
-import mackycheese21.ferricoxide.ast.ll.mod.LLModule;
-import mackycheese21.ferricoxide.ast.module.CompiledModule;
-import mackycheese21.ferricoxide.format.HLModuleFormatter;
+import mackycheese21.ferricoxide.nast.hl.HLModule;
+import mackycheese21.ferricoxide.nast.ll.LLModule;
 import mackycheese21.ferricoxide.parser.ModuleParser;
 import mackycheese21.ferricoxide.parser.token.TokenScanner;
 import mackycheese21.ferricoxide.parser.token.TokenTree;
 import mackycheese21.ferricoxide.pp.Preprocessor;
 import org.apache.commons.cli.*;
-import org.bytedeco.llvm.LLVM.LLVMModuleRef;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -75,17 +68,11 @@ public class FerricOxide {
             Preprocessor pp = new Preprocessor(includePaths);
             List<TokenTree> tokens = pp.include(mainFilename);
 
-            List<ModItem> items = ModuleParser.parse(new TokenScanner(tokens));
+            HLModule hlModule = ModuleParser.parse(new TokenScanner(tokens));
 
-            System.out.println(HLModuleFormatter.format(items));
-
-            HLModule hlModule = new HLModule(items);
-
-            LLModule llModule = HLModuleCompiler.compile(hlModule);
-
-            LLVMModuleRef moduleRef = LLModuleCompiler.compile(llModule);
-
-            LLModuleWriter.write(llModule, moduleRef, outFilename);
+            LLModule llModule = hlModule.compile();
+            llModule.compile();
+            llModule.write(outFilename);
         } catch (AnalysisException e) {
             System.out.println(e.span);
             System.out.println(e.span.file());

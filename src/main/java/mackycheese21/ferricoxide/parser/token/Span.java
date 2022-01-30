@@ -3,8 +3,11 @@ package mackycheese21.ferricoxide.parser.token;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
+import java.util.Objects;
 
 public record Span(Loc start, Loc end, Path file) {
+
+    public static final Span NONE = new Span(null, null, null);
 
     public static record Loc(int index, int line) implements Comparable<Loc> {
         @Override
@@ -29,8 +32,9 @@ public record Span(Loc start, Loc end, Path file) {
     }
 
     public static Span concat(Span a, Span b) {
-        if (a == null) return b;
-        if (b == null) return a;
+        Objects.requireNonNull(a);
+        Objects.requireNonNull(b);
+        if(a == NONE || b == NONE) return NONE;
         if (!a.file.equals(b.file)) throw new UnsupportedOperationException();
         Loc ns = Loc.min(a.start, b.start);
         Loc ne = Loc.min(a.end, b.end);

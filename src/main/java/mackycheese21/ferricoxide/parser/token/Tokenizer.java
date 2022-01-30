@@ -150,8 +150,8 @@ public class Tokenizer {
             str.append(scanner.next());
         }
         Span span = scanner.from(start);
-        if (str.toString().equals("true")) return new LiteralToken.Boolean(span, true);
-        if (str.toString().equals("false")) return new LiteralToken.Boolean(span, false);
+//        if (str.toString().equals("true")) return new LiteralToken.Boolean(span, true);
+//        if (str.toString().equals("false")) return new LiteralToken.Boolean(span, false);
         return new IdentToken(span, str.toString());
     }
 

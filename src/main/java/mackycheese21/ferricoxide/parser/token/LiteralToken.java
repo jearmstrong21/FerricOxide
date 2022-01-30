@@ -1,6 +1,6 @@
 package mackycheese21.ferricoxide.parser.token;
 
-import mackycheese21.ferricoxide.ast.hl.expr.HLStringConstant;
+import mackycheese21.ferricoxide.nast.hl.expr.HLStringConstant;
 
 public sealed abstract class LiteralToken extends TokenTree {
 
@@ -56,18 +56,18 @@ public sealed abstract class LiteralToken extends TokenTree {
         }
     }
 
-    public static final class Boolean extends LiteralToken {
-        public final boolean value;
-
-        public Boolean(Span span, boolean value) {
-            super(span, "boolean literal");
-            this.value = value;
-        }
-
-        @Override
-        public java.lang.String toString() {
-            return "" + value;
-        }
-    }
+//    public static final class Boolean extends LiteralToken {
+//        public final boolean value;
+//
+//        public Boolean(Span span, boolean value) {
+//            super(span, "boolean literal");
+//            this.value = value;
+//        }
+//
+//        @Override
+//        public java.lang.String toString() {
+//            return "" + value;
+//        }
+//    }
 
 }

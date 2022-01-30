@@ -1,7 +1,7 @@
 //package mackycheese21.ferricoxide.compile;
 //
 //import mackycheese21.ferricoxide.MapStack;
-//import mackycheese21.ferricoxide.ast.Identifier;
+//import mackycheese21.ferricoxide.Identifier;
 //import mackycheese21.ferricoxide.ast.module.CompiledModule;
 //import mackycheese21.ferricoxide.ast.module.FOModule;
 //import mackycheese21.ferricoxide.ast.module.Function;

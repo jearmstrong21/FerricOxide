@@ -27,11 +27,11 @@ class HLTupleId extends HLTypeId
 
 class HLImplFunctionPrototype
     enum Self: NONE, VALUE, REF
+    String name
     Self self
     List<Pair<String, HLTypeId>> params
 
 class HLImplFunctionDef
-    String name
     HLImplFunctionPrototype proto
     HLExpression body
 

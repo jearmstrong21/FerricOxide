@@ -7,10 +7,7 @@ import org.bytedeco.llvm.global.LLVM;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public final class LLModule {
 
@@ -37,7 +34,7 @@ public final class LLModule {
         for (String name : globals.keySet()) {
             LLType global = globals.get(name);
             LLVMValueRef globalRef = LLVM.LLVMAddGlobal(ref, global.ref, name);
-            globalValues.put(name, new LLValue(global, globalRef));
+            globalValues.put(name, new LLValue(LLType.pointer(global), globalRef));
         }
 
         for (String name : functions.keySet()) {
@@ -57,7 +54,7 @@ public final class LLModule {
                 LLVMValueRef functionRef = functionValues.get(name).ref();
 
                 List<LLValue> locals = new ArrayList<>();
-                LLContext ctx = new LLContext(LLVM.LLVMCreateBuilder(), locals, globalValues, functionValues, structs);
+                LLContext ctx = new LLContext(LLVM.LLVMCreateBuilder(), functionRef, locals, globalValues, functionValues, structs, new Stack<>());
 
                 LLVMBasicBlockRef entry = LLVM.LLVMAppendBasicBlock(functionRef, "entry");
                 LLVM.LLVMPositionBuilderAtEnd(ctx.builder(), entry);
@@ -128,4 +125,14 @@ public final class LLModule {
         }
     }
 
+    @Override
+    public String toString() {
+        return "LLModule{" +
+                "name='" + name + '\'' +
+                ", globals=" + globals +
+                ", functions=" + functions +
+                ", structs=" + structs +
+                ", ref=" + ref +
+                '}';
+    }
 }

@@ -1,7 +1,6 @@
 package mackycheese21.ferricoxide.nast.ll.expr;
 
 import mackycheese21.ferricoxide.nast.ll.LLContext;
-import mackycheese21.ferricoxide.nast.ll.LLExpression;
 import mackycheese21.ferricoxide.nast.ll.LLType;
 import org.bytedeco.llvm.global.LLVM;
 
@@ -22,6 +21,6 @@ public class LLReturn extends LLExpression {
 
     @Override
     public String toString() {
-        return "return %s;".formatted(ret);
+        return "return %s".formatted(ret);
     }
 }
