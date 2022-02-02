@@ -32,8 +32,6 @@ public class LLCall extends LLExpression {
                 function.value.ref(),
                 new PointerPointer<>(params.size()).put(paramRefs),
                 params.size(), ""));
-
-        if(params.size() > 0) LLVM.LLVMBuildRetVoid(ctx.builder());
     }
 
     @Override

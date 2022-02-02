@@ -5,6 +5,7 @@ import mackycheese21.ferricoxide.BinaryOperator;
 import mackycheese21.ferricoxide.Identifier;
 import mackycheese21.ferricoxide.Pair;
 import mackycheese21.ferricoxide.nast.hl.def.*;
+import mackycheese21.ferricoxide.nast.hl.type.HLTypeId;
 import mackycheese21.ferricoxide.nast.ll.LLFunction;
 import mackycheese21.ferricoxide.nast.ll.LLModule;
 import mackycheese21.ferricoxide.nast.ll.LLType;
@@ -35,7 +36,6 @@ public class HLModule {
     }
 
     public LLModule compile() {
-        System.out.println(globals);
         LLModule module = new LLModule("main");
 
         // TODO: initialize globals
@@ -78,6 +78,12 @@ public class HLModule {
         // Function body
         for (HLFunctionDef function : functions) {
             ctx.initialize(function.name.removeLast(), function.result);
+            ctx.localStack.push();
+            for (int i = 0; i < function.params.size(); i++) {
+                HLTypeId resolvedParam = ctx.resolve(function.params.get(i).y());
+                ctx.localList.add(ctx.compile(resolvedParam));
+                ctx.localStack.put(function.params.get(i).x(), new HLLocal(ctx.localList.size() - 1, resolvedParam));
+            }
             LLExpression body = null;
             if (function.body != null) {
                 function.body.compile(ctx);
@@ -87,7 +93,8 @@ public class HLModule {
                     body = new LLReturn(body);
                 }
             }
-            ctx.localList.addAll(0, function.params.stream().map(Pair::y).map(ctx::compile).collect(Collectors.toList()));
+//            ctx.localList.addAll(0, function.params.stream().map(Pair::y).map(ctx::compile).collect(Collectors.toList()));
+//            ctx.localStack.pu
             module.functions.put(function.llvmName, new LLFunction(function.llvmName, function.params.size(), ctx.localList, ctx.compile(function.result), function.export, body));
         }
 

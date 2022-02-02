@@ -16,13 +16,12 @@ public class ExpressionParser {
             Span start = scanner.next().span();
 
             HLExpression condition = forceExpr(scanner);
-            TokenScanner thenScanner = new TokenScanner(scanner.next().requireGroup(GroupToken.Type.CURLY_BRACKET).value);
-            HLExpression then = forceExpr(thenScanner);
-            thenScanner.requireEmpty();
-            scanner.next().requireIdent().requireValue("else");
-            TokenScanner otherwiseScanner = new TokenScanner(scanner.next().requireGroup(GroupToken.Type.CURLY_BRACKET).value);
-            HLExpression otherwise = forceExpr(otherwiseScanner);
-            otherwiseScanner.requireEmpty();
+            HLExpression then = forceBlock(scanner);
+            HLExpression otherwise = HLExpression.none(ident.span());
+            if(scanner.remaining() > 0 && scanner.peek() instanceof IdentToken ident2 && ident2.value.equals("else")) {
+                scanner.next();
+                otherwise = forceBlock(scanner);
+            }
 
             Span end = scanner.lastConsumedSpan();
             return new HLIfExpr(Span.concat(start, end), condition, then, otherwise);
@@ -56,6 +55,11 @@ public class ExpressionParser {
 
     private static HLExpression attemptUnary(TokenScanner scanner) {
         if (scanner.peek() instanceof PunctToken punct) {
+            if (punct.type == PunctToken.Type.AND) {
+                Span start = scanner.next().span();
+                HLExpression expr = forceExpr(scanner);
+                return new HLCreateRef(Span.concat(start, expr.span), expr);
+            }
             for (UnaryOperator operator : UnaryOperator.values()) {
                 if (operator.punctuation == punct.type) {
                     Span start = scanner.next().span();
@@ -86,29 +90,23 @@ public class ExpressionParser {
     }
 
     private static HLExpression attemptStructInit(TokenScanner scanner) {
-        TokenScanner s = scanner.copy();
-        if (s.peek() instanceof IdentToken ident && ident.value.equals("new")) {
-            Identifier struct = CommonParser.forceIdentifier(s);
-            Span start = ident.span();
-            if (s.remaining() > 0 && s.peek() instanceof GroupToken group && group.type == GroupToken.Type.CURLY_BRACKET) {
-                s.next();
-                scanner.from(s);
-                TokenScanner initializerScanner = new TokenScanner(group.value);
-                List<Pair<String, HLExpression>> fields = new ArrayList<>();
-                while (initializerScanner.remaining() > 0) {
-                    if (fields.size() > 0) {
-                        initializerScanner.next().requirePunct(PunctToken.Type.COMMA);
-                    }
-                    String str = initializerScanner.next().requireIdent().value;
-                    initializerScanner.next().requirePunct(PunctToken.Type.COLON);
-                    HLExpression expr = forceExpr(initializerScanner);
-                    fields.add(new Pair<>(str, expr));
+        if (scanner.peek() instanceof IdentToken ident && ident.value.equals("new")) {
+            Span start = scanner.next().span();
+            HLTypeId struct = CommonParser.forceType(scanner);
+            TokenScanner initializerScanner = new TokenScanner(scanner.next().requireGroup(GroupToken.Type.CURLY_BRACKET).value);
+            List<Pair<String, HLExpression>> fields = new ArrayList<>();
+            while (initializerScanner.remaining() > 0) {
+                if (fields.size() > 0) {
+                    initializerScanner.next().requirePunct(PunctToken.Type.COMMA);
                 }
-                initializerScanner.requireEmpty();
-                Span end = scanner.lastConsumedSpan();
-                throw new UnsupportedOperationException("structs?????? the nerve");
-//                return new HLStructInit(Span.concat(start, end), struct, fields);
+                String str = initializerScanner.next().requireIdent().value;
+                initializerScanner.next().requirePunct(PunctToken.Type.COLON);
+                HLExpression expr = forceExpr(initializerScanner);
+                fields.add(new Pair<>(str, expr));
             }
+            initializerScanner.requireEmpty();
+            Span end = scanner.lastConsumedSpan();
+            return new HLStructInit(Span.concat(start, end), struct, fields);
         }
         return null;
     }
@@ -133,14 +131,9 @@ public class ExpressionParser {
             while (blockScanner.remaining() > 0) {
                 if (exprs.size() > 0) {
                     blockScanner.next().requirePunct(PunctToken.Type.SEMICOLON);
-                    HLExpression e = exprs.get(exprs.size() - 1);
-                    exprs.set(exprs.size() - 1, new HLDiscard(Span.concat(e.span, blockScanner.lastConsumedSpan()), e));
                 }
                 if (blockScanner.remaining() == 0) break;
                 HLExpression expr = forceExpr(blockScanner);
-                if (blockScanner.remaining() > 0 && blockScanner.peek() instanceof PunctToken punct && punct.type == PunctToken.Type.SEMICOLON) {
-                    expr = new HLDiscard(Span.concat(expr.span, punct.span()), expr);
-                }
                 exprs.add(expr);
             }
             blockScanner.requireEmpty();
@@ -317,6 +310,7 @@ public class ExpressionParser {
     private static BinaryOperator binaryOperatorPeek(TokenScanner scanner) {
         if (scanner.remaining() > 0 && scanner.peek() instanceof PunctToken punct) {
             for (BinaryOperator operator : BinaryOperator.values()) {
+                if (operator == BinaryOperator.DISCARD_FIRST) continue;
                 if (operator.punctuation == punct.type) {
                     return operator;
                 }
@@ -338,12 +332,7 @@ public class ExpressionParser {
     }
 
     public static HLExpression forceExpr(TokenScanner scanner) {
-        HLExpression expr = binaryExpr(scanner, 0);
-//        if(scanner.remaining() > 0 && scanner.peek() instanceof PunctToken punct && punct.type == PunctToken.Type.SEMICOLON) {
-//            scanner.next();
-//            expr = new HLDiscard(Span.concat(expr.span, scanner.lastConsumedSpan()), expr);
-//        }
-        return expr;
+        return binaryExpr(scanner, Integer.MIN_VALUE);
     }
 
     // https://eli.thegreenplace.net/2012/08/02/parsing-expressions-by-precedence-climbing

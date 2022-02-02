@@ -1,9 +1,9 @@
 package mackycheese21.ferricoxide.nast.ll.expr;
 
 import mackycheese21.ferricoxide.nast.ll.LLContext;
+import mackycheese21.ferricoxide.nast.ll.LLValue;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class LLBlock extends LLExpression {
 
@@ -16,11 +16,17 @@ public class LLBlock extends LLExpression {
     @Override
     public void compile(LLContext ctx) {
         exprs.forEach(e -> e.compile(ctx));
-        value = exprs.get(exprs.size() - 1).value;
+        if (exprs.size() == 0) value = LLValue.none();
+        else value = exprs.get(exprs.size() - 1).value;
     }
 
     @Override
     public String toString() {
-        return "{ %s }".formatted(exprs.stream().map(LLExpression::toString).collect(Collectors.joining(" ")));
+        String res = "";
+        for (int i = 0; i < exprs.size(); i++) {
+            res += exprs.get(i);
+            if (i != exprs.size() - 1) res += "; ";
+        }
+        return "{ %s }".formatted(res);
     }
 }

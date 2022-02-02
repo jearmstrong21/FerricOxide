@@ -4,6 +4,7 @@ import mackycheese21.ferricoxide.AnalysisException;
 import mackycheese21.ferricoxide.nast.hl.HLContext;
 import mackycheese21.ferricoxide.nast.hl.HLValue;
 import mackycheese21.ferricoxide.nast.hl.type.HLTypeId;
+import mackycheese21.ferricoxide.nast.ll.expr.LLBlock;
 import mackycheese21.ferricoxide.nast.ll.expr.LLExpression;
 import mackycheese21.ferricoxide.nast.ll.expr.LLNone;
 import mackycheese21.ferricoxide.parser.token.Span;
@@ -29,7 +30,7 @@ public class HLBlock extends HLExpression {
         if (exprs.size() == 0) {
             value = new HLValue(HLTypeId.none(span), new LLNone());
         } else {
-            value = exprs.get(exprs.size() - 1).value;
+            value = new HLValue(exprs.get(exprs.size() - 1).value.type(), new LLBlock(exprs.stream().map(e -> e.value.ll()).collect(Collectors.toList())));
         }
     }
 

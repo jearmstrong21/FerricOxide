@@ -32,7 +32,7 @@ public class LLLoop extends LLExpression {
         LLVM.LLVMBuildBr(ctx.builder(), start);
 
         LLVM.LLVMPositionBuilderAtEnd(ctx.builder(), end);
-        value = new LLValue(LLType.none(), LLVM.LLVMConstNull(LLVM.LLVMVoidType()));
+        value = new LLValue(LLType.none(), LLVM.LLVMGetUndef(LLVM.LLVMVoidType()));
     }
 
     @Override

@@ -109,13 +109,22 @@ public final class LLModule {
         LLVMPassManagerRef pm = LLVM.LLVMCreatePassManager();
         LLVM.LLVMAddStripSymbolsPass(pm);
         LLVM.LLVMRunPassManager(pm, ref);
+        LLVM.LLVMDisposePassManager(pm);
 
         dump("BIN/build/llvm_2_nonames.txt");
         verify();
 
         pm = LLVM.LLVMCreatePassManager();
+        LLVM.LLVMAddStripDeadPrototypesPass(pm);
+
+        LLVM.LLVMAddAggressiveInstCombinerPass(pm);
+        LLVM.LLVMAddPromoteMemoryToRegisterPass(pm);
+
         LLVM.LLVMAddBasicAliasAnalysisPass(pm);
         LLVM.LLVMAddAnalysisPasses(targetMachine, pm);
+
+        LLVM.LLVMAddAlwaysInlinerPass(pm);
+        LLVM.LLVMDisposePassManager(pm);
 
         dump("BIN/build/llvm_3_nonames_opt.txt");
         verify();
@@ -127,12 +136,23 @@ public final class LLModule {
 
     @Override
     public String toString() {
-        return "LLModule{" +
-                "name='" + name + '\'' +
-                ", globals=" + globals +
-                ", functions=" + functions +
-                ", structs=" + structs +
-                ", ref=" + ref +
-                '}';
+        String str = "";
+        str += "---- %s ----\n".formatted(name);
+        str += "\tModule dump: %s\n".formatted(new Date());
+        str += "\n---- structs ----\n";
+        for (String s : structs.keySet()) {
+            str += "\t%s: %s\n".formatted(s, structs.get(s));
+        }
+        str += "\n---- globals ----\n";
+        for (String s : globals.keySet()) {
+            str += "\t%s: %s\n".formatted(s, globals.get(s));
+        }
+        str += "\n---- functions ----\n";
+        for (String s : functions.keySet()) {
+            str += "\t%s: %s\n".formatted(s, functions.get(s));
+        }
+        str += "\n---- ref ----\n";
+        str += "\tref: %s\n".formatted(ref);
+        return str;
     }
 }

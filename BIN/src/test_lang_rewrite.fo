@@ -1,11 +1,35 @@
 let x: i32 = 5;
 let y: i32 = 10 * 5 + x;
 
-struct bar {
+struct coords {
     x: f32,
     y: f32,
 }
 
+extern("cos") fn cos(x: f32) -> f32;
+extern("sin") fn sin(x: f32) -> f32;
+
+extern("printInt") fn printInt(x: i32);
+extern("print_f32") fn print_f32(x: f32);
+
+fn polar(r: f32, t: f32) -> coords {
+    new coords {
+        x: cos(t) * r,
+        y: r * sin(t)
+    }
+}
+
+export("test_loop") fn test_loop() {
+    let x: i32 = 0;
+    loop {
+        printInt(x);
+        x = x + 1;
+    };
+}
+
 export("fo_run") fn run() -> i32 {
+    let c: coords = polar(5.0, 20.0);
+    print_f32(c.x);
+    print_f32((&c).y);
     return 4 * x;
 }

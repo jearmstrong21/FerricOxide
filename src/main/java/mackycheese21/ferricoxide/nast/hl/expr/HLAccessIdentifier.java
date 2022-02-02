@@ -32,11 +32,11 @@ public class HLAccessIdentifier extends HLExpression {
         }
         Identifier local = Identifier.concat(ctx.modPath, identifier);
         if (ctx.functionDefs.containsKey(local)) {
-            value = new HLValue(ctx.functionDefs.get(local).typeId(), new LLAccessFunction(local.toLLVMString()));
+            value = new HLValue(ctx.functionDefs.get(local).typeId(), new LLAccessFunction(ctx.functionDefs.get(local).llvmName));
             return;
         }
         if (ctx.functionDefs.containsKey(identifier)) {
-            value = new HLValue(ctx.functionDefs.get(identifier).typeId(), new LLAccessFunction(local.toLLVMString()));
+            value = new HLValue(ctx.functionDefs.get(identifier).typeId(), new LLAccessFunction(ctx.functionDefs.get(identifier).llvmName));
             return;
         }
 

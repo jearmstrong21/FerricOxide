@@ -15,8 +15,8 @@ public class LLZeroInit extends LLExpression {
 
     @Override
     public void compile(LLContext ctx) {
-        if(type.str.equals("()")) throw new UnsupportedOperationException();//basic check
-        value = new LLValue(type, LLVM.LLVMConstNull(type.ref));
+        if(type.flags.contains(LLType.Flag.VOID)) value = new LLValue(type, LLVM.LLVMGetUndef(LLVM.LLVMVoidType()));
+        else value = new LLValue(type, LLVM.LLVMConstNull(type.ref));
     }
 
     @Override

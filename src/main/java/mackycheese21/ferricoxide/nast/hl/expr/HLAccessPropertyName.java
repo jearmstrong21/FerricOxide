@@ -7,6 +7,7 @@ import mackycheese21.ferricoxide.nast.hl.HLValue;
 import mackycheese21.ferricoxide.nast.hl.def.HLStructDef;
 import mackycheese21.ferricoxide.nast.hl.type.HLPointerTypeId;
 import mackycheese21.ferricoxide.nast.hl.type.HLTypeId;
+import mackycheese21.ferricoxide.nast.hl.type.HLTypePredicate;
 import mackycheese21.ferricoxide.nast.ll.expr.LLAccessStructIndex;
 import mackycheese21.ferricoxide.parser.token.Span;
 
@@ -24,12 +25,17 @@ public class HLAccessPropertyName extends HLExpression {
     @Override
     public void compile(HLContext ctx) {
         object.compile(ctx);
+        HLValue objectValue = object.value;
+        if (!(objectValue.type() instanceof HLPointerTypeId)) {
+            objectValue = HLCreateRef.apply(span, ctx, objectValue);
+        }
+        HLTypeId objectTypeId = HLTypePredicate.POINTER.require(objectValue.type()).to;
         // TODO when to resolve typedefs
-        HLStructDef struct = ctx.resolveStructDef(object.value.type());
+        HLStructDef struct = ctx.resolveStructDef(objectTypeId);
         for (int i = 0; i < struct.fields.size(); i++) {
             Pair<String, HLTypeId> field = struct.fields.get(i);
             if (field.x().equals(this.field)) {
-                value = new HLValue(new HLPointerTypeId(span, field.y()), new LLAccessStructIndex(object.value.ll(), i));
+                value = new HLValue(new HLPointerTypeId(span, field.y()), new LLAccessStructIndex(objectValue.ll(), i));
                 return;
             }
         }

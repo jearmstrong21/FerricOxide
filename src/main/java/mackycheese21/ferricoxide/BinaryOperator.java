@@ -5,6 +5,7 @@ import mackycheese21.ferricoxide.nast.hl.HLValue;
 import mackycheese21.ferricoxide.nast.hl.expr.HLExpression;
 import mackycheese21.ferricoxide.nast.hl.type.HLPointerTypeId;
 import mackycheese21.ferricoxide.nast.hl.type.HLTypeId;
+import mackycheese21.ferricoxide.nast.hl.type.HLTypePredicate;
 import mackycheese21.ferricoxide.nast.ll.LLType;
 import mackycheese21.ferricoxide.nast.ll.LLValue;
 import mackycheese21.ferricoxide.nast.ll.expr.LLBinary;
@@ -35,7 +36,7 @@ public enum BinaryOperator {
     OR(20, Category.INTEGER, PunctToken.Type.OR),
 
     ASSIGN(-1, Category.ANY, PunctToken.Type.EQ),
-    DISCARD_FIRST(-1, Category.ARITH, PunctToken.Type.EQ);
+    DISCARD_FIRST(-1, Category.ARITH, null);
 
     public enum Category {
         INTEGER,
@@ -68,6 +69,7 @@ public enum BinaryOperator {
             a.require(ctx, new HLPointerTypeId(Span.NONE, b.value.type()).pred());// 'a' must be a pointer to 'b'
             result = HLTypeId.none(Span.NONE);
         } else {
+            a.require(ctx, HLTypePredicate.INT_OR_FLOAT);
             b.require(ctx, a.value.type().pred());
             if (!applies(a.value.type()))
                 throw new AnalysisException(a.span, "operator %s does not apply to %s".formatted(this, a));
@@ -82,17 +84,23 @@ public enum BinaryOperator {
 
     // pointers go through i as well
     private LLValue run(LLVMBuilderRef builder, LLValue a, LLValue b, BinOp si, BinOp ui, BinOp f) {
-        if (a.type().floatType) return new LLValue(a.type(), f.apply(builder, a.ref(), b.ref(), toString()));
-        if (a.type().signedInteger) return new LLValue(a.type(), si.apply(builder, a.ref(), b.ref(), toString()));
-        return new LLValue(a.type(), ui.apply(builder, a.ref(), b.ref(), toString()));
+        if (a.type().flags.contains(LLType.Flag.FLOAT))
+            return new LLValue(a.type(), f.apply(builder, a.ref(), b.ref(), toString()));
+        if (a.type().flags.contains(LLType.Flag.SIGNED_INT))
+            return new LLValue(a.type(), si.apply(builder, a.ref(), b.ref(), toString()));
+        if (a.type().flags.contains(LLType.Flag.UNSIGNED_INT))
+            return new LLValue(a.type(), ui.apply(builder, a.ref(), b.ref(), toString()));
+        throw new UnsupportedOperationException("wat");
     }
 
     private LLValue run(LLVMBuilderRef builder, LLValue a, LLValue b, int si, int ui, int f) {
-        if (a.type().floatType)
+        if (a.type().flags.contains(LLType.Flag.FLOAT))
             return new LLValue(a.type(), LLVM.LLVMBuildFCmp(builder, f, a.ref(), b.ref(), toString()));
-        if (a.type().signedInteger)
+        if (a.type().flags.contains(LLType.Flag.SIGNED_INT))
             return new LLValue(a.type(), LLVM.LLVMBuildICmp(builder, si, a.ref(), b.ref(), toString()));
-        return new LLValue(a.type(), LLVM.LLVMBuildFCmp(builder, f, a.ref(), b.ref(), toString()));
+        if (a.type().flags.contains(LLType.Flag.UNSIGNED_INT))
+            return new LLValue(a.type(), LLVM.LLVMBuildFCmp(builder, ui, a.ref(), b.ref(), toString()));
+        throw new UnsupportedOperationException("wat");
     }
 
     public LLValue run(LLVMBuilderRef builder, LLValue a, LLValue b) {

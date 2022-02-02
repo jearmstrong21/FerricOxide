@@ -1,7 +1,6 @@
 package mackycheese21.ferricoxide.nast.ll.expr;
 
 import mackycheese21.ferricoxide.nast.ll.LLContext;
-import mackycheese21.ferricoxide.nast.ll.LLType;
 import mackycheese21.ferricoxide.nast.ll.LLValue;
 
 import java.util.List;
