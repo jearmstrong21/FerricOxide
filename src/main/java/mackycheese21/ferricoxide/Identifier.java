@@ -1,5 +1,6 @@
 package mackycheese21.ferricoxide;
 
+import mackycheese21.ferricoxide.parser.token.IdentToken;
 import mackycheese21.ferricoxide.parser.token.Span;
 
 import java.util.Arrays;
@@ -10,6 +11,10 @@ public class Identifier {
 
     public final Span span;
     private final String[] strings;
+
+    public Identifier(IdentToken ident) {
+        this(ident.span(), ident.value);
+    }
 
     public Identifier(Span span, String[] strings) {
         this.span = span;

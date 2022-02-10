@@ -35,6 +35,9 @@ public final class LLModule {
             LLType global = globals.get(name);
             LLVMValueRef globalRef = LLVM.LLVMAddGlobal(ref, global.ref, name);
             globalValues.put(name, new LLValue(LLType.pointer(global), globalRef));
+
+            LLVM.LLVMSetLinkage(globalRef, LLVM.LLVMExternalLinkage);
+            LLVM.LLVMSetInitializer(globalRef, LLVM.LLVMConstNull(global.ref));
         }
 
         for (String name : functions.keySet()) {
@@ -61,7 +64,7 @@ public final class LLModule {
 
                 for (int i = 0; i < function.locals().size(); i++) {
                     LLType type = function.locals().get(i);
-                    locals.add(new LLValue(LLType.pointer(type), LLVM.LLVMBuildAlloca(ctx.builder(), type.ref, "%" + i)));
+                    locals.add(new LLValue(LLType.pointer(type), LLVM.LLVMBuildAlloca(ctx.builder(), type.ref, "L" + i)));
                 }
 
                 for (int i = 0; i < function.paramCount(); i++) {

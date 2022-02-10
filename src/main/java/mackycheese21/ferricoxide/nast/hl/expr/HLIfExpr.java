@@ -24,7 +24,7 @@ public class HLIfExpr extends HLExpression {
         then.compile(ctx);
         otherwise.compile(ctx);
 
-        otherwise.value.type().require(then.value.type());
+        otherwise.value.type().pred().require(ctx, then.value.type());
 
         value = new HLValue(then.value.type(), new LLIfExpr(condition.value.ll(), then.value.ll(), otherwise.value.ll()));
     }

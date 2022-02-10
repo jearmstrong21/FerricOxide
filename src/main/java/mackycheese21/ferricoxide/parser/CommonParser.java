@@ -57,6 +57,10 @@ public class CommonParser {
             Span span = ident.span();
             switch (ident.value) {
 //                case "void" -> HLTypeId.none()
+                case "u8" -> {
+                    scanner.next();
+                    return HLTypeId.u8(span);
+                }
                 case "i32" -> {
                     scanner.next();
                     return HLTypeId.i32(span);
@@ -69,6 +73,11 @@ public class CommonParser {
                     scanner.next();
                     return HLTypeId.f32(span);
                 }
+//                case "dyn" -> {
+//                    scanner.next();
+//                    Identifier id = forceIdentifier(scanner);
+//                    return new HLDynTypeId(Span.concat(span, id.span), id);
+//                }
             }
         }
         return null;
@@ -133,6 +142,8 @@ public class CommonParser {
         }
         simple = attemptKeywordType(scanner);
         if (simple == null)
+            simple = attemptTupleType(scanner);
+        if (simple == null)
             simple = attemptIdentifierType(scanner);
         if (simple == null)
             simple = attemptFunctionType(scanner);
@@ -140,7 +151,7 @@ public class CommonParser {
             if (starSpans.size() == 0) return null;
             throw new SourceCodeException(span, "unexpected asterisks");
         }
-        for (int i = starSpans.size() - 1; i >= 0; i++) {
+        for (int i = starSpans.size() - 1; i >= 0; i--) {
             simple = new HLPointerTypeId(span, simple);
         }
         return simple;

@@ -5,11 +5,13 @@ import mackycheese21.ferricoxide.BinaryOperator;
 import mackycheese21.ferricoxide.Identifier;
 import mackycheese21.ferricoxide.Pair;
 import mackycheese21.ferricoxide.nast.hl.def.*;
+import mackycheese21.ferricoxide.nast.hl.type.HLPointerTypeId;
 import mackycheese21.ferricoxide.nast.hl.type.HLTypeId;
 import mackycheese21.ferricoxide.nast.ll.LLFunction;
 import mackycheese21.ferricoxide.nast.ll.LLModule;
 import mackycheese21.ferricoxide.nast.ll.LLType;
 import mackycheese21.ferricoxide.nast.ll.expr.*;
+import mackycheese21.ferricoxide.parser.token.Span;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -40,17 +42,31 @@ public class HLModule {
 
         // TODO: initialize globals
 
-        // Struct prototype
+        // Type prototype
         Map<Identifier, LLType> compiledStructs = new HashMap<>();
+        Map<Identifier, LLType> compiledTraits = new HashMap<>();
         for (HLStructDef struct : structs) {
             compiledStructs.put(struct.name, LLType.emptyStruct(struct.name));
         }
-        HLContext ctx = new HLContext(this, compiledStructs);
+        for (HLTraitDef trait : traits) {
+            compiledTraits.put(trait.name, LLType.emptyStruct(trait.name));
+        }
+        HLContext ctx = new HLContext(this, compiledStructs, compiledTraits);
 
-        // Struct body
+        // Type body
         for (HLStructDef struct : structs) {
             ctx.initialize(struct.name.removeLast(), null);
             compiledStructs.get(struct.name).setFields(struct.fields.stream().map(Pair::y).map(ctx::compile).collect(Collectors.toList()));
+        }
+
+        for (HLTraitDef trait : traits) {
+            ctx.initialize(trait.name.removeLast(), null);
+            List<LLType> fields = new ArrayList<>();
+            fields.add(LLType.pointer(LLType.none()));
+            for (HLImplFunctionPrototype function : trait.functions) {
+                fields.add(ctx.compile(function.typeId()));
+            }
+            compiledTraits.get(trait.name).setFields(fields);
         }
 
         // Global prototype
@@ -93,9 +109,31 @@ public class HLModule {
                     body = new LLReturn(body);
                 }
             }
-//            ctx.localList.addAll(0, function.params.stream().map(Pair::y).map(ctx::compile).collect(Collectors.toList()));
-//            ctx.localStack.pu
             module.functions.put(function.llvmName, new LLFunction(function.llvmName, function.params.size(), ctx.localList, ctx.compile(function.result), function.export, body));
+        }
+
+        // Impl function body
+        for(HLTypeMethods typeMethods : ctx.typeMethods.values()) {
+            for(HLImplFunctionDef function : typeMethods.functions.values()) {
+                ctx.initialize(function.proto().modPath, function.proto().result);
+                ctx.localStack.push();
+                HLTypeId pointerToEnclosing = new HLPointerTypeId(Span.NONE, typeMethods.type);
+                ctx.localList.add(ctx.compile(pointerToEnclosing));
+                ctx.localStack.put("self", new HLLocal(ctx.localList.size() - 1, pointerToEnclosing));
+                for (int i = 0; i < function.proto().params.size(); i++) {
+                    HLTypeId resolvedParam = ctx.resolve(function.proto().params.get(i).y());
+                    ctx.localList.add(ctx.compile(resolvedParam));
+                    ctx.localStack.put(function.proto().params.get(i).x(), new HLLocal(ctx.localList.size() - 1, resolvedParam));
+                }
+                function.body().compile(ctx);
+                LLExpression body = function.body().value.ll();
+                if(!function.body().hasForcedReturn()) {
+                    function.body().require(ctx, function.proto().result.pred());
+                    body = new LLReturn(body);
+                }
+                String llvmName = typeMethods.type.llvmName() + "_" + function.proto().name;
+                module.functions.put(llvmName, new LLFunction(llvmName, function.proto().params.size() + 1, ctx.localList, ctx.compile(function.proto().result), true, body));
+            }
         }
 
         return module;

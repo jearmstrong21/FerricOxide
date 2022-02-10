@@ -43,6 +43,7 @@ public record Span(Loc start, Loc end, Path file) {
 
     @Override
     public String toString() {
+        if(this == NONE) return "no span";
         String line;
         if (start.line == end.line) {
             line = "" + start.line;

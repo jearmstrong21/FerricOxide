@@ -6,6 +6,11 @@ import java.util.Objects;
 
 public class HLPointerTypeId extends HLTypeId {
 
+    @Override
+    public String llvmName() {
+        return "P" + to.llvmName() + "P";
+    }
+
     public final HLTypeId to;
 
     public HLPointerTypeId(Span span, HLTypeId to) {

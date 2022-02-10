@@ -3,9 +3,7 @@ package mackycheese21.ferricoxide.parser;
 import mackycheese21.ferricoxide.Identifier;
 import mackycheese21.ferricoxide.Pair;
 import mackycheese21.ferricoxide.nast.hl.HLModule;
-import mackycheese21.ferricoxide.nast.hl.def.HLFunctionDef;
-import mackycheese21.ferricoxide.nast.hl.def.HLGlobalDef;
-import mackycheese21.ferricoxide.nast.hl.def.HLStructDef;
+import mackycheese21.ferricoxide.nast.hl.def.*;
 import mackycheese21.ferricoxide.nast.hl.expr.HLBlock;
 import mackycheese21.ferricoxide.nast.hl.expr.HLDiscard;
 import mackycheese21.ferricoxide.nast.hl.expr.HLExpression;
@@ -53,7 +51,7 @@ public class ModuleParser {
         String token = scanner.peek().requireIdent().value;
         switch (token) {
             case "impl" -> forceImpl(scanner, module);
-            case "trait" -> forceTrait(scanner, module);
+//            case "trait" -> forceTrait(scanner, module);
             case "mod" -> forceMod(scanner, module);
             case "let" -> forceLet(scanner, module);
             case "struct" -> forceStruct(scanner, module);
@@ -61,12 +59,45 @@ public class ModuleParser {
         }
     }
 
-    private void forceImpl(TokenScanner scanner, HLModule module) {
-        throw new UnsupportedOperationException();
+    private HLImplFunctionPrototype forceImplFunctionPrototype(Identifier modPath, HLTypeId enclosingType, TokenScanner scanner) {
+        boolean sttc = scanner.peek() instanceof IdentToken ident && ident.value.equals("static");
+        if (sttc) scanner.next();
+        scanner.next().requireIdent().requireValue("fn");
+        IdentToken name = scanner.next().requireIdent();
+        List<Pair<String, HLTypeId>> params = new ArrayList<>();
+        TokenScanner paramScanner = new TokenScanner(scanner.next().requireGroup(GroupToken.Type.PAREN).value);
+        while (paramScanner.remaining() > 0) {
+            if (params.size() > 0) paramScanner.next().requirePunct(PunctToken.Type.COMMA);
+            String paramName = paramScanner.next().requireIdent().value;
+            paramScanner.next().requirePunct(PunctToken.Type.COLON);
+            HLTypeId paramType = CommonParser.forceType(paramScanner);
+            params.add(new Pair<>(paramName, paramType));
+        }
+        paramScanner.requireEmpty();
+        HLTypeId result = HLTypeId.none(name.span());
+        if (scanner.peek() instanceof PunctToken punct && punct.type == PunctToken.Type.R_ARROW) {
+            scanner.next();
+            result = CommonParser.forceType(scanner);
+        }
+        return new HLImplFunctionPrototype(sttc, enclosingType, new Identifier(name), modPath, params, result);
     }
 
-    private void forceTrait(TokenScanner scanner, HLModule module) {
-        throw new UnsupportedOperationException();
+    private HLImplFunctionDef forceImplFunctionDef(HLTypeId enclosingType, TokenScanner scanner) {
+        HLImplFunctionPrototype proto = forceImplFunctionPrototype(new Identifier(Span.NONE, modTree), enclosingType, scanner);
+        HLExpression body = ExpressionParser.forceBlock(scanner);
+        return new HLImplFunctionDef(proto, body);
+    }
+
+    private void forceImpl(TokenScanner scanner, HLModule module) {
+        Span start = scanner.next().span();
+        HLTypeId enclosingType = CommonParser.forceType(scanner);
+        TokenScanner implScanner = new TokenScanner(scanner.next().requireGroup(GroupToken.Type.CURLY_BRACKET).value);
+        List<HLImplFunctionDef> functions = new ArrayList<>();
+        while (implScanner.remaining() > 0) {
+            functions.add(forceImplFunctionDef(enclosingType, implScanner));
+        }
+        implScanner.requireEmpty();
+        module.impls.add(new HLImplDef(Span.concat(start, scanner.lastConsumedSpan()), new Identifier(Span.NONE, modTree), enclosingType, functions));
     }
 
     private void forceMod(TokenScanner scanner, HLModule module) {

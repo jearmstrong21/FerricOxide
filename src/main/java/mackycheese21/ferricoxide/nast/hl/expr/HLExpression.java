@@ -31,13 +31,22 @@ public abstract class HLExpression {
     @Override
     public abstract String toString();
 
-    public final <T> T require(HLContext ctx, HLTypePredicate<T> predicate) {
-        if(predicate.apply(value.type()) == null) {
-            if (value.type() instanceof HLPointerTypeId pointer && predicate.apply(pointer.to) != null) {
+    public final <T> T attempt(HLContext ctx, HLTypePredicate<T> predicate) {
+        if(predicate.apply(ctx, value.type()) == null) {
+            if (value.type() instanceof HLPointerTypeId pointer && predicate.apply(ctx, pointer.to) != null) {
                 value = new HLValue(pointer.to, new LLUnary(UnaryOperator.DEREF, value.ll()));
             }
+            if(predicate.apply(ctx, new HLPointerTypeId(Span.NONE, value.type())) != null) {
+                value = HLCreateRef.apply(span, ctx, value);
+            }
         }
-        return predicate.require(value.type());
+        return predicate.apply(ctx, value.type());
+    }
+
+    public final <T> T require(HLContext ctx, HLTypePredicate<T> predicate) {
+        T res = attempt(ctx, predicate);
+        if(res != null) return res;
+        return predicate.require(ctx, value.type());
     }
 
     public static boolean hasForcedReturn(List<HLExpression> exprs) {

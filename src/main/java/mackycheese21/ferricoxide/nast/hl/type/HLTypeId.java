@@ -17,7 +17,15 @@ public abstract class HLTypeId {
         this.floatType = floatType;
     }
 
+    public abstract String llvmName();
+
     public final static class Primitive extends HLTypeId {
+
+        @Override
+        public String llvmName() {
+            return name;
+        }
+
         private final String name;
         public final LLType type;
 
@@ -70,9 +78,9 @@ public abstract class HLTypeId {
         return new HLTupleTypeId(span, new ArrayList<>());
     }
 
-    public void require(HLTypeId other) {
-        pred().require(other);
-    }
+//    public void require(HLTypeId other) {
+//        pred().require(other);
+//    }
 
     public HLTypePredicate<HLTypeId> pred() {
         return HLTypePredicate.from(this);

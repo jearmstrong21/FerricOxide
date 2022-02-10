@@ -3,6 +3,7 @@ package mackycheese21.ferricoxide.nast.hl.expr;
 import mackycheese21.ferricoxide.AnalysisException;
 import mackycheese21.ferricoxide.Pair;
 import mackycheese21.ferricoxide.nast.hl.HLContext;
+import mackycheese21.ferricoxide.nast.hl.HLModule;
 import mackycheese21.ferricoxide.nast.hl.HLValue;
 import mackycheese21.ferricoxide.nast.hl.def.HLStructDef;
 import mackycheese21.ferricoxide.nast.hl.type.HLPointerTypeId;
@@ -29,7 +30,7 @@ public class HLAccessPropertyName extends HLExpression {
         if (!(objectValue.type() instanceof HLPointerTypeId)) {
             objectValue = HLCreateRef.apply(span, ctx, objectValue);
         }
-        HLTypeId objectTypeId = HLTypePredicate.POINTER.require(objectValue.type()).to;
+        HLTypeId objectTypeId = HLTypePredicate.POINTER.require(ctx, objectValue.type()).to;
         // TODO when to resolve typedefs
         HLStructDef struct = ctx.resolveStructDef(objectTypeId);
         for (int i = 0; i < struct.fields.size(); i++) {

@@ -17,6 +17,6 @@ public class LLAccessLocal extends LLExpression {
 
     @Override
     public String toString() {
-        return "%" + index;
+        return "L" + index;
     }
 }

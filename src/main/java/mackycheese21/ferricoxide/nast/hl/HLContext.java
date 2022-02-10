@@ -19,11 +19,12 @@ public class HLContext {
     public List<LLType> localList = null;
     private final Map<Identifier, HLTypedefDef> typedefs;
     private final Map<Identifier, HLStructDef> structDefs;
-    private final Map<Identifier, HLTraitDef> traitDefs;
-    private final Map<Identifier, HLImplDef> implDefs;
+    //    private final Map<Identifier, HLTraitDef> traitDefs;
     public final Map<Identifier, HLFunctionDef> functionDefs;
     public final Map<Identifier, HLGlobalDef> globalDefs;
     private final Map<Identifier, LLType> compiledStructs;
+    public final Map<HLTypeId, HLTypeMethods> typeMethods;
+//    private final Map<Identifier, LLType> compiledTraits;
 
     public void initialize(Identifier modPath, HLTypeId returnType) {
         this.modPath = modPath;
@@ -32,25 +33,27 @@ public class HLContext {
         localList = new ArrayList<>();
     }
 
-    public HLContext(HLModule module, Map<Identifier, LLType> compiledStructs) {
+    public HLContext(HLModule module, Map<Identifier, LLType> compiledStructs, Map<Identifier, LLType> compiledTraits) {
         this.compiledStructs = compiledStructs;
         typedefs = new HashMap<>();
         structDefs = new HashMap<>();
-        traitDefs = new HashMap<>();
-        implDefs = new HashMap<>();
         functionDefs = new HashMap<>();
         globalDefs = new HashMap<>();
+        typeMethods = new HashMap<>();
         for (HLTypedefDef typedef : module.typedefs) {
             typedefs.put(typedef.name, typedef);
         }
         for (HLStructDef struct : module.structs) {
             structDefs.put(struct.name, struct);
         }
-        for (HLTraitDef trait : module.traits) {
-            traitDefs.put(trait.name, trait);
-        }
+        if(module.traits.size() > 0) throw new UnsupportedOperationException();
         for (HLImplDef impl : module.impls) {
-            implDefs.put(impl.struct.identifier, impl);
+            initialize(impl.modPath, null);
+            HLTypeId typeId = resolve(impl.typeId);
+            if(!typeMethods.containsKey(typeId)) {
+                typeMethods.put(typeId, new HLTypeMethods(typeId, new HashMap<>()));
+            }
+            typeMethods.get(typeId).impl(impl);
         }
         for (HLFunctionDef function : module.functions) {
             functionDefs.put(function.name, function);
@@ -80,12 +83,19 @@ public class HLContext {
             return LLType.function(function.params.stream().map(this::compile).collect(Collectors.toList()), compile(function.result));
         if (type instanceof HLIdentifierTypeId id) {
             if (compiledStructs.containsKey(id.identifier)) return compiledStructs.get(id.identifier);
-            throw new UnsupportedOperationException();
+            throw new UnsupportedOperationException(id.identifier.toString());
         }
         if (type instanceof HLTupleTypeId tuple)
             return LLType.tuple(tuple.values.stream().map(this::compile).collect(Collectors.toList()));
         if (type instanceof HLTypeId.Primitive primitive) return primitive.type;
-        throw new UnsupportedOperationException();
+//        if (type instanceof HLDynTypeId dyn) {
+//            if (compiledTraits.containsKey(dyn.identifier)) return compiledTraits.get(dyn.identifier);
+//            throw new UnsupportedOperationException();
+//        }
+        if (type instanceof HLPointerTypeId ptr) {
+            return LLType.pointer(compile(ptr.to));
+        }
+        throw new UnsupportedOperationException(type.getClass().toString());
     }
 
     // struct -> trait -> typedef order
@@ -99,14 +109,17 @@ public class HLContext {
             Identifier struct = resolveIdentifier(modPath, identifier, structDefs.keySet());
             if (struct != null) return new HLIdentifierTypeId(struct.span, struct);
 
-            Identifier trait = resolveIdentifier(modPath, identifier, traitDefs.keySet());
-            if (trait != null) return new HLIdentifierTypeId(trait.span, trait);
-
             Identifier typedef = resolveIdentifier(modPath, identifier, typedefs.keySet());
             if (typedef != null) return resolve(new HLIdentifierTypeId(typedef.span, typedef));
 
             throw new AnalysisException(identifier.span, "no type %s".formatted(identifier));
         }
+//        if (type instanceof HLDynTypeId dyn) {
+//            Identifier trait = resolveIdentifier(modPath, dyn.identifier, traitDefs.keySet());
+//            if (trait != null) return new HLIdentifierTypeId(trait.span, trait);
+//
+//            throw new AnalysisException(dyn.identifier.span, "no trait %s".formatted(dyn.identifier));
+//        }
         if (type instanceof HLPointerTypeId pointer) {
             return new HLPointerTypeId(pointer.span, resolve(pointer.to));
         }

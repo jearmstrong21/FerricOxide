@@ -20,7 +20,7 @@ public class HLReturn extends HLExpression {
         ret.requireLinearFlow();
 
         ret.compile(ctx);
-        ctx.returnType.require(ret.value.type());
+        ctx.returnType.pred().require(ctx, ret.value.type());
 
         value = new HLValue(HLTypeId.none(span), new LLReturn(ret.value.ll()));
     }

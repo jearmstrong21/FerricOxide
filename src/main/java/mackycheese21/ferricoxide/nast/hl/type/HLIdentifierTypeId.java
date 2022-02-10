@@ -7,6 +7,11 @@ import java.util.Objects;
 
 public class HLIdentifierTypeId extends HLTypeId {
 
+    @Override
+    public String llvmName() {
+        return identifier.toLLVMString();
+    }
+
     public final Identifier identifier;
 
     public HLIdentifierTypeId(Span span, Identifier identifier) {

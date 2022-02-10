@@ -18,6 +18,11 @@ public class HLFunctionTypeId extends HLTypeId {
     }
 
     @Override
+    public String llvmName() {
+        return "F" + params.stream().map(HLTypeId::llvmName).collect(Collectors.joining("_")) + "_" + result.llvmName() + "F";
+    }
+
+    @Override
     public String toString() {
         return "fn(%s) -> %s".formatted(params.stream().map(HLTypeId::toString).collect(Collectors.joining(", ")), result);
     }

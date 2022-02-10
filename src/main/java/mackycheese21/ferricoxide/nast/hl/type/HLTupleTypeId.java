@@ -8,6 +8,11 @@ import java.util.stream.Collectors;
 
 public class HLTupleTypeId extends HLTypeId {
 
+    @Override
+    public String llvmName() {
+        return "T" + values.stream().map(HLTypeId::llvmName).collect(Collectors.joining("_")) + "T";
+    }
+
     public final List<HLTypeId> values;
 
     public HLTupleTypeId(Span span, List<HLTypeId> values) {

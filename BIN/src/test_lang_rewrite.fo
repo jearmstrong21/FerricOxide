@@ -1,35 +1,51 @@
 let x: i32 = 5;
 let y: i32 = 10 * 5 + x;
 
-struct coords {
-    x: f32,
-    y: f32,
-}
-
-extern("cos") fn cos(x: f32) -> f32;
+extern("cosf") fn cosf(x: f32) -> f32;
 extern("sin") fn sin(x: f32) -> f32;
 
 extern("printInt") fn printInt(x: i32);
 extern("print_f32") fn print_f32(x: f32);
+extern("puts") fn puts(str: *u8);
 
-fn polar(r: f32, t: f32) -> coords {
-    new coords {
-        x: cos(t) * r,
-        y: r * sin(t)
+struct S {
+    x: f32
+}
+
+// TODO add Free trait that disables implicit copy and automatically calls free after dropping
+
+impl S {
+    static fn foo() -> S {
+        return new S { x: 5.0 };
+    }
+    fn yeet() -> S {
+        new S { x: self->x * self->x }
+    }
+    fn bro() -> *f32 {
+        self->x
+    }
+    fn dbg() {
+//        puts("S"); // TODO why does this segfault
+        print_f32(420.0);
+        print_f32(self->x);
     }
 }
 
-export("test_loop") fn test_loop() {
-    let x: i32 = 0;
-    loop {
-        printInt(x);
-        x = x + 1;
-    };
+impl f32 {
+    fn cos() -> f32 {
+        cosf(*self)
+    }
+    fn print_self() {
+        print_f32(*self);
+    }
 }
 
 export("fo_run") fn run() -> i32 {
-    let c: coords = polar(5.0, 20.0);
-    print_f32(c.x);
-    print_f32((&c).y);
-    return 4 * x;
+    let s: S = new S { x: 5.0 };
+    s.dbg();
+    print_f32(s.bro());
+    s.yeet().dbg();
+    69.0.print_self();
+    print_f32(4.0.cos());
+    return 20;
 }
